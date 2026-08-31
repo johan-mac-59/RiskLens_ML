@@ -5,8 +5,9 @@
 ![PowerBI](https://img.shields.io/badge/BI-PowerBI-yellow.svg)
 ![Scikit-Learn](https://img.shields.io/badge/Library-Scikit--Learn-orange.svg)
 
-## 📌 Présentation du projet
+## 📌 Présentation de mon projet de fin de bootcamp
 **RiskLens ML** est une mission Data & IA complète visant à transformer des données transactionnelles historiques en un outil d'aide à la décision pour la gestion du risque crédit.
+Durée prévue : 7 semaines à partir du 30 août
 
 Le projet suit un cycle de vie data complet : du diagnostic initial et la structuration d'une base de données relationnelle, à l'exposition des données via une API, jusqu'à la création d'un modèle prédictif et d'un dashboard décisionnel.
 
@@ -15,7 +16,7 @@ Le projet suit un cycle de vie data complet : du diagnostic initial et la struct
 
 L'enjeu est de déterminer si les habitudes de paiement et l'utilisation du crédit sont des indicateurs suffisamment robustes pour anticiper un défaut, sans avoir accès à des données macro-économiques ou des scores de crédit externes.
 
-## 🚀 Roadmap & Étapes du Projet (Brief 13)
+## 🚀 Roadmap & Étapes du Projet
 
 ### 🛠️ Étape 1 : Cadrage & Diagnostic
 *   Analyse du dataset *Default of Credit Card Clients*.
