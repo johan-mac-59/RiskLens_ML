@@ -51,7 +51,7 @@ L'enjeu est de déterminer si les habitudes de paiement et l'utilisation du cré
 
 ## 📋 Pilotage du projet
 Le suivi rigoureux de la mission est assuré via un tableau **Trello**, mis à jour hebdomadairement pour monitorer l'avancement des étapes et le respect du planning.
-*   [Lien vers le Trello] (À compléter)  
+*   [lien Trello](https://trello.com/b/OKlbbtCy/risklens-ml)
 
 ## ⚙️ Installation
 1. **Cloner le dépôt** :
