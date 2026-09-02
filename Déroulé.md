@@ -72,6 +72,10 @@ Je n'envisage aucune correction de cette valeur, les indications que j'ai dans l
 La brusque envolée perçue peut etre le but de l'étude originelle de ce dataset, un réel emballement des impayés au plus fort de la crise de 2005. Cela pourrait finalement correspondre à un impayé de 30 jours comme l'indique la nomenclature.  
 Le traitement de cette colonne avec cette donnée particulière sera à encoder de manière spécifique pour le ML.  
 
+**Aberrations détectées :** éventuelles à traiter
+- 9 lignes présentant des montants payés et dus anormalement élevés par rapport à leur plafond, et par rapport au reste des valeurs présentes dans le datase
+- 692 lignes présentant des paiements sur des comptes à encours négatifs : expliqués majoritairement par des paiements supérieurs aux sommes dues
+
 
 
 
