@@ -25,6 +25,20 @@ Le blocage du refinancement : Tant que les clients pouvaient ouvrir de nouvelles
 C'est donc le cumul d'intérêts déjà très élevés (20 %) associé à la fermeture du robinet du crédit qui a provoqué la vague de défauts, et non une hausse des taux du marché
 
 
+## Fonctionnement des cartes de crédits à Taïwan en 2005
+En 2005 à Taïwan, le règlement des factures de cartes de crédit et de cash cards reposait majoritairement sur du liquide et des canaux physiques décentralisés :
+- Les Convenience Stores (7-Eleven, FamilyMart, Hi-Life) : C'était le canal prédominant. Les clients recevaient leur relevé mensuel papier muni d'un code-barres, se rendaient en supérette ouverte 24/7 et régulaient leur facture en espèces directement au comptoir.
+- Les guichets automatiques (ATM) : Grâce à un réseau d'interbancarité très développé, les clients régulaient leurs cartes via virement interbancaire à l'ATM ou par dépôt d'espèces dans les bornes.
+- Le guichet bancaire et la Poste (Chunghwa Post) : Paiement traditionnel en agence, en espèces ou par chèque.
+- Le prélèvement automatique : Moins plébiscité pour le crédit renouvelable, car la plupart des Card Monsters cumulaient des cartes dans des banques où ils ne possédaient aucun compte courant.
+
+**Le lien direct avec les artefacts du dataset**
+Ce mode de paiement physique et morcelé éclaire directement les anomalies observées dans le SI :
+- Décalage de compensation (Clearing Lag) : Un règlement effectué le dernier jour du mois dans un 7-Eleven mettait 48 à 72 heures ouvrées à être télétransmis et comptabilisé par la banque émettrice. Lors du tirage de la photo comptable, le client avait payé, mais le système enregistrait un retard technique temporaire (probable PAY_1 = 1).
+- Logistique de la cavalerie : Pour maintenir leur crédit, les emprunteurs retiraient des billets aux ATM via la cash card d'une première banque, puis marchaient jusqu'à la supérette la plus proche pour déposer ces espèces au comptoir de la seconde banque.
+- Traitements par lots (Batch processing) : Le flux d'informations provenant des réseaux de supérettes et des banques tierces était réconcilié en fin de mois par des traitements batch, créant ce décalage d'un mois entre la table de gestion à chaud (PAY_1) et les historiques apurés (PAY_2 à PAY_6).
+
+
 ## Recherche de Yeh & Lien
 
 Le choix de ce jeu de données et la réalisation de l'étude par I-Cheng Yeh et Che-hui Lien reposent sur un contexte macroéconomique et bancaire très précis :
@@ -37,8 +51,11 @@ C'est dans ce climat de crise qu'une grande banque taïwanaise a fourni un écha
 Urgence opérationnelle : La banque cherchait à moderniser ses outils d'octroi et de recouvrement pour endiguer la hausse des pertes d'exploitation.
 Problématique scientifique : Les chercheurs voulaient démontrer qu'en période de crise, les techniques de Data Mining (réseaux de neurones, arbres de décision, K-NN) surpassaient les modèles statistiques traditionnels comme la régression logistique pour prédire le défaut du mois suivant (octobre 2005).
 
+Ce que mesure réellement dpnm  
+Dans le protocole de Yeh & Lien, $dpnm = 1$ indique uniquement un manquement sur l'échéance d'octobre 2005. Il s'agit d'un premier niveau d'impayé (30 jours). Un client étiqueté $dpnm = 1$ en octobre pouvait très bien régulariser sa situation en novembre.
 
-## dans quels cas cette crise pourrait survenir à nouveau
+
+## Dans quels cas cette crise pourrait survenir à nouveau ?
 
 1. Les nouveaux vecteurs de risque
 L'essor du BNPL (Buy Now, Pay Later) : Le paiement fractionné accordé en quelques clics sans vérification approfondie de solvabilité crée le même risque d'empilement de dettes. Un utilisateur peut cumuler des échéances sur Klarna, Paypal ou Alma sans qu'aucun organisme n'ait une vision globale de son encours.

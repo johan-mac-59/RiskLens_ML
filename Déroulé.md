@@ -31,13 +31,25 @@ Les colonnes 'PAY_n', 'MARRIAGE', 'EDUCATION', sont des colonnes à variables ca
 - 'MARRIAGE' contient d'autres valeurs que celles prévues
 - 'EDUCATION' contient également d'autres valeurs que celles prévues
 
-Avant de tenter un nettoyage, je constate une tendance de codification légèrement différente de ce qui est décrit dans la documentation  
+## Nettoyage
+D'après l'audit réalisé, les corrections suivantes sont appliquées :
+1. 'MARRIAGE' doit être compris dans [1, 2, 3], tout ce qui est en dehors de cette liste sera placé en '3' = 'autres'
+2. 'EDUCATION' doit être compris dans [1, 2, 3, 4], tout ce qui est en dehors de cette liste sera placé en '4' = 'autres'
+3. les colonnes 'PAY_n' nécessitent une investigation poussée pour bien comprendre le mécanisme de mise en défaut, les valeurs hors périmètre
+Aucun autre nettoyage n'est effectué à ce stade. 
+
+## EDA
+Je constate une tendance de codification des colonnes 'PAY_n' légèrement différente de ce qui est décrit dans la documentation  
 Si on écarte les erreurs humaines, informatiques et autres, il se dégage une certaine tendance concernant les valeurs de PAY_n :
 - -2 correspond à des comptes majoritairement inactifs
 - -1 et 0 correspondent à des comptes ayant un fonctionnement sain ne présentant pas de retard
 - 1 correspond à une sorte d'alerte sur le compte (fin d'un retard, activation ou réactivation d'un compte), il ne semble pas forcemment correspondre à une échéance de retard
 - 2 et + correspondent à des comptes avec retards, en effet un incident fait basculer la note directement à 2
 Ces indications sont très importantes pour la représentation des ensembles et la créations des features pour les futurs modèles de prédiction
+
+Le taux d'incident de paiement est divisé par 2,5 en cas d'encours nul ou négatif [il devrait idéalement tomber à 0% alors qu'il est présent à hauteur de 4%]. Cela laisse supposer que des dossiers avec encours nul ou négatif sont gérés en dehors du circuit classique, par exemple en recouvrement ou contentieux,  cela expliquerait la présence d'incidents fluctuant. Il ne sera pas question de nettoyage pour ces données qui sont un bruit certes mais représentent un nombre de lignes restreints.  Pour l'apprentissage des modèles, il sera intéressant d'exclure les comptes dits inactifs pour 2 raisons :
+- écarter les comptes réellement inactifs sans activité car ils n'apportent pas d'informations intéressantes et n'ont pas besoin de prédiction de défaut
+- écarter les comptes gelés, gérés ailleurs qui affichent un comportement de défaut mais qui n'apportent aucune information d'apprentissage pour le modèle en l'absence d'encours et de montants payés
 
 Le défaut de paiement futur 'dpnm' est de 22% dans le dataset.  
 Une banque ne survivrait pas plusieurs mois avec un taux de défaillance aussi élevé, on peut s'interroger sur l'origine du dataset et de son éventuel biais, surtout mis en relation avec la forte proportion de PAY_1 = 1.  
@@ -55,13 +67,15 @@ J'analyse le code '1' dans PAY_n, je commence par sa répartition dans le datase
 Ce code 1 n'est jamais suivi par autre chose que lui-même. De plus, il suit principalement un compte inactif, un compte activé/réactivé ou un compte en incidents.  
 Deux hypothèses apparaissent :
 - le code 1 est une alerte interne ou externe sur le compte
-- le code 1 vient d'autre chose
+- le code 1 vient d'autre chose ou est une codification temporaire (relance du client, incident administratif/financier en cours)
+Je n'envisage aucune correction de cette valeur, les indications que j'ai dans le dataset montre que le code 1 ne précède rien d'autres que 1.
+La brusque envolée perçue peut etre le but de l'étude originelle de ce dataset, un réel emballement des impayés au plus fort de la crise de 2005. Cela pourrait finalement correspondre à un impayé de 30 jours comme l'indique la nomenclature.  
+Le traitement de cette colonne avec cette donnée particulière sera à encoder de manière spécifique pour le ML.  
 
-
-
-## Nettoyage
 
 
 
 ## Problèmes rencontrés
-Comprendre la logique du dataset, la logique de la codification des impayés a pris énormément de temps. La documentation liée à ce dataset ne correspondait pas à ce que je pouvais constater tant dans l'étendue des valeurs codées que dans leur signification
+Comprendre la logique du dataset, la logique de la codification des impayés a pris énormément de temps. La documentation liée à ce dataset ne correspondait pas à ce que je pouvais constater tant dans l'étendue des valeurs codées que dans leur signification.
+Le dataset date de 2005 et l'équipe de recherche n'indique pas l'origine exacte des données, en tous cas elle n'indique pas si plusieurs tables ont servi à synthétiser ce jeu de données.  
+Le mode de fonctionnement de l'époque est assez opaque dans la gestion du crédit et la codification qui en découle
