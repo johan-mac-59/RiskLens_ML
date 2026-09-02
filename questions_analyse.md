@@ -1,0 +1,16 @@
+## Questions d'analyse
+
+En quoi ce dataset permet-il de répondre à une problématique métier réaliste ? Quelles limites identifies-tu déjà à ce stade ?
+
+Pourquoi ce schéma relationnel (normalisation, clés, tables) est-il adapté à tes données et à leur usage futur ?
+
+Quels choix as-tu faits pour organiser/sécuriser cette API, et en quoi une API répond-elle mieux à ce contexte qu'un accès direct à la base ?
+
+Quelles tendances actuelles en IA/Big Data as-tu identifiées ?
+Pourquoi ces indicateurs et ces visualisations sont-ils les plus pertinents pour répondre à la problématique posée en Semaine 1 ?
+
+Pourquoi ce modèle plutôt qu'un autre au vu de tes métriques ?
+
+Quels sont les risques majeurs de ton projet et comment les limiter ?
+
+Comment as-tu adapté ton discours et ton support à un public non technique ?

@@ -1,7 +1,17 @@
 ## Compréhension du dataset
 **Explorer le dataset, comprendre son contenu, son origine, sa signification**  
-Le fichier Kaggle est une copie conforme d'un dataset de 2009 publié par des chercheur, ce dataset est un extrait anonymisé d'une banque taïwanaise.  
+Le fichier Kaggle est une copie conforme d'un dataset de 2005 publié par des chercheurs Yeh & Lien en 2009, ce dataset est un extrait anonymisé d'une banque taïwanaise.  
 Il contient peu de données personnelles des clients (âge, genre, statut marital, niveau de diplome), il contient l'usage de leur carte de crédit sur les 6 derniers mois (encours, somme remboursée et éventuel retard) ; la cible est le bon paiement (0) ou le défaut de paiement (1) le mois suivant.  
+
+**Contexte macroéconomique & Origine des données**
+La crise des « Card Monsters » (Taïwan, 2005) : Résultat d'un octroi massif et laxiste de crédits renouvelables entre 2000 et 2005, provoquant une vague de surendettement et de défauts mi-2005.
+La crise taïwanaise de 2005 présente une particularité majeure : elle n'a pas été provoquée par une dégradation des indicateurs macroéconomiques classiques. Les indicateurs macroéconomiques en 2005 étaient au vert : chômage stable et bas, inflation modérée et maîtrisée, et croissance du PIB solide.  
+**Le blocage du refinancement** : Tant que les clients pouvaient ouvrir de nouvelles cartes, ils remboursaient les intérêts à 20 % d'une banque avec le cash tiré d'une autre. Dès que la Commissions Bancaire Taïwanaise a plafonné l'endettement (limite fixée à 22 fois le salaire mensuel), cette cavalerie s'est arrêtée net. Il s'agit ici d'une crise de liquidités, comme on a pu déjà en connaître et comme on pourrait encore en connaître.  
+Échantillon source : Extraction de 30 000 dossiers clients anonymisés d'une grande banque taïwanaise (avril à septembre 2005).
+**Objectifs de l'étude d'origine (Yeh & Lien, 2009)**
+Urgence opérationnelle : Moderniser les outils d'octroi et de recouvrement pour endiguer les pertes d'exploitation en plein cœur de la crise.
+Défi scientifique : Prouver la supériorité des algorithmes de Data Mining (arbres de décision, réseaux de neurones, K-NN) sur la régression logistique traditionnelle en période d'instabilité économique.
+
 Les valeurs monétaires sont en dollars taïwanais, pour information 10 000 NT$ valaient 250 €, les montants importants (jusque 1 million) sont donc plausibles.
 Les colonnes 'BILL_AMT' représentent l'encours sur chacun des 6 derniers mois.  
 Les colonnes 'PAY_AMT' représentent le montant payé par le client sur chacun des 6 derniers mois.
@@ -38,8 +48,20 @@ Dans le jeu de données, je constate des données incohérentes :
 - 37% de défaut de paiement futur sur des dossiers inactifs sur les 6 mois (866 comptes)
 Aucune information n'existe sur internet ni dans l'étude originelle de 2009 sur ces incidents de paiement qui ne semblent pas concerner un encours. Je ne sais pas s'il s'agit d'une erreur d'encodage, d'un autre problème de gestion interne du compte (clôture, saisie, faillite personnelle...). Chercher à nettoyer cette donnée fausserait tout le dataset car il n'y a pas de règle trouvée à ce stade sur l'apparition de ces impayés. Si on raisonne logique métier, nous cherchons à sécuriser un encours et à prévoir le défaut de paiement réel.  
 Il conviendra donc de ne pas inclure ces comptes inactifs dans les modèles d'apprentissage et de ne pas prédire le risque de défaut sur un crédit non utilisé.  
-Par, un compte qui a été actif doit être inclus dans le modèle car toute information sur le passé d'un client est de la matière enrichissante.  
+Par contre, un compte qui a été actif doit être inclus dans le modèle car toute information sur le passé d'un client est de la matière enrichissante.  
 Plusieurs scenarii seront à prévoir pour encadrer tous les cas métiers cohérents pour ne pas fausser le modèle ni les données
+
+J'analyse le code '1' dans PAY_n, je commence par sa répartition dans le dataset : il représente 12% des valeurs de PAY_1, les autres colonnes n'en possèdent pas ou très peu (moins de 0.1%).  
+Ce code 1 n'est jamais suivi par autre chose que lui-même. De plus, il suit principalement un compte inactif, un compte activé/réactivé ou un compte en incidents.  
+Deux hypothèses apparaissent :
+- le code 1 est une alerte interne ou externe sur le compte
+- le code 1 vient d'autre chose
+
 
 
 ## Nettoyage
+
+
+
+## Problèmes rencontrés
+Comprendre la logique du dataset, la logique de la codification des impayés a pris énormément de temps. La documentation liée à ce dataset ne correspondait pas à ce que je pouvais constater tant dans l'étendue des valeurs codées que dans leur signification
