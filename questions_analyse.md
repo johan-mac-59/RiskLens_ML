@@ -5,6 +5,7 @@ Ce sont des données réelles dans un contexte particuliers qui peut se reprodui
 Les limites sont :
 - la qualité du jeu de données lui-même et la colonne 'PAY_1' qui contient probablement un artefact de gestion courante
 - la probable coexistence de clients en circuit classique avec des clients en cicruit recouvrement / contentieux
+- des données incohérentes les unes par rapport aux autres pour un même client quand on regarde avec un oeil métier
 
 **Pourquoi ce schéma relationnel (normalisation, clés, tables) est-il adapté à tes données et à leur usage futur ?**
 
