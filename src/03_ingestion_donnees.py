@@ -12,7 +12,7 @@ root_dir = os.path.dirname(script_dir)
 csv_path = os.path.join(root_dir, 'data', 'creditcard_pret_ingestion.csv')
 json_path = os.path.join(root_dir, 'data', 'correspondances.json')
 db_path = os.path.join(root_dir, 'database', 'creditcard.db')
-schema_path = os.path.join(root_dir, 'src', 'creation_tables.sql')
+schema_path = os.path.join(root_dir, 'src', '031_creation_tables.sql')
 
 import sqlite3
 from pathlib import Path
@@ -175,7 +175,66 @@ def ingerer_dataset_csv(db_path: Path, csv_path: Path) -> None:
         f"✓ Table 'historique_mensuel' : {len(historique_mensuel_data)} lignes insérées."
     )
     
-# On enchaine les 3 fonctions créées qui forment le pipeline
-creer_tables(db_path = db_path, schema_path = schema_path)
-peupler_dimensions(json_path = json_path, db_path = db_path)
-ingerer_dataset_csv(db_path=db_path, csv_path=csv_path)
+
+import argparse
+import sys
+
+def executer_pipeline(
+    db_path: str | Path,
+    schema_path: str | Path,
+    json_path: str | Path,
+    csv_path: str | Path,
+    force: bool = False,
+) -> None:
+    """Exécute l'intégralité du pipeline d'ingestion avec sécurité d'écrasement.
+
+    Args:
+        db_path: Chemin vers la base de données SQLite.
+        schema_path: Chemin vers le fichier DDL SQL.
+        json_path: Chemin vers le fichier JSON des dimensions.
+        csv_path: Chemin vers le CSV nettoyé.
+        force: Si True, outrepasse la confirmation interactive.
+    """
+    db_path = Path(db_path)
+    schema_path = Path(schema_path)
+    json_path = Path(json_path)
+    csv_path = Path(csv_path)
+
+    print("--- DÉBUT DU PIPELINE D'INGESTION ---")
+
+    # Détection de présence et alerte d'écrasement
+    if db_path.exists() and not force:
+        print(
+            f"\n⚠️  ATTENTION : La base de données existe déjà à l'emplacement :"
+        )
+        print(f"    {db_path.resolve()}")
+        print(
+            "   Cette opération va RÉINITIALISER la base et SUPPRIMER toutes les données existantes.\n"
+        )
+
+        reponse = (
+            input("Voulez-vous vraiment continuer ? (o/N) : ").strip().lower()
+        )
+
+        if reponse not in ["o", "oui", "y", "yes"]:
+            print(
+                "\n❌ Opération annulée par l'utilisateur. Aucune modification n'a été effectuée."
+            )
+            return
+
+    print("\nLancement des traitements...")
+    creer_tables(db_path=db_path, schema_path=schema_path)
+    peupler_dimensions(db_path=db_path, json_path=json_path)
+    ingerer_dataset_csv(db_path=db_path, csv_path=csv_path)
+    print("\n--- INGESTION TERMINÉE AVEC SUCCÈS ---")
+
+
+# -----------------------------------------------------------------------------
+# Point d'entrée pour l'exécution directe depuis le terminal
+# -----------------------------------------------------------------------------
+
+executer_pipeline(
+    db_path=db_path,
+    schema_path=schema_path,
+    json_path=json_path,
+    csv_path=csv_path)
