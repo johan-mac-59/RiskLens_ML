@@ -75,6 +75,15 @@ Le traitement de cette colonne avec cette donnée particulière sera à encoder 
 **Aberrations détectées :** éventuelles à traiter
 - 9 lignes présentant des montants payés et dus anormalement élevés par rapport à leur plafond, et par rapport au reste des valeurs présentes dans le datase
 - 692 lignes présentant des paiements sur des comptes à encours négatifs : expliqués majoritairement par des paiements supérieurs aux sommes dues
+- des comptes en incidents qui voient leur note de risque fortement diminuer sans paiement effectif
+
+
+## Modélisation et ingestion des données dans la BDD
+modélisation du schéma relationnel en étoiles via la méthode MERISE
+création d'un fichier de correspondances JSON (évolutivité future sans toucher au script)
+création des tables et peuplement des tables de correspondances via un script SQL et un fichier JSON orchestré via un script Python
+Ingestion des données seulement corrigées des données n'existant pas dans la nomenclature (les 30 000 lignes sont ingérées à ce stade) via un script Python
+
 
 
 
