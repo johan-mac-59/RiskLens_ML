@@ -1,6 +1,7 @@
 # 🏦 RiskLens ML — Analyse & Prédiction du Défaut de Paiement 💳
 
 ![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
+![SQL](https://img.shields.io/badge/SQL-SQLite3-blue.svg)
 ![FastAPI](https://img.shields.io/badge/API-FastAPI-green.svg)
 ![PowerBI](https://img.shields.io/badge/BI-PowerBI-yellow.svg)
 ![Scikit-Learn](https://img.shields.io/badge/Library-Scikit--Learn-orange.svg)
