@@ -9,10 +9,10 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(script_dir)
 
 # Construire les chemins vers tes fichiers
-csv_path = os.path.join(root_dir, 'data', 'creditcard_pret_ingestion.csv')
-json_path = os.path.join(root_dir, 'data', 'correspondances.json')
-db_path = os.path.join(root_dir, 'database', 'creditcard.db')
-schema_path = os.path.join(root_dir, 'src', '031_creation_tables.sql')
+CSV_PATH = os.path.join(root_dir, 'data', 'creditcard_pret_ingestion.csv')
+JSON_PATH = os.path.join(root_dir, 'data', 'correspondances.json')
+DB_PATH = os.path.join(root_dir, 'database', 'creditcard.db')
+SCHEMA_PATH = os.path.join(root_dir, 'src', '03_02_creation_tables.sql')
 
 import sqlite3
 from pathlib import Path
@@ -176,9 +176,6 @@ def ingerer_dataset_csv(db_path: Path, csv_path: Path) -> None:
     )
     
 
-import argparse
-import sys
-
 def executer_pipeline(
     db_path: str | Path,
     schema_path: str | Path,
@@ -234,7 +231,7 @@ def executer_pipeline(
 # -----------------------------------------------------------------------------
 
 executer_pipeline(
-    db_path=db_path,
-    schema_path=schema_path,
-    json_path=json_path,
-    csv_path=csv_path)
+    db_path=DB_PATH,
+    schema_path=SCHEMA_PATH,
+    json_path=JSON_PATH,
+    csv_path=CSV_PATH)

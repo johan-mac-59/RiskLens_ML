@@ -6,12 +6,16 @@ dist/
 wheels/
 *.egg-info
 *.csv
+*.db
 
-data/
+# dossier de gestion ML
 catboost_info/
+
+# Fichiers personnels
 backup/
 banque/
 database/
+enonce.md
 
 # Virtual environments
 .venv

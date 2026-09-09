@@ -38,6 +38,14 @@ D'après l'audit réalisé, les corrections suivantes sont appliquées :
 3. les colonnes 'PAY_n' nécessitent une investigation poussée pour bien comprendre le mécanisme de mise en défaut, les valeurs hors périmètre
 Aucun autre nettoyage n'est effectué à ce stade. 
 
+## Modélisation et ingestion des données dans la BDD
+modélisation du schéma relationnel en étoiles via la méthode MERISE
+création d'un fichier de correspondances JSON (évolutivité future sans toucher au script)
+création des tables et peuplement des tables de correspondances via un script SQL et un fichier JSON orchestré via un script Python
+Ingestion des données seulement corrigées des données n'existant pas dans la nomenclature (les 30 000 lignes sont ingérées à ce stade) via un script Python
+Création d'un pipeline pour création des tables et peuplement de la base de données, sécurité implémentée avec confirmation utilisateur via l'interface
+Tests de cohérence entre la BDD et le dataset
+
 ## EDA
 Je constate une tendance de codification des colonnes 'PAY_n' légèrement différente de ce qui est décrit dans la documentation  
 Si on écarte les erreurs humaines, informatiques et autres, il se dégage une certaine tendance concernant les valeurs de PAY_n :
@@ -78,11 +86,7 @@ Le traitement de cette colonne avec cette donnée particulière sera à encoder 
 - des comptes en incidents qui voient leur note de risque fortement diminuer sans paiement effectif
 
 
-## Modélisation et ingestion des données dans la BDD
-modélisation du schéma relationnel en étoiles via la méthode MERISE
-création d'un fichier de correspondances JSON (évolutivité future sans toucher au script)
-création des tables et peuplement des tables de correspondances via un script SQL et un fichier JSON orchestré via un script Python
-Ingestion des données seulement corrigées des données n'existant pas dans la nomenclature (les 30 000 lignes sont ingérées à ce stade) via un script Python
+
 
 
 

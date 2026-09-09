@@ -1,0 +1,43 @@
+{
+  "genre": [
+    {"code_genre": 1, "description": "Homme"},
+    {"code_genre": 2, "description": "Femme"}
+  ],
+  "statut_marital": [
+    {"code_marital": 1, "description": "Marié(e)"},
+    {"code_marital": 2, "description": "Célibataire"},
+    {"code_marital": 3, "description": "Autre"}
+  ],
+  "niveau_scolaire": [
+    {"code_scolaire": 1, "description": "Master / Doctorat"},
+    {"code_scolaire": 2, "description": "License"},
+    {"code_scolaire": 3, "description": "Baccalauréat"},
+    {"code_scolaire": 4, "description": "Autre"}
+  ],
+  "statut_defaut": [
+    {"code_statut_defaut": 0, "description": "Non défaillant"},
+    {"code_statut_defaut": 1, "description": "Défaillant"}
+  ],
+  "statut_paiement": [
+    {"code_statut_paiement": -2, "description": "Pas d'utilisation / Inactif"},
+    {"code_statut_paiement": -1, "description": "A jour de paiement"},
+    {"code_statut_paiement": 0, "description": "A jour de paiement"},
+    {"code_statut_paiement": 1, "description": "Alerte / incident en cours"},
+    {"code_statut_paiement": 2, "description": "Compte en incident / Retard 2 mois"},
+    {"code_statut_paiement": 3, "description": "Retard 3 mois"},
+    {"code_statut_paiement": 4, "description": "Retard 4 mois"},
+    {"code_statut_paiement": 5, "description": "Retard 5 mois"},
+    {"code_statut_paiement": 6, "description": "Retard 6 mois"},
+    {"code_statut_paiement": 7, "description": "Retard 7 mois"},
+    {"code_statut_paiement": 8, "description": "Retard 8 mois"},
+    {"code_statut_paiement": 9, "description": "Retard 9 mois"}
+  ],
+  "dim_date": [
+    {"date_id": 200504, "mois": 4, "annee": 2005},
+    {"date_id": 200505, "mois": 5, "annee": 2005},
+    {"date_id": 200506, "mois": 6, "annee": 2005},
+    {"date_id": 200507, "mois": 7, "annee": 2005},
+    {"date_id": 200508, "mois": 8, "annee": 2005},
+    {"date_id": 200509, "mois": 9, "annee": 2005}
+  ]
+}
