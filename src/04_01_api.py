@@ -1,7 +1,8 @@
 from fastapi import FastAPI, HTTPException
 import sqlite3
 import os
-
+from pydantic import BaseModel, Field
+from enum import Enum
 
 # Le chemin ABSOLU du dossier où se trouve ce script
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -14,8 +15,6 @@ DB_PATH = os.path.join(root_dir, 'database', 'creditcard.db')
 
 app = FastAPI(title="Mon API Risklens")
 
-
-from enum import Enum
 
 # On définit les choix possibles
 class GenreEnum(int, Enum) :
@@ -32,11 +31,24 @@ class CodeScolaireEnum(int, Enum) :
     License = 2
     Baccalauréat = 3
     Autre = 4
+    
+class MoisEnum(int, Enum):
+    janvier = 1
+    fevrier = 2
+    mars = 3
+    avril = 4
+    mai = 5
+    juin = 6
+    juillet = 7
+    aout = 8
+    septembre = 9
+    octobre = 10
+    novembre = 11
+    decembre = 12
 
-from pydantic import BaseModel, Field
 
 # Créer la classe ClientRequest pour avoir un modèle de client
-class ClientRequest(BaseModel):
+class ClientRequest(BaseModel) :
     age: int = Field(..., description="Âge du client en années : nombre entier positif")
     # C'est ici qu'on ajoute la "notice" pour l'utilisateur dans la doc
     code_genre: GenreEnum = Field(..., description="Genre du client : 1 = Homme, 2 = Femme")
@@ -44,6 +56,16 @@ class ClientRequest(BaseModel):
     code_scolaire: CodeScolaireEnum = Field(..., description="Code de niveau scolaire : 1 = Doctorat/Master, 2 = License, 3 = Baccalauréat, 4 = Autre")
     plafond: float = Field(..., description="Plafond de la carte bancaire : nombre entier positif")
     code_statut_defaut: int = Field(..., description="Code du statut de défaut futur : 0 = Paiement à jour, 1 = Défaut")
+    
+# Créer la classe HistoriqueMensuelRequest pour avoir un modèle de historique_mensuel
+class HistoriqueMensuelRequest(BaseModel) :
+    client_id: int = Field(..., description="ID du client existant")
+    # On sépare la date pour que l'utilisateur puisse choisir mois/année
+    mois: MoisEnum = Field(..., description="Mois de l'historique : (1-12)")
+    annee: int = Field(..., description="Année de l'historique : (ex: 2023)", ge=2000, le=2100)
+    montant_encours: int = Field(..., description="Montant total dû de la carte")
+    montant_paye: int = Field(..., description="Montant payé")
+    code_statut_paiement: int = Field(..., description="Score de statut du compte client")
     
 
 # créer la connexion
@@ -140,6 +162,59 @@ def ajouter_un_client(client_data: ClientRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
+    
+    
+# Route Post : ajouter un historique_mensuel pour un client
+@app.post("/historique_mensuel/")
+def ajouter_historique_mensuel(data: HistoriqueMensuelRequest):
+    """Ajoute une ligne d'historique pour un client donné.
+    
+    La fonction cherche automatiquement le 'date_id' correspondant au mois/année saisis
+    dans la table de référence des dates.
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # 1. Trouver le date_id correspondant à la date saisie (mois + annee)
+        # On suppose que tu as une table 'dates' avec des colonnes 'mois' et 'annee'
+        cursor.execute(
+            "SELECT date_id FROM dim_date WHERE mois = ? AND annee = ?", 
+            (data.mois.value, data.annee)
+        )
+        row = cursor.fetchone()
+
+        if not row:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"La date {data.mois.name}/{data.annee} n'est pas référencée dans la table 'date'. Veuillez d'abord créer cette date dans le catalogue des dates."
+            )
+
+        date_id = row['date_id']
+
+        # 2. Insérer dans l'historique en utilisant le date_id trouvé
+        cursor.execute(
+            """INSERT INTO historique_mensuel 
+               (client_id, date_id, montant_encours, montant_paye, code_statut_paiement) 
+               VALUES (?, ?, ?, ?, ?)""",
+            (data.client_id, date_id, data.montant_encours, data.montant_paye, data.code_statut_paiement)
+        )
+        
+        conn.commit()
+        
+        return {
+            "message": f"Historique ajouté pour le client {data.client_id} pour la date {data.mois.name}/{data.annee}",
+            "date_id_utilise": date_id
+        }
+
+    except HTTPException:
+        # On relance les erreurs HTTP (comme 404) sans modification
+        raise
+    except Exception as e:
+        # En cas d'erreur technique (contrainte de clé étrangère, type de données, etc.)
+        raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
+    finally:
+        conn.close()
     
     
 # Route Delete : Supprimer un client par son ID
