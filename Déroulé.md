@@ -46,6 +46,13 @@ Ingestion des données seulement corrigées des données n'existant pas dans la 
 Création d'un pipeline pour création des tables et peuplement de la base de données, sécurité implémentée avec confirmation utilisateur via l'interface
 Tests de cohérence entre la BDD et le dataset
 
+## API avec FastAPI
+création d'une API en local pour accéder à la base de données
+chargement de l'API via la commande Bash 'uvicorn src.04_01_api:app --reload'
+Implémentation de GET : nom des tables et de leurs colonnes, client via son ID
+Implémentation de POST : création d'un client avec ces caractéristiques obligatoires et optionnelles
+Implémentation de DELETE : supprimer un client via son ID
+
 ## EDA
 Je constate une tendance de codification des colonnes 'PAY_n' légèrement différente de ce qui est décrit dans la documentation  
 Si on écarte les erreurs humaines, informatiques et autres, il se dégage une certaine tendance concernant les valeurs de PAY_n :

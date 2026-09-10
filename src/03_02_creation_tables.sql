@@ -56,12 +56,12 @@ CREATE TABLE statut_paiement (
 
 CREATE TABLE client (
     client_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    age INTEGER NOT NULL,
+    age INTEGER NOT NULL CHECK (age >= 0),
     code_genre INTEGER NOT NULL,
     code_marital INTEGER NOT NULL,
     code_scolaire INTEGER NOT NULL,
     plafond INTEGER NOT NULL CHECK (plafond >= 0),
-    code_statut_defaut INTEGER NOT NULL,
+    code_statut_defaut INTEGER,
     
     -- Cascade sur les codifications pour permettre leur refonte dans les tables dimensions
     FOREIGN KEY (code_genre) REFERENCES genre(code_genre) ON UPDATE CASCADE,
