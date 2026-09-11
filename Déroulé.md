@@ -49,9 +49,21 @@ Tests de cohérence entre la BDD et le dataset
 ## API avec FastAPI
 création d'une API en local pour accéder à la base de données
 chargement de l'API via la commande Bash 'uvicorn src.04_01_api:app --reload'
-Implémentation de GET : nom des tables et de leurs colonnes, client via son ID
-Implémentation de POST : création d'un client avec ces caractéristiques obligatoires et optionnelles
-Implémentation de DELETE : supprimer un client via son ID
+**Implémentations de GET :**
+- nom des tables et de leurs colonnes, client via son ID : '@app.get("/tables")'
+- informations d'un client via son ID : '@app.get("/client/{client_id}")'
+- informations historiques sur un mois pour un client : '@app.get("/historique_mensuel/{client_id}/{mois}/{annee}")'
+- informations sur tout l'historique transactionnel d'un client : '@app.get("/historique_mensuel/{client_id}")'
+**Implémentations de POST :**
+- création d'un client avec ces caractéristiques obligatoires et optionnelles : '@app.post("/client/")'
+- création d'un historique mensuel pour un client via son ID : '@app.post("/historique_mensuel/")'
+**Implémentations de PATCH :**
+- modifier les données d'un client via son ID : '@app.patch("/client/{client_id}")'
+- modifier les données d'un historique mensuel via client_id, mois et annee : '@app.patch("/historique_mensuel/{client_id}/{mois}/{annee}")'
+**Implémentations de DELETE :**
+- suppression d'une ligne d'historique mensuel par l'ID du client, le mois et l'année : '@app.delete("/historique_mensuel/")'
+- suppression de tout l'historique transactionnel d'un client par son ID : '@app.delete("/historique_mensuel/client/{client_id}")'
+- supprimer un client via son ID ainsi que tout son historique transactionnel : '@app.delete("/client/{client_id}")'
 
 ## EDA
 Je constate une tendance de codification des colonnes 'PAY_n' légèrement différente de ce qui est décrit dans la documentation  
