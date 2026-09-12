@@ -41,7 +41,7 @@ Pour découvrir comment des détails logistiques de l'époque (comme les règlem
 
 ### 🗄️ Étape 2 : Structuration & Base de Données
 *   Nettoyage final des données : [notebook de nettoyage](/src/02_01_nettoyage.ipynb)
-*   Modélisation relationnelle : création  d'une [schéma de base relationnelle](/images/schema_bdd_svg.svg) | conception d'un schéma SQL normalisé (création de tables de correspondance pour transformer les codes numériques en libellés explicites) : [script de création des tables](/src/03_02_creation_tables.sql)
+*   Modélisation relationnelle : création  d'une [schéma de base relationnelle](/images/schema_bdd__risklens.png) | conception d'un schéma SQL normalisé (création de tables de correspondance pour transformer les codes numériques en libellés explicites) : [script de création des tables](/src/03_02_creation_tables.sql)
 *   Chargement des données dans la base de données : [script d'ingestion des données](/src/03_01_ingestion_donnees.py)
 
 
