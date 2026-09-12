@@ -95,7 +95,7 @@ def get_db_connection():
 
 
 # Route GET : Récupérer toutes les tables (CRUD: Read)
-@app.get("/tables", tags=['admin'])
+@app.get("/tables", tags=["Consultation"])
 def lire_toutes_les_tables():
     """Récupère le nom des tables et leurs colonnes"""
     try:
@@ -332,12 +332,14 @@ def ajouter_historique_mensuel(data: HistoriqueMensuelRequest):
         row_date = cursor.fetchone()
 
         if not row_date:
-            # La date n'existe pas : création automatique dans dim_date
+            # Calcul explicite du date_id (ex: 2000 * 100 + 1 = 200001)
+            date_id = data.annee * 100 + data.mois.value
+            
+            # La date n'existe pas : création automatique dans dim_date avec son ID calculé
             cursor.execute(
-                "INSERT INTO dim_date (mois, annee) VALUES (?, ?)",
-                (data.mois.value, data.annee)
+                "INSERT INTO dim_date (date_id, mois, annee) VALUES (?, ?, ?)",
+                (date_id, data.mois.value, data.annee)
             )
-            date_id = cursor.lastrowid
             date_creee = True
         else:
             date_id = row_date['date_id']
