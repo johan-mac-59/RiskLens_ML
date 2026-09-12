@@ -108,7 +108,11 @@ Le traitement de cette colonne avec cette donnée particulière sera à encoder 
 
 
 
-
+## Restitution décisionnelle Power BI
+- **Connexion SQLite via Python** : Ingestion automatique de l'ensemble des tables sans dépendance ODBC externe.
+- **Validation du modèle** : Vérification des cardinalités (1:N) et du filtrage croisé sur le schéma en étoile.
+- **Validation du pipeline** : Test d'intégration bout en bout sur données brutes (actualisation dynamique garantie après EDA).
+- **Versionnement** : Intégration du rapport `.pbix` dans le dépôt Git (`power_bi/`).
 
 
 ## Problèmes rencontrés
