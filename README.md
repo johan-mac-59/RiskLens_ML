@@ -54,6 +54,17 @@ L'enjeu est de déterminer si les habitudes de paiement et l'utilisation du cré
 Le suivi rigoureux de la mission est assuré via un tableau **Trello**, mis à jour hebdomadairement pour monitorer l'avancement des étapes et le respect du planning.
 *   [lien Trello](https://trello.com/b/OKlbbtCy/risklens-ml)
 
+## 🌐 API Cloud & Documentation Interactive
+L'API FastAPI est hébergée sur Render et directement consultable via son interface Swagger UI :
+* **Démo en ligne :** [Documentation interactive (Swagger UI)](https://risklens-ml-api.onrender.com/docs)
+
+### 🧪 Fonctionnalités à tester sur l'interface :
+* **Consultation (GET)** : Requêter les profils clients et leurs historiques de paiement issus de la BDD SQLite.
+* **Opérations CRUD (POST / PUT / DELETE)** : Simuler l'ajout, la modification ou la suppression de dossiers clients en direct.
+* **Validation des schémas JSON** : Inspecter la structure des requêtes et les modèles de données (Pydantic).
+
+> ℹ️ *L'API est hébergée sur l'offre gratuite de Render. Si le serveur est en veille, la première requête peut prendre environ 30 secondes à répondre.*
+
 ## ⚙️ Installation
 1. **Cloner le dépôt** :
    ```bash
@@ -68,8 +79,11 @@ Le suivi rigoureux de la mission est assuré via un tableau **Trello**, mis à j
    Téléchargez le dataset depuis [Kaggle](https://www.kaggle.com/datasets/mariosfish/default-of-credit-card-clients/data) et placez le fichier CSV dans le dossier `data/`.
 
 ## 🛠️ Stack Technique
-*   **Langage :** Python (Pandas, NumPy)
-*   **Base de données :** SQL (Structuration relationnelle)
-*   **API :** FastAPI
-*   **BI :** Power BI
-*   **Machine Learning :** Scikit-Learn, SHAP (pour l'explicabilité)
+* **Langage :** Python (Pandas, NumPy, Uvicorn, Requests)
+* **Base de données :** SQLite (Modélisation relationnelle, Foreign Keys)
+* **API & Backend :** FastAPI, Pydantic (Validation des schémas JSON, Opérations CRUD, Documentation Swagger UI)
+* **Déploiement Cloud :** Render (API Web Service), GitHub (Gestion de versions & Intégration continue)
+* **Gestionnaire de paquets :** `uv` (`pyproject.toml`)
+* **Business Intelligence :** Power BI (Dashboard décisionnel, Time Intelligence)
+* **Machine Learning :** Scikit-Learn, SHAP (Explicabilité & Interprétabilité)
+* **Front-end / UI (à venir) :** Streamlit Cloud
