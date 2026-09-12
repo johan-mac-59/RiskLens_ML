@@ -93,6 +93,10 @@ def get_db_connection():
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
 
+@app.get("/")
+def read_root():
+    return {"status": "ok", "message": "API RiskLens opérationnelle sur Render !", "docs": "/docs"}
+
 
 # Route GET : Récupérer toutes les tables (CRUD: Read)
 @app.get("/tables", tags=['admin'])

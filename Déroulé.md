@@ -115,6 +115,10 @@ Le traitement de cette colonne avec cette donnée particulière sera à encoder 
 - **Versionnement** : Intégration du rapport `.pbix` dans le dépôt Git (`power_bi/`).
 
 
+## Déploiement en ligne
+- Test déploiement sur Render avec BDD en ligne OK
+
+
 ## Problèmes rencontrés
 Comprendre la logique du dataset, la logique de la codification des impayés a pris énormément de temps. La documentation liée à ce dataset ne correspondait pas à ce que je pouvais constater tant dans l'étendue des valeurs codées que dans leur signification.
 Le dataset date de 2005 et l'équipe de recherche n'indique pas l'origine exacte des données, en tous cas elle n'indique pas si plusieurs tables ont servi à synthétiser ce jeu de données.  
