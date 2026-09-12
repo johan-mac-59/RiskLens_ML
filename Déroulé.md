@@ -117,6 +117,7 @@ Le traitement de cette colonne avec cette donnée particulière sera à encoder 
 
 ## Déploiement en ligne
 - Test déploiement sur Render avec BDD en ligne OK
+- Test déploiement sur Streamlit Community Cloud OK
 
 
 ## Problèmes rencontrés

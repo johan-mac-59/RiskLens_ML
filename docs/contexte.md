@@ -1,7 +1,3 @@
-
-
-
-
 ## Explicationss sur la crise des cartes de crédit de Taïwan
 
 La crise taïwanaise de 2005 présente une particularité majeure : elle n'a pas été provoquée par une dégradation des indicateurs macroéconomiques classiques. Les chiffres fondamentaux du pays étaient au vert.
@@ -26,6 +22,7 @@ C'est donc le cumul d'intérêts déjà très élevés (20 %) associé à la fer
 
 
 ## Fonctionnement des cartes de crédits à Taïwan en 2005
+
 En 2005 à Taïwan, le règlement des factures de cartes de crédit et de cash cards reposait majoritairement sur du liquide et des canaux physiques décentralisés :
 - Les Convenience Stores (7-Eleven, FamilyMart, Hi-Life) : C'était le canal prédominant. Les clients recevaient leur relevé mensuel papier muni d'un code-barres, se rendaient en supérette ouverte 24/7 et régulaient leur facture en espèces directement au comptoir.
 - Les guichets automatiques (ATM) : Grâce à un réseau d'interbancarité très développé, les clients régulaient leurs cartes via virement interbancaire à l'ATM ou par dépôt d'espèces dans les bornes.
