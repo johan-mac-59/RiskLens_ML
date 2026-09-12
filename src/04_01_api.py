@@ -353,7 +353,7 @@ def ajouter_historique_mensuel(data: HistoriqueMensuelRequest):
         if cursor.fetchone():
             raise HTTPException(
                 status_code=409, 
-                detail=f"Un historique existe déjà pour le client {data.client_id} en {data.mois.name}/{data.annee}."
+                detail=f"Un historique existe déjà pour le client {data.client_id} en {data.mois.name} {data.annee}."
             )
 
         # 3. Insertion dans la table de faits historique_mensuel
@@ -370,7 +370,7 @@ def ajouter_historique_mensuel(data: HistoriqueMensuelRequest):
         message_suffix = " (nouvelle date créée dans le catalogue)" if date_creee else ""
 
         return {
-            "message": f"Historique ajouté avec succès pour le client {data.client_id} ({data.mois.name}/{data.annee}){message_suffix}.",
+            "message": f"Historique ajouté avec succès pour le client {data.client_id} ({data.mois.name} {data.annee}){message_suffix}.",
             "date_id_utilise": date_id
         }
 
