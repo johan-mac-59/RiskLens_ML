@@ -97,6 +97,14 @@ def get_db_connection():
 def read_root():
     return {"status": "ok", "message": "API RiskLens opérationnelle sur Render !", "docs": "/docs"}
 
+@app.api_route("/", methods=["GET", "HEAD"])
+def read_root():
+    return {"status": "ok", "message": "API RiskLens opérationnelle"}
+
+@app.get("/")
+@app.head("/")
+def read_root():
+    return {"status": "ok", "message": "API RiskLens opérationnelle"}
 
 # Route GET : Récupérer toutes les tables (CRUD: Read)
 @app.get("/tables", tags=['admin'])
