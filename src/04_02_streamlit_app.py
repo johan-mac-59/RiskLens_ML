@@ -203,7 +203,6 @@ elif menu == "📅 Gestion de l'Historique Mensuel":
                     st.success(f"Client {hist_client_id} : {data.get('nombre_lignes', 0)} mois enregistrés.")
                     
                     if historique_list:
-                        # Mise en forme propre des données pour affichage tableau sans JSON brut
                         df_lignes = []
                         for h in historique_list:
                             date_info = h.get("date_complexe", {})
