@@ -161,7 +161,7 @@ Pour découvrir comment des détails logistiques de l'époque (comme les règlem
 # ==============================================================================
 elif menu == "📊 Analyse & Insights":
     st.title("📊 Analyse Exploratoire & Insights")
-    st.markdown("L'analyse montre que les données démographiques, isolées, semblent neutres, mais l'analyse par segments révèle des signaux forts.")
+    st.markdown("L'analyse par segments révèle des signaux forts :")
 
     # 1. Chargement des vrais insights et des mappings
     insights = load_eda_insights()
@@ -235,8 +235,19 @@ elif menu == "📊 Analyse & Insights":
     st.markdown("---")
     st.subheader("🚩 Le Profil 'Critique'")
     st.warning("""
-Au premier abord, les données personnelles semblaient dénués d'intéret et le tableau de corrélation ne montrait rien, mais en regardant de plus près on constate des tendances :
+Au premier abord, les données personnelles semblaient dénués d'intéret et le [tableau de corrélation](https://raw.githubusercontent.com/johan-mac-59/RiskLens_ML/main/images/heatmap_demographique.png) ne montrait rien, mais en regardant de plus près on constate des tendances :
 - Les profils jeunes, de genre masculin, mariés, avec un niveau scolaire plus faible semblent avoir un taux de défaut sensiblement supérieur au reste de la population  **
+""")
+    st.markdown("""
+Je regarde les facteurs et je les cumule :
+- Taux de défaut moyen de **28%** pour les clients âgés de 25 ans et moins, possédant un bac ou une license
+- Taux de défaut moyen de **32%** pour les clients âgés de 25 ans et moins, possédant un bac ou une license, mariés
+- Taux de défaut moyen de **36%** pour les clients âgés de 25 ans et moins, possédant un bac ou une license, mariés, et de sexe masculin **MAIS représente seulement 53 individus**
+
+Si on regarde ces 4 facteurs inversés :
+- Taux de défaut moyen de **16%** pour un individu de sexe féminin, célibataire, âgé de plus de 25 ans et possédant un doctorat/master, avec une **population de 3246 individus**
+
+En conclusion, nous observons une disparité majeure de risque selon le profil : le taux de défaut peut varier de 16% à 36% selon la combinaison des facteurs démographiques. Bien que le segment à haut risque soit numériquement faible, l'écart de risque est significatif, ce qui justifie l'intégration de ces variables dans mon futur modèle de scoring.
 """)
 
 
