@@ -49,10 +49,9 @@ Pour découvrir comment des détails logistiques de l'époque (comme les règlem
 *   Développement d'une API avec **FastAPI**.
 *   Implémentation des 4 types d'opérations **CRUD** (Create, Read, Update, Delete) pour permettre l'accès et la gestion des données sans accès direct à la base : [fichier API](/src/04_01_api.py)
 
-### 🔍 Étape 4 : Analyse Exploratoire & Veille
+### 🔍 Étape 4 : Analyse Exploratoire
 *   Analyse statistique approfondie (corrélations, tendances) avec Python : [EDA laboratoire](/src/EDA_lab.ipynb)
 *   Data Visualisation pour identifier les facteurs clés du défaut de paiement : [EDA DataViz](/src/EDA_storytelling.ipynb)
-*   **Synthèse de veille :** Recherche autonome sur les évolutions actuelles de l'IA et du Big Data.
 
 ### 📊 Étape 5 : Restitution Décisionnelle (Power BI)
 *   Construction d'un dashboard interactif sous **Power BI**.
