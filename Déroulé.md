@@ -118,6 +118,7 @@ Le traitement de cette colonne avec cette donnée particulière sera à encoder 
 ## Déploiement en ligne
 - Test déploiement sur Render avec BDD en ligne OK
 - Test déploiement sur Streamlit Community Cloud OK
+- API fonction get_metadata_mappings() : sert de passerelle dynamique entre les tables de correspondances et Streamlit (à mettre à jour si une nouvelle table est créée)
 
 
 ## Problèmes rencontrés

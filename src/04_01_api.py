@@ -135,44 +135,40 @@ def lire_toutes_les_tables():
 @app.get("/metadata/mappings", tags=["Consultation"])
 def get_metadata_mappings():
     """
-    Scanne la base de données pour extraire automatiquement toutes les tables 
-    de correspondance (genre, statut_marital, niveau_scolaire, etc.) 
-    et leurs paires id/libellé, garantissant zéro code en dur dans le frontend.
+    Renvoie dynamiquement les correspondances de toutes les tables de référence
+    en se basant sur la structure exacte du schéma (clés spécifiques et colonne 'description').
     """
     conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # 1. Récupérer toutes les tables de la base
-        cursor.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';")
-        tables = [row['name'] for row in cursor.fetchall()]
-        
         mappings = {}
-        # Tables principales à exclure du scan de correspondance
-        tables_exclues = ['client', 'historique_mensuel', 'dim_date']
-
-        # 2. Parcourir les tables de référence
-        for table in tables:
-            if table not in tables_exclues:
-                # Inspection dynamique des colonnes de la table
-                cursor.execute(f"PRAGMA table_info({table});")
-                cols = [col['name'] for col in cursor.fetchall()]
-                
-                # On identifie la colonne clé (contient 'id' ou 'code') et la colonne de libellé
-                id_col = next((c for c in cols if 'id' in c or 'code' in c), cols[0] if cols else None)
-                lib_col = next((c for c in cols if c != id_col), cols[1] if len(cols) > 1 else None)
-                
-                if id_col and lib_col:
-                    cursor.execute(f"SELECT {id_col}, {lib_col} FROM {table}")
-                    rows = cursor.fetchall()
-                    # On stocke le dictionnaire sous le nom exact de la table
-                    mappings[table] = {row[id_col]: row[lib_col] for row in rows}
-                    
+        
+        # 1. Genre
+        cursor.execute("SELECT code_genre, description FROM genre")
+        mappings["genre"] = {row["code_genre"]: row["description"] for row in cursor.fetchall()}
+        
+        # 2. Statut Marital
+        cursor.execute("SELECT code_marital, description FROM statut_marital")
+        mappings["statut_marital"] = {row["code_marital"]: row["description"] for row in cursor.fetchall()}
+        
+        # 3. Niveau Scolaire
+        cursor.execute("SELECT code_scolaire, description FROM niveau_scolaire")
+        mappings["niveau_scolaire"] = {row["code_scolaire"]: row["description"] for row in cursor.fetchall()}
+        
+        # 4. Statut Défaut
+        cursor.execute("SELECT code_statut_defaut, description FROM statut_defaut")
+        mappings["statut_defaut"] = {row["code_statut_defaut"]: row["description"] for row in cursor.fetchall()}
+        
+        # 5. Statut Paiement (utile pour l'historique)
+        cursor.execute("SELECT code_statut_paiement, description FROM statut_paiement")
+        mappings["statut_paiement"] = {row["code_statut_paiement"]: row["description"] for row in cursor.fetchall()}
+        
         return mappings
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la génération des mappings : {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur mappings : {str(e)}")
     finally:
         if conn:
             conn.close()
