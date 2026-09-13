@@ -28,8 +28,7 @@ Ma démarche adopte un prisme résolument **orienté métier**. En combinant un 
 
 Si la problématique pose le cadre quantitatif, ce dataset est né d'un séisme financier bien réel : **la crise des cartes de crédit à Taïwan en 2005** (la crise des *"Card Monsters"*). 
 
-Pour découvrir comment des détails logistiques de l'époque (comme les règlements en espèces dans les supérettes 7-Eleven créant des décalages sur la variable `PAY_1`) ou les parallèles avec le **Buy Now, Pay Later (BNPL)** actuel éclairent ce projet d'un point de vue purement métier :
-> 📖 **[Consulter l'analyse complète du contexte historique et technique](docs/contexte.md)**
+Pour découvrir comment des détails logistiques de l'époque (comme les règlements en espèces dans les supérettes 7-Eleven créant des décalages sur la variable `PAY_1`) ou les parallèles avec le **Buy Now, Pay Later (BNPL)** actuel éclairent ce projet d'un point de vue purement métier : 📖 **[Consulter l'analyse complète du contexte historique et technique](docs/contexte.md)**
 
 
 ## 🚀 Roadmap & Étapes du Projet

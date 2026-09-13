@@ -1,4 +1,4 @@
-## Explicationss sur la crise des cartes de crédit de Taïwan
+## Explications sur la crise des cartes de crédit de Taïwan
 
 La crise taïwanaise de 2005 présente une particularité majeure : elle n'a pas été provoquée par une dégradation des indicateurs macroéconomiques classiques. Les chiffres fondamentaux du pays étaient au vert.
 Les indicateurs macroéconomiques en 2005 (stables)

@@ -1,60 +1,247 @@
 import streamlit as st
 import requests
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import matplotlib as plt
+import json
+import os
 
-# Configuration de la page
+
+# ==============================================================================
+# FONCTIONS UTILITAIRES
+# =============================================================================
+@st.cache_data
+def load_eda_insights():
+    """Charge les statistiques d'analyse calculées par le notebook."""
+    try:
+        # 1. On récupère le chemin du dossier où se trouve le script actuel (le dossier 'src')
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # 2. On remonte d'un niveau vers la racine du projet, puis on entre dans 'data'
+        # os.path.join est propre car il gère les '/' ou '\' selon si tu es sur Windows ou Linux
+        target_path = os.path.join(current_dir, '..', 'data', 'eda_insights.json')
+        
+        # Debug optionnel : pour que tu puisses voir dans ta console Streamlit où il cherche
+        # print(f"DEBUG: Recherche du fichier dans : {target_path}")
+
+        if os.path.exists(target_path):
+            with open(target_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        else:
+            st.error(f"❌ Fichier introuvable : {target_path}")
+            return None
+            
+    except Exception as e:
+        st.error(f"❌ Erreur lors du chargement des insights : {e}")
+        return None
+
+# ==============================================================================
+# CONFIGURATION & STYLE
+# ==============================================================================
 st.set_page_config(
-    page_title="RiskLens - Credit Card Dashboard",
+    page_title="RiskLens ML — Analyse & Prédiction du Défaut de Paiement",
     page_icon="💳",
     layout="wide"
 )
 
-# Configuration de l'URL de l'API (En ligne sur Render ou Local)
-API_URL = "https://risklens-ml-api.onrender.com"  
-# API_URL = "http://127.0.0.1:8000"  # En local
+# Style CSS personnalisé
+st.markdown("""
+    <style>
+    .main {
+        background-color: #f5f7f9;
+    }
+    .stMetric {
+        background-color: #ffffff;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    /* Force un texte sombre lisible sur les cartes blanches (même en mode sombre) */
+    .stMetric [data-testid="stMetricLabel"], 
+    .stMetric [data-testid="stMetricValue"] {
+        color: #262730 !important;
+    }
+    .highlight-box {
+        background-color: #e1f5fe;
+        padding: 20px;
+        border-radius: 10px;
+        border-left: 5px solid #0288d1;
+        margin-bottom: 20px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-st.title("🏦 RiskLens ML — Analyse & Prédiction du Défaut de Paiement 💳")
+# Configuration de l'URL de l'API
+API_URL = "https://risklens-ml-api.onrender.com" 
+# API_URL = "http://127.0.0.1:8000"  # En local 
 
+# ==============================================================================
+# FONCTIONS UTILITAIRES
+# ==============================================================================
+@st.cache_data
+def load_app_mappings():
+    try:
+        res = requests.get(f"{API_URL}/metadata/mappings")
+        if res.status_code == 200:
+            return res.json()
+    except Exception:
+        pass
+    return {}
+
+# ==============================================================================
+# NAVIGATION
+# ==============================================================================
+st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2845/2845883.png", width=100)
+st.sidebar.title("🏦 RiskLens ML — Analyse & Prédiction du Défaut de Paiement 💳")
+st.sidebar.markdown("---")
 st.info(
     "🚧 **Interface centralisée RiskLens en cours de construction** | "
     "⏳ *Note : L'API étant sur Render, la première requête peut prendre jusqu'à 1 minute si le serveur s'est mis en veille.*"
 )
 
-# Barre latérale de navigation globale
-st.sidebar.header("🧭 Navigation")
-menu = st.sidebar.selectbox(
-    "Section :",
+menu = st.sidebar.radio(
+    "🧭 Navigation",
     [
-        "🏠 Accueil & Schéma BDD",
+        "🏠 Accueil & Présentation",
+        "📊 Analyse & Insights",
         "👤 Gestion des Clients",
-        "📅 Gestion de l'Historique Mensuel"
+        "📅 Historique Transactionnel",
+        "📚 Architecture Technique"
     ]
 )
 
-# ==============================================================================
-# SECTION 1 : ACCUEIL & SCHEMA BDD (Route GET /tables)
-# ==============================================================================
-if menu == "🏠 Accueil & Schéma BDD":
-    st.subheader("📚 Structure et tables de la base de données")
-    st.markdown("Visualisez ci-dessous les tables exposées par l'API et leurs colonnes respectives.")
-
-    if st.button("Charger la structure de la BDD", type="primary"):
-        try:
-            response = requests.get(f"{API_URL}/tables")
-            if response.status_code == 200:
-                tables_info = response.json()
-                
-                for table_name, columns in tables_info.items():
-                    with st.expander(f"📁 Table : `{table_name}` ({len(columns)} colonnes)"):
-                        df_cols = pd.DataFrame({"Colonnes": columns})
-                        st.dataframe(df_cols, use_container_width=True, hide_index=True)
-            else:
-                st.error(f"Erreur {response.status_code} lors de la récupération des tables.")
-        except Exception as e:
-            st.error(f"Impossible de joindre l'API : {e}")
+st.sidebar.markdown("---")
+st.sidebar.info("👨‍💻 **Développé par Johan**\n\n*Futur Data Analyst*")
 
 # ==============================================================================
-# SECTION 2 : GESTION DES CLIENTS (GET, POST, PATCH, DELETE)
+# SECTION 1 : ACCUEIL & PRÉSENTATION
+# ==============================================================================
+if menu == "🏠 Accueil & Présentation":
+    st.title("🏦 RiskLens ML — Analyse & Prédiction du Risque Crédit 💳")
+    
+
+    st.markdown(f"""
+**RiskLens ML** est une mission Data & IA complète visant à transformer des données transactionnelles historiques en un outil d'aide à la décision pour la gestion du risque crédit.
+Durée prévue : 7 semaines à partir du 30 août  
+
+Le projet suit un cycle de vie data complet : du diagnostic initial et la structuration d'une base de données relationnelle, à l'exposition des données via une API, jusqu'à la création d'un modèle prédictif et d'un dashboard décisionnel.
+
+### 🎯 Problématique
+> **"Peut-on prévoir le défaut de paiement d'un client en se basant uniquement sur son comportement transactionnel des 6 derniers mois, malgré un manque d'informations économiques globales ?"**
+
+L'enjeu est de déterminer si les habitudes de paiement et l'utilisation du crédit ainsi que les informations de bases d'un client sont des indicateurs suffisamment robustes pour anticiper un défaut, sans avoir accès à des données macro-économiques ou des scores de crédit externes.
+
+Ce dataset est la base de données publique qui résulte de [l'étude scientifique de I-Cheng Yeh et Che-hui Lien (2009)](/https://raw.githubusercontent.com/johan-mac-59/RiskLens_ML/main/docs/DefaultCreditCardClients_yeh_2009.pdf) (traduit en français [ici](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/traduction_DefaultCreditCardClients_yeh_2009.md). Cette étude s'appuyait principalement sur l'Exactitude (Accuracy) globale. Mon but est de dépasser le score maximal de 2009 qui était de 0.54, ce qui équivaut à un **AUC de 0.77**.
+Ma démarche adopte un prisme résolument **orienté métier**. En combinant un nettoyage rigoureux des données et un pilotage par le F1-score et le Recall, je cherche à optimiser la détection réelle des risques de défaut, garantissant ainsi une performance robuste et réellement actionnable pour la gestion des risques bancaires.
+
+
+#### 🕵️‍♂️ Pour aller plus loin : Les coulisses de la donnée
+
+Si la problématique pose le cadre quantitatif, ce dataset est né d'un séisme financier bien réel : **la crise des cartes de crédit à Taïwan en 2005** (la crise des *"Card Monsters"*).  
+Pour découvrir comment des détails logistiques de l'époque (comme les règlements en espèces dans les supérettes 7-Eleven créant des décalages sur la variable `PAY_1`) ou les parallèles avec le **Buy Now, Pay Later (BNPL)** actuel éclairent ce projet d'un point de vue purement métier :
+📖 [Lire le contexte du projet](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/contexte.md)
+""")
+
+    
+
+    st.markdown("**🚀 Objectif ML Engineer :** Mon but est de dépasser le score d'exactitude de 2009 (AUC 0.77) en optimisant le **Recall**. En banque, oublier un client à risque (Faux Négatif) coûte bien plus cher que de suspecter un client sûr (Faux Positif).")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.subheader("🛠️ Roadmap du Projet")
+    cols_road = st.columns(5)
+    steps = ["Audit & Cadrage", "Modélisation BDD", "Développement API", "EDA & Storytelling", "ML & Prédiction"]
+    for i, step in enumerate(steps):
+        cols_road[i].markdown(f"**{i+1}. {step}**")
+        cols_road[i].markdown("✅" if i < 3 else "⏳")
+
+# ==============================================================================
+# SECTION 2 : ANALYSE & INSIGHTS
+# ==============================================================================
+elif menu == "📊 Analyse & Insights":
+    st.title("📊 Analyse Exploratoire & Insights")
+    st.markdown("L'analyse montre que les données démographiques, isolées, semblent neutres, mais l'analyse par segments révèle des signaux forts.")
+
+    # 1. Chargement des vrais insights et des mappings
+    insights = load_eda_insights()
+    api_mappings = load_app_mappings()
+    
+    # 2. Préparation des mappings pour la traduction (Genre, Mariage)
+    genre_map = {int(k): v for k, v in api_mappings.get("genre", {}).items()}
+    marital_map = {int(k): v for k, v in api_mappings.get("statut_marital", {}).items()}
+    scolaire_map = {int(k): v for k, v in api_mappings.get("niveau_scolaire", {}).items()}
+
+    # On crée deux lignes de graphiques pour ne pas surcharger la page
+    row1_col1, row1_col2 = st.columns(2)
+    row2_col1, row2_col2 = st.columns(2)
+
+    # --- LIGNE 1 : ÂGE & ÉDUCATION ---
+    with row1_col1:
+        st.subheader("📈 Le Risque par Tranche d'Âge")
+        if insights and 'age_risk' in insights:
+            age_dict = {str(k): v for k, v in insights['age_risk'].items()}
+            fig_age = px.bar(x=list(age_dict.keys()), y=list(age_dict.values()), 
+                             labels={"x": "Âge", "y": "Taux (%)"}, 
+                             color=list(age_dict.values()), 
+                             color_continuous_scale="Viridis")
+            # CORRECTION ICI : use_container_width au lieu de use_string_width
+            st.plotly_chart(fig_age, use_container_width=True)
+        else:
+            st.info("Données d'âge indisponibles.")
+
+    with row1_col2:
+        st.subheader("🎓 Impact du Niveau Scolaire")
+        if insights and 'edu_risk' in insights:
+            edu_dict = {str(k): v for k, v in insights['edu_risk'].items()}
+            # Traduction des codes en labels lisibles
+            edu_labels = [scolaire_map.get(int(k), k) for k in edu_dict.keys()]
+            fig_edu = px.bar(x=edu_labels, y=list(edu_dict.values()), 
+                             labels={"x": "Éducation", "y": "Taux (%)"}, color=list(edu_dict.values()), 
+                             color_continuous_scale="Reds")
+            st.plotly_chart(fig_edu, use_container_width=True)
+        else:
+            st.info("Données d'éducation indisponibles.")
+
+    # --- LIGNE 2 : GENRE & MARIAGE ---
+    with row2_col1:
+        st.subheader("👫 Le Risque par Genre")
+        if insights and 'sex_risk' in insights:
+            sex_dict = {str(k): v for k, v in insights['sex_risk'].items()}
+            # On traduit les codes (ex: "1") en labels (ex: "Homme")
+            sex_labels = [genre_map.get(int(k), k) for k in sex_dict.keys()]
+            fig_sex = px.bar(x=sex_labels, y=list(sex_dict.values()), 
+                             labels={"x": "Genre", "y": "Taux (%)"}, 
+                             color=list(sex_dict.values()), 
+                             color_continuous_scale="magma")
+            st.plotly_chart(fig_sex, use_container_width=True)
+        else:
+            st.info("Données de genre indisponibles.")
+
+    with row2_col2:
+        st.subheader("💍 Impact du Statut Marital")
+        if insights and 'marriage_risk' in insights:
+            mar_dict = {str(k): v for k, v in insights['marriage_risk'].items()}
+            # On traduit les codes (ex: "1") en labels (ex: "Marié")
+            mar_labels = [marital_map.get(int(k), k) for k in mar_dict.keys()]
+            fig_mar = px.bar(x=mar_labels, y=list(mar_dict.values()), 
+                             labels={"x": "Statut", "y": "Taux (%)"}, 
+                             color=list(mar_dict.values()), 
+                             color_continuous_scale="GnBu")
+            st.plotly_chart(fig_mar, use_container_width=True)
+        else:
+            st.info("Données de mariage indisponibles.")
+
+    st.markdown("---")
+    st.subheader("🚩 Le Profil 'Critique'")
+    st.warning("""
+Au premier abord, les données personnelles semblaient dénués d'intéret et le tableau de corrélation ne montrait rien, mais en regardant de plus près on constate des tendances :
+- Les profils jeunes, de genre masculin, mariés, avec un niveau scolaire plus faible semblent avoir un taux de défaut sensiblement supérieur au reste de la population  **
+""")
+
+
+# ==============================================================================
+# SECTION 3 : GESTION DES CLIENTS (GET, POST, PATCH, DELETE)
 # ==============================================================================
 elif menu == "👤 Gestion des Clients":
     st.subheader("👥 Espace de gestion des clients")
@@ -73,12 +260,12 @@ elif menu == "👤 Gestion des Clients":
                 res = requests.get(f"{API_URL}/client/{c_id}")
                 if res.status_code == 200:
                     client_data = res.json()
-                    st.success("Client trouvé !")
+                    st.success("Client trouvé !") 
                     
-                    # Affichage propre sous forme de métriques et tableau stylé
+                    # On crée les colonnes. Le style sera appliqué via le CSS global.
                     col1, col2, col3 = st.columns(3)
                     with col1:
-                        st.metric("Âge", f"{client_data.get('age', 'N/A')} ans")
+                        st.metric("Âge", f"{client_data.  get('age', 'N/A')} ans")
                     with col2:
                         st.metric("Plafond", f"{client_data.get('plafond', 'N/A')} NT$")
                     with col3:
@@ -300,11 +487,26 @@ elif menu == "👤 Gestion des Clients":
                     st.error(f"Erreur API : {e}")
             else:
                 st.warning("Aucun champ valide sélectionné pour la modification.")
+    # --- ONGLET 4 : SUPPRIMER (DELETE /client/{id}) ---
+    with tab_supprimer:
+        st.markdown("### Supprimer un client")
+        st.warning("⚠️ Attention : La suppression d'un client supprime également tout son historique associé en cascade.")
+        del_client_id = st.number_input("ID du client à supprimer", min_value=1, value=8765, step=1, key="del_client_id")
+        
+        if st.button("🗑️ Supprimer définitivement ce client", type="secondary"):
+            try:
+                res = requests.delete(f"{API_URL}/client/{del_client_id}")
+                if res.status_code == 200:
+                    st.success(f"✅ {res.json().get('message')}")
+                else:
+                    st.error(f"Erreur : {res.json().get('detail')}")
+            except Exception as e:
+                st.error(f"Erreur API : {e}")
 
 # ==============================================================================
-# SECTION 3 : GESTION DE L'HISTORIQUE MENSUEL (GET, POST, PATCH, DELETE)
+# SECTION 4 : GESTION DE L'HISTORIQUE MENSUEL (GET, POST, PATCH, DELETE)
 # ==============================================================================
-elif menu == "📅 Gestion de l'Historique Mensuel":
+elif menu == "📅 Historique Transactionnel":
     st.subheader("📊 Suivi et historique transactionnel des clients")
     
     tab_h_consulter, tab_h_ajouter, tab_h_modifier, tab_h_supprimer = st.tabs([
@@ -455,3 +657,63 @@ elif menu == "📅 Gestion de l'Historique Mensuel":
                         st.error(f"Erreur : {res.json().get('detail')}")
                 except Exception as e:
                     st.error(f"Erreur API : {e}")
+
+# ==============================================================================
+# SECTION 5 : ARCHITECTURE TECHNIQUE
+# ==============================================================================
+elif menu == "📚 Architecture Technique":
+    st.title("📚 Architecture Technique & Pipeline")
+    
+    st.markdown("""
+    Cette section détaille la structure technique du projet. L'objectif était de construire un pipeline de données robuste et découplé.
+    """)
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("⚙️ Stack Technique")
+        st.markdown("""
+        - **Backend :** FastAPI, Pydantic (Validation)
+        - **Base de Données :** SQLite (Modélisation relationnelle normalisée)
+        - **Frontend :** Streamlit (UI & DataViz)
+        - **Analyse :** Pandas, Plotly, Scikit-Learn
+        - **Déploiement :** Render (API) & Streamlit Cloud (UI)
+        """)
+        
+        if st.button("Charger la structure des tables", type="primary"):
+            try:
+                res = requests.get(f"{API_URL}/tables")
+                if res.status_code == 200:
+                    tables = res.json()
+                    for t_name, cols in tables.items():
+                        with st.expander(f"📁 Table : {t_name}"):
+                            st.write(cols)
+            except Exception as e:
+                st.error(f"Erreur : {e}")
+
+    with col2:
+        st.subheader("📐 Modèle de Données")
+        st.info("Le schéma relationnel a été conçu pour éviter la redondance et assurer l'intégrité des données via des clés étrangères.")
+        # Si tu as l'image locale, remplace le lien ci-dessous
+        st.image("https://raw.githubusercontent.com/johan-mac-59/RiskLens_ML/main/images/schema_bdd__risklens.png", width=200)
+        st.caption("Représentation conceptuelle de la BDD SQLite")
+
+    st.markdown("---")
+    st.markdown("### 🔗 Ressources & Contact")
+    
+    # On crée 3 colonnes pour un alignement parfait
+    col_l1, col_l2, col_l3 = st.columns(3)
+    
+    with col_l1:
+        st.markdown("#### 🛠️ Technique")
+        st.link_button("📖 Documentation API", f"{API_URL}/docs", use_container_width=True)
+    
+    with col_l2:
+        st.markdown("#### 💻 Code")
+        st.link_button("GitHub Repository", "https://github.com/johan-mac-59/RiskLens_ML", use_container_width=True)
+        
+    with col_l3:
+        st.markdown("#### 🤝 Réseau")
+        st.link_button("💼 Mon profil LinkedIn", "https://www.linkedin.com/in/johan-machu/", use_container_width=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: grey;'>RiskLens ML © 2024 — Projet Portfolio Data Analyst</p>", unsafe_allow_html=True)
