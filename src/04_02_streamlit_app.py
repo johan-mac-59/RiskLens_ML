@@ -133,20 +133,61 @@ elif menu == "👤 Gestion des Clients":
         st.markdown("### Modification partielle d'un client")
         patch_id = st.number_input("ID du client à modifier", min_value=1, value=8765, step=1, key="patch_client_id")
         
+        # Chargement automatique dès que l'ID change ou s'il n'est pas encore en cache
+        cache_key = f"current_client_{patch_id}"
+        if cache_key not in st.session_state:
+            try:
+                res_info = requests.get(f"{API_URL}/client/{patch_id}")
+                if res_info.status_code == 200:
+                    st.session_state[cache_key] = res_info.json()
+                else:
+                    st.session_state[cache_key] = None
+            except Exception:
+                st.session_state[cache_key] = None
+        
+        current_data = st.session_state.get(cache_key)
+        
+        # Affichage dynamique selon le résultat
+        if current_data:
+            st.info(
+                f"✅ **Client trouvé** ➔ "
+                f"Âge : {current_data.get('age')} ans | "
+                f"Plafond : {current_data.get('plafond')} NT$ | "
+                f"Genre : {current_data.get('code_genre')} | "
+                f"Marital : {current_data.get('code_marital')} | "
+                f"Scolaire : {current_data.get('code_scolaire')} | "
+                f"Défaut : {current_data.get('code_statut_defaut')}"
+            )
+        else:
+            st.warning("⚠️ Aucun client trouvé avec cet ID dans la base de données.")
+
         with st.form("form_patch_client"):
-            st.info("Laissez les champs sur leur valeur par défaut ou vide si vous ne souhaitez pas les modifier.")
-            new_plafond = st.number_input("Nouveau Plafond (laisser à 0 pour ignorer)", min_value=0, value=0)
-            new_age = st.number_input("Nouvel Âge (laisser à 0 pour ignorer)", min_value=0, value=0)
-            new_defaut = st.selectbox("Nouveau Statut Défaut (-1 pour ignorer)", options=[-1, 0, 1], format_func=lambda x: "Ignorer" if x == -1 else str(x))
+            st.info("Laissez les champs sur 'Ignorer' si vous ne souhaitez pas les modifier.")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                new_age = st.number_input("Nouvel Âge", min_value=0, value=0)
+                new_genre = st.selectbox("Nouveau Genre", options=[-1, 1, 2], format_func=lambda x: "Ignorer" if x == -1 else ("Homme (1)" if x == 1 else "Femme (2)"))
+                new_marital = st.selectbox("Nouveau Statut Matrimonial", options=[-1, 1, 2, 3], format_func=lambda x: "Ignorer" if x == -1 else {1: "Marié(e) (1)", 2: "Célibataire (2)", 3: "Autre (3)"}[x])
+            with col2:
+                new_scolaire = st.selectbox("Nouveau Niveau Scolaire", options=[-1, 1, 2, 3, 4], format_func=lambda x: "Ignorer" if x == -1 else {1: "Doctorat/Master (1)", 2: "Licence (2)", 3: "Baccalauréat (3)", 4: "Autre (4)"}[x])
+                new_plafond = st.number_input("Nouveau Plafond", min_value=0, value=0)
+                new_defaut = st.selectbox("Nouveau Statut Défaut", options=[-1, 0, 1], format_func=lambda x: "Ignorer" if x == -1 else ("Paiement à jour (0)" if x == 0 else "Défaut (1)"))
             
             submit_patch = st.form_submit_button("Mettre à jour", type="primary")
             
         if submit_patch:
             payload_patch = {}
-            if new_plafond > 0:
-                payload_patch["plafond"] = new_plafond
             if new_age > 0:
                 payload_patch["age"] = new_age
+            if new_genre != -1:
+                payload_patch["code_genre"] = new_genre
+            if new_marital != -1:
+                payload_patch["code_marital"] = new_marital
+            if new_scolaire != -1:
+                payload_patch["code_scolaire"] = new_scolaire
+            if new_plafond > 0:
+                payload_patch["plafond"] = new_plafond
             if new_defaut != -1:
                 payload_patch["code_statut_defaut"] = new_defaut
                 
@@ -155,6 +196,9 @@ elif menu == "👤 Gestion des Clients":
                     res = requests.patch(f"{API_URL}/client/{patch_id}", json=payload_patch)
                     if res.status_code == 200:
                         st.success(f"✅ {res.json().get('message')}")
+                        # On supprime le cache pour forcer un rechargement frais des nouvelles données
+                        if cache_key in st.session_state:
+                            del st.session_state[cache_key]
                     else:
                         st.error(f"Erreur : {res.json().get('detail')}")
                 except Exception as e:
