@@ -80,7 +80,7 @@ elif menu == "👤 Gestion des Clients":
                     with col1:
                         st.metric("Âge", f"{client_data.get('age', 'N/A')} ans")
                     with col2:
-                        st.metric("Plafond", f"{client_data.get('plafond', 'N/A')} €")
+                        st.metric("Plafond", f"{client_data.get('plafond', 'N/A')} NT$")
                     with col3:
                         statut_defaut = client_data.get('code_statut_defaut', 0)
                         st.metric("Statut Défaut", "⚠️ Risqué" if statut_defaut == 1 else "✅ Sûr")
@@ -104,7 +104,7 @@ elif menu == "👤 Gestion des Clients":
                 code_marital = st.selectbox("Statut Matrimonial", options=[1, 2, 3], format_func=lambda x: {1: "Marié(e) (1)", 2: "Célibataire (2)", 3: "Autre (3)"}[x])
             with col2:
                 code_scolaire = st.selectbox("Niveau Scolaire", options=[1, 2, 3, 4], format_func=lambda x: {1: "Doctorat/Master (1)", 2: "Licence (2)", 3: "Baccalauréat (3)", 4: "Autre (4)"}[x])
-                plafond = st.number_input("Plafond de crédit (€)", min_value=0, value=50000)
+                plafond = st.number_input("Plafond de crédit (NT$)", min_value=0, value=50000)
                 code_statut_defaut = st.selectbox("Statut Défaut initial", options=[0, 1], format_func=lambda x: "Paiement à jour (0)" if x == 0 else "Défaut (1)")
             
             submit_client = st.form_submit_button("Enregistrer le client", type="primary")
@@ -209,8 +209,8 @@ elif menu == "📅 Gestion de l'Historique Mensuel":
                             df_lignes.append({
                                 "Mois": date_info.get("mois_num"),
                                 "Année": date_info.get("annee"),
-                                "Montant Encours (€)": h.get("montant_encours"),
-                                "Montant Payé (€)": h.get("montant_paye"),
+                                "Montant Encours (NT$)": h.get("montant_encours"),
+                                "Montant Payé (NT$)": h.get("montant_paye"),
                                 "Statut Paiement": h.get("code_statut_paiement")
                             })
                         df_histo = pd.DataFrame(df_lignes)
@@ -232,8 +232,8 @@ elif menu == "📅 Gestion de l'Historique Mensuel":
                 annee = st.number_input("Année", min_value=2000, max_value=2100, value=2026)
                 mois = st.selectbox("Mois", options=list(range(1, 13)), format_func=lambda x: f"Mois {x}")
             with col2:
-                montant_encours = st.number_input("Montant encours (€)", min_value=0, value=10000)
-                montant_paye = st.number_input("Montant payé (€)", min_value=0, value=5000)
+                montant_encours = st.number_input("Montant encours (NT$)", min_value=0, value=10000)
+                montant_paye = st.number_input("Montant payé (NT$)", min_value=0, value=5000)
                 code_statut = st.number_input("Code statut paiement", value=0)
                 
             submit_histo = st.form_submit_button("Envoyer l'historique", type="primary")
