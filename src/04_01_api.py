@@ -98,6 +98,7 @@ def get_db_connection():
 @app.get("/tables", tags=["Consultation"])
 def lire_toutes_les_tables():
     """Récupère le nom des tables et leurs colonnes"""
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -120,14 +121,15 @@ def lire_toutes_les_tables():
                 resultats[table_name] = [col['name'] for col in columns]
             except Exception as e:
                 resultats[table_name] = ["Erreur lors de la lecture des colonnes"]
-
-        conn.close()
         
         # On retourne un dictionnaire propre : {"NomDeLaTable": ["Col1", "Col2"]}
         return resultats
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
+    finally:
+        if conn:
+            conn.close()
 
 
 # Route GET : Récupérer un client par son ID
@@ -530,24 +532,25 @@ def supprimer_historique_mensuel(client_id: int, mois: MoisEnum, annee: int):
         
     
 # Route Delete : Supprimer les historiques mensuels d'un client via son ID    
-@app.delete("/historique_mensuel/client/{client_id}", tags=["Gestion client"])
+@app.delete("/historique_mensuel/{client_id}", tags=["Gestion historique"])
 def supprimer_historique_client(client_id: int):
     """Supprime toutes les lignes d'historique associées à un client."""
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Vérifier si le client existe (au cas où)
+        # Vérifier si le client existe
         cursor.execute("SELECT * FROM client WHERE client_id = ?", (client_id,))
         if not cursor.fetchone():
-            conn.close()
             raise HTTPException(status_code=404, detail="Le client n'existe pas.")
 
         # Suppression massive de l'historique
-        nb_lignes_supprimees = cursor.execute(
+        cursor.execute(
             "DELETE FROM historique_mensuel WHERE client_id = ?", 
             (client_id,)
-        ).rowcount
+        )
+        nb_lignes_supprimees = cursor.rowcount
         
         conn.commit()
         
@@ -561,7 +564,8 @@ def supprimer_historique_client(client_id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 
 # Route Delete : Supprimer un client par son ID
