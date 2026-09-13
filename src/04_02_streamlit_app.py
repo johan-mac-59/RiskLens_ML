@@ -96,16 +96,61 @@ elif menu == "👤 Gestion des Clients":
     # --- ONGLET 2 : AJOUTER (POST /client/) ---
     with tab_ajouter:
         st.markdown("### Nouveau client")
+        
+        # --- CHARGEMENT DYNAMIQUE DES MAPPINGS DEPUIS L'API ---
+        @st.cache_data
+        def load_app_mappings():
+            try:
+                res = requests.get(f"{API_URL}/metadata/mappings")
+                if res.status_code == 200:
+                    return res.json()
+            except Exception:
+                pass
+            return {}
+
+        api_mappings = load_app_mappings()
+        
+        # Conversion sécurisée des clés en entiers
+        genre_map = {int(k): v for k, v in api_mappings.get("genre", {}).items()}
+        marital_map = {int(k): v for k, v in api_mappings.get("statut_marital", {}).items()}
+        scolaire_map = {int(k): v for k, v in api_mappings.get("niveau_scolaire", {}).items()}
+        defaut_map = {int(k): v for k, v in api_mappings.get("statut_defaut", {}).items()}
+
         with st.form("form_add_client"):
             col1, col2 = st.columns(2)
             with col1:
                 age = st.number_input("Âge", min_value=18, max_value=100, value=30)
-                code_genre = st.selectbox("Genre", options=[1, 2], format_func=lambda x: "Homme (1)" if x == 1 else "Femme (2)")
-                code_marital = st.selectbox("Statut Matrimonial", options=[1, 2, 3], format_func=lambda x: {1: "Marié(e) (1)", 2: "Célibataire (2)", 3: "Autre (3)"}[x])
+                
+                genre_options = list(genre_map.keys())
+                code_genre = st.selectbox(
+                    "Genre", 
+                    options=genre_options, 
+                    format_func=lambda x: f"{genre_map.get(x, x)} ({x})"
+                )
+                
+                marital_options = list(marital_map.keys())
+                code_marital = st.selectbox(
+                    "Statut Matrimonial", 
+                    options=marital_options, 
+                    format_func=lambda x: f"{marital_map.get(x, x)} ({x})"
+                )
+                
             with col2:
-                code_scolaire = st.selectbox("Niveau Scolaire", options=[1, 2, 3, 4], format_func=lambda x: {1: "Doctorat/Master (1)", 2: "Licence (2)", 3: "Baccalauréat (3)", 4: "Autre (4)"}[x])
+                scolaire_options = list(scolaire_map.keys())
+                code_scolaire = st.selectbox(
+                    "Niveau Scolaire", 
+                    options=scolaire_options, 
+                    format_func=lambda x: f"{scolaire_map.get(x, x)} ({x})"
+                )
+                
                 plafond = st.number_input("Plafond de crédit (NT$)", min_value=0, value=50000)
-                code_statut_defaut = st.selectbox("Statut Défaut initial", options=[0, 1], format_func=lambda x: "Paiement à jour (0)" if x == 0 else "Défaut (1)")
+                
+                defaut_options = list(defaut_map.keys())
+                code_statut_defaut = st.selectbox(
+                    "Statut Défaut initial", 
+                    options=defaut_options, 
+                    format_func=lambda x: f"{defaut_map.get(x, x)} ({x})"
+                )
             
             submit_client = st.form_submit_button("Enregistrer le client", type="primary")
             
@@ -131,6 +176,26 @@ elif menu == "👤 Gestion des Clients":
     # --- ONGLET 3 : MODIFIER (PATCH /client/{id}) ---
     with tab_modifier:
         st.markdown("### Modification partielle d'un client")
+        
+        # --- CHARGEMENT DYNAMIQUE DES MAPPINGS DEPUIS L'API ---
+        @st.cache_data
+        def load_app_mappings():
+            try:
+                res = requests.get(f"{API_URL}/metadata/mappings")
+                if res.status_code == 200:
+                    return res.json()
+            except Exception:
+                pass
+            return {}
+
+        api_mappings = load_app_mappings()
+        
+        # Conversion sécurisée des clés en entiers (car le JSON convertit les clés dict en string)
+        genre_map = {int(k): v for k, v in api_mappings.get("genre", {}).items()}
+        marital_map = {int(k): v for k, v in api_mappings.get("statut_marital", {}).items()}
+        scolaire_map = {int(k): v for k, v in api_mappings.get("niveau_scolaire", {}).items()}
+        defaut_map = {int(k): v for k, v in api_mappings.get("statut_defaut", {}).items()}
+
         patch_id = st.number_input("ID du client à modifier", min_value=1, value=8765, step=1, key="patch_client_id")
         
         # Chargement automatique dès que l'ID change ou s'il n'est pas encore en cache
@@ -147,16 +212,21 @@ elif menu == "👤 Gestion des Clients":
         
         current_data = st.session_state.get(cache_key)
         
-        # Affichage dynamique selon le résultat
+        # Affichage dynamique selon le résultat (avec affichage textuel propre basé sur les mappings dynamiques)
         if current_data:
+            g_lib = genre_map.get(current_data.get('code_genre'), current_data.get('code_genre'))
+            m_lib = marital_map.get(current_data.get('code_marital'), current_data.get('code_marital'))
+            s_lib = scolaire_map.get(current_data.get('code_scolaire'), current_data.get('code_scolaire'))
+            d_lib = defaut_map.get(current_data.get('code_statut_defaut'), current_data.get('code_statut_defaut'))
+
             st.info(
                 f"✅ **Client trouvé** ➔ "
                 f"Âge : {current_data.get('age')} ans | "
                 f"Plafond : {current_data.get('plafond')} NT$ | "
-                f"Genre : {current_data.get('code_genre')} | "
-                f"Marital : {current_data.get('code_marital')} | "
-                f"Scolaire : {current_data.get('code_scolaire')} | "
-                f"Défaut : {current_data.get('code_statut_defaut')}"
+                f"Genre : {g_lib} | "
+                f"Marital : {m_lib} | "
+                f"Scolaire : {s_lib} | "
+                f"Défaut : {d_lib}"
             )
         else:
             st.warning("⚠️ Aucun client trouvé avec cet ID dans la base de données.")
@@ -167,12 +237,37 @@ elif menu == "👤 Gestion des Clients":
             col1, col2 = st.columns(2)
             with col1:
                 new_age = st.number_input("Nouvel Âge", min_value=0, value=0)
-                new_genre = st.selectbox("Nouveau Genre", options=[-1, 1, 2], format_func=lambda x: "Ignorer" if x == -1 else ("Homme (1)" if x == 1 else "Femme (2)"))
-                new_marital = st.selectbox("Nouveau Statut Matrimonial", options=[-1, 1, 2, 3], format_func=lambda x: "Ignorer" if x == -1 else {1: "Marié(e) (1)", 2: "Célibataire (2)", 3: "Autre (3)"}[x])
+                
+                genre_options = [-1] + list(genre_map.keys())
+                new_genre = st.selectbox(
+                    "Nouveau Genre", 
+                    options=genre_options, 
+                    format_func=lambda x: "Ignorer" if x == -1 else f"{genre_map.get(x, x)} ({x})"
+                )
+                
+                marital_options = [-1] + list(marital_map.keys())
+                new_marital = st.selectbox(
+                    "Nouveau Statut Matrimonial", 
+                    options=marital_options, 
+                    format_func=lambda x: "Ignorer" if x == -1 else f"{marital_map.get(x, x)} ({x})"
+                )
+                
             with col2:
-                new_scolaire = st.selectbox("Nouveau Niveau Scolaire", options=[-1, 1, 2, 3, 4], format_func=lambda x: "Ignorer" if x == -1 else {1: "Doctorat/Master (1)", 2: "Licence (2)", 3: "Baccalauréat (3)", 4: "Autre (4)"}[x])
+                scolaire_options = [-1] + list(scolaire_map.keys())
+                new_scolaire = st.selectbox(
+                    "Nouveau Niveau Scolaire", 
+                    options=scolaire_options, 
+                    format_func=lambda x: "Ignorer" if x == -1 else f"{scolaire_map.get(x, x)} ({x})"
+                )
+                
                 new_plafond = st.number_input("Nouveau Plafond", min_value=0, value=0)
-                new_defaut = st.selectbox("Nouveau Statut Défaut", options=[-1, 0, 1], format_func=lambda x: "Ignorer" if x == -1 else ("Paiement à jour (0)" if x == 0 else "Défaut (1)"))
+                
+                defaut_options = [-1] + list(defaut_map.keys())
+                new_defaut = st.selectbox(
+                    "Nouveau Statut Défaut", 
+                    options=defaut_options, 
+                    format_func=lambda x: "Ignorer" if x == -1 else f"{defaut_map.get(x, x)} ({x})"
+                )
             
             submit_patch = st.form_submit_button("Mettre à jour", type="primary")
             
@@ -205,22 +300,6 @@ elif menu == "👤 Gestion des Clients":
                     st.error(f"Erreur API : {e}")
             else:
                 st.warning("Aucun champ valide sélectionné pour la modification.")
-
-    # --- ONGLET 4 : SUPPRIMER (DELETE /client/{id}) ---
-    with tab_supprimer:
-        st.markdown("### Supprimer un client")
-        st.warning("⚠️ Attention : La suppression d'un client supprime également tout son historique associé en cascade.")
-        del_client_id = st.number_input("ID du client à supprimer", min_value=1, value=8765, step=1, key="del_client_id")
-        
-        if st.button("🗑️ Supprimer définitivement ce client", type="secondary"):
-            try:
-                res = requests.delete(f"{API_URL}/client/{del_client_id}")
-                if res.status_code == 200:
-                    st.success(f"✅ {res.json().get('message')}")
-                else:
-                    st.error(f"Erreur : {res.json().get('detail')}")
-            except Exception as e:
-                st.error(f"Erreur API : {e}")
 
 # ==============================================================================
 # SECTION 3 : GESTION DE L'HISTORIQUE MENSUEL (GET, POST, PATCH, DELETE)
