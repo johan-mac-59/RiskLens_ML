@@ -19,6 +19,7 @@ enonce.md
 
 # Virtual environments
 .venv
+.devcontainer/
 
 # Ecole
 ecole/
