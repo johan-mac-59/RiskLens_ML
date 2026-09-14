@@ -190,7 +190,7 @@ elif menu == "📊 Analyse & Insights":
     with row1_col1:
         st.subheader("📈 Le Risque par Tranche d'Âge")
         if insights and 'age_risk' in insights:
-            age_dict = {str(k): v for k, v in insights['age_risk'].items()}
+            age_dict = {str(k): v * 100 for k, v in insights['age_risk'].items()}
             fig_age = px.bar(x=list(age_dict.keys()), y=list(age_dict.values()), 
                              labels={"x": "Âge", "y": "Taux (%)"}, 
                              color=list(age_dict.values()), 
@@ -203,7 +203,7 @@ elif menu == "📊 Analyse & Insights":
     with row1_col2:
         st.subheader("🎓 Impact du Niveau Scolaire")
         if insights and 'edu_risk' in insights:
-            edu_dict = {str(k): v for k, v in insights['edu_risk'].items()}
+            edu_dict = {str(k): v * 100 for k, v in insights['edu_risk'].items()}
             # Traduction des codes en labels lisibles
             edu_labels = [scolaire_map.get(int(k), k) for k in edu_dict.keys()]
             fig_edu = px.bar(x=edu_labels, y=list(edu_dict.values()), 
@@ -217,7 +217,7 @@ elif menu == "📊 Analyse & Insights":
     with row2_col1:
         st.subheader("👫 Le Risque par Genre")
         if insights and 'sex_risk' in insights:
-            sex_dict = {str(k): v for k, v in insights['sex_risk'].items()}
+            sex_dict = {str(k): v * 100 for k, v in insights['sex_risk'].items()}
             # On traduit les codes (ex: "1") en labels (ex: "Homme")
             sex_labels = [genre_map.get(int(k), k) for k in sex_dict.keys()]
             fig_sex = px.bar(x=sex_labels, y=list(sex_dict.values()), 
@@ -231,7 +231,7 @@ elif menu == "📊 Analyse & Insights":
     with row2_col2:
         st.subheader("💍 Impact du Statut Marital")
         if insights and 'marriage_risk' in insights:
-            mar_dict = {str(k): v for k, v in insights['marriage_risk'].items()}
+            mar_dict = {str(k): v * 100 for k, v in insights['marriage_risk'].items()}
             # On traduit les codes (ex: "1") en labels (ex: "Marié")
             mar_labels = [marital_map.get(int(k), k) for k in mar_dict.keys()]
             fig_mar = px.bar(x=mar_labels, y=list(mar_dict.values()), 
@@ -353,7 +353,7 @@ En conclusion, nous observons une disparité majeure de risque selon le profil :
                         with col_res1:
                             st.metric(
                                 label="Nombre de clients ciblés",
-                                value=f"{data['total_clients']:,}"
+                                value=f"{data['total_clients']}"
                             )
                         
                         with col_res2:
