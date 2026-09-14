@@ -36,6 +36,16 @@ def load_eda_insights():
         st.error(f"❌ Erreur lors du chargement des insights : {e}")
         return None
 
+@st.cache_data
+def load_app_mappings():
+    try:
+        res = requests.get(f"{API_URL}/metadata/mappings")
+        if res.status_code == 200:
+            return res.json()
+    except Exception:
+        pass
+    return {}
+        
 # ==============================================================================
 # CONFIGURATION & STYLE
 # ==============================================================================
@@ -132,7 +142,7 @@ Le projet suit un cycle de vie data complet : du diagnostic initial et la struct
 
 L'enjeu est de déterminer si les habitudes de paiement et l'utilisation du crédit ainsi que les informations de bases d'un client sont des indicateurs suffisamment robustes pour anticiper un défaut, sans avoir accès à des données macro-économiques ou des scores de crédit externes.
 
-Ce dataset est la base de données publique qui résulte de [l'étude scientifique de I-Cheng Yeh et Che-hui Lien (2009)](/https://raw.githubusercontent.com/johan-mac-59/RiskLens_ML/main/docs/DefaultCreditCardClients_yeh_2009.pdf) (traduit en français [ici](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/traduction_DefaultCreditCardClients_yeh_2009.md). Cette étude s'appuyait principalement sur l'Exactitude (Accuracy) globale. Mon but est de dépasser le score maximal de 2009 qui était de 0.54, ce qui équivaut à un **AUC de 0.77**.
+Ce dataset est la base de données publique qui résulte de [l'étude scientifique de I-Cheng Yeh et Che-hui Lien (2009)](/https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/DefaultCreditCardClients_yeh_2009.pdf) (traduit en français [ici](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/traduction_DefaultCreditCardClients_yeh_2009.md). Cette étude s'appuyait principalement sur l'Exactitude (Accuracy) globale. Mon but est de dépasser le score maximal de 2009 qui était de 0.54, ce qui équivaut à un **AUC de 0.77**.
 Ma démarche adopte un prisme résolument **orienté métier**. En combinant un nettoyage rigoureux des données et un pilotage par le F1-score et le Recall, je cherche à optimiser la détection réelle des risques de défaut, garantissant ainsi une performance robuste et réellement actionnable pour la gestion des risques bancaires.
 
 
@@ -249,6 +259,11 @@ Si on regarde ces 4 facteurs inversés :
 
 En conclusion, nous observons une disparité majeure de risque selon le profil : le taux de défaut peut varier de 16% à 36% selon la combinaison des facteurs démographiques. Bien que le segment à haut risque soit numériquement faible, l'écart de risque est significatif, ce qui justifie l'intégration de ces variables dans mon futur modèle de scoring.
 """)
+    
+    st.markdown("""
+                
+                🚧 *EDA du comportement de paiement en cours*
+                """)
 
 
 # ==============================================================================
@@ -276,7 +291,7 @@ elif menu == "👤 Gestion des Clients":
                     # On crée les colonnes. Le style sera appliqué via le CSS global.
                     col1, col2, col3 = st.columns(3)
                     with col1:
-                        st.metric("Âge", f"{client_data.  get('age', 'N/A')} ans")
+                        st.metric("Âge", f"{client_data.get('age', 'N/A')} ans")
                     with col2:
                         st.metric("Plafond", f"{client_data.get('plafond', 'N/A')} NT$")
                     with col3:
@@ -296,16 +311,6 @@ elif menu == "👤 Gestion des Clients":
         st.markdown("### Nouveau client")
         
         # --- CHARGEMENT DYNAMIQUE DES MAPPINGS DEPUIS L'API ---
-        @st.cache_data
-        def load_app_mappings():
-            try:
-                res = requests.get(f"{API_URL}/metadata/mappings")
-                if res.status_code == 200:
-                    return res.json()
-            except Exception:
-                pass
-            return {}
-
         api_mappings = load_app_mappings()
         
         # Conversion sécurisée des clés en entiers
@@ -376,16 +381,6 @@ elif menu == "👤 Gestion des Clients":
         st.markdown("### Modification partielle d'un client")
         
         # --- CHARGEMENT DYNAMIQUE DES MAPPINGS DEPUIS L'API ---
-        @st.cache_data
-        def load_app_mappings():
-            try:
-                res = requests.get(f"{API_URL}/metadata/mappings")
-                if res.status_code == 200:
-                    return res.json()
-            except Exception:
-                pass
-            return {}
-
         api_mappings = load_app_mappings()
         
         # Conversion sécurisée des clés en entiers (car le JSON convertit les clés dict en string)
