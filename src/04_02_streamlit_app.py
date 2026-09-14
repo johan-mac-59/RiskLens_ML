@@ -102,7 +102,7 @@ def load_app_mappings():
 # ==============================================================================
 # NAVIGATION
 # ==============================================================================
-st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2845/2845883.png", width=100)
+st.sidebar.image("images/logo_risklens.svg", width=250)
 st.sidebar.title("🏦 RiskLens ML — Analyse & Prédiction du Défaut de Paiement 💳")
 st.sidebar.markdown("---")
 st.info(
