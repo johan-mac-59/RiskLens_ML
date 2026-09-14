@@ -142,7 +142,7 @@ Le projet suit un cycle de vie data complet : du diagnostic initial et la struct
 
 L'enjeu est de déterminer si les habitudes de paiement et l'utilisation du crédit ainsi que les informations de bases d'un client sont des indicateurs suffisamment robustes pour anticiper un défaut, sans avoir accès à des données macro-économiques ou des scores de crédit externes.
 
-Ce dataset est la base de données publique qui résulte de [l'étude scientifique de I-Cheng Yeh et Che-hui Lien (2009)](/https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/DefaultCreditCardClients_yeh_2009.pdf) (traduit en français [ici](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/traduction_DefaultCreditCardClients_yeh_2009.md). Cette étude s'appuyait principalement sur l'Exactitude (Accuracy) globale. Mon but est de dépasser le score maximal de 2009 qui était de 0.54, ce qui équivaut à un **AUC de 0.77**.
+Ce dataset est la base de données publique qui résulte de [l'étude scientifique de I-Cheng Yeh et Che-hui Lien (2009)](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/DefaultCreditCardClients_yeh_2009.pdf) (traduit en français [ici](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/traduction_DefaultCreditCardClients_yeh_2009.md)). Cette étude s'appuyait principalement sur l'Exactitude (Accuracy) globale. Mon but est de dépasser le score maximal de 2009 qui était de 0.54, ce qui équivaut à un **AUC de 0.77**.
 Ma démarche adopte un prisme résolument **orienté métier**. En combinant un nettoyage rigoureux des données et un pilotage par le F1-score et le Recall, je cherche à optimiser la détection réelle des risques de défaut, garantissant ainsi une performance robuste et réellement actionnable pour la gestion des risques bancaires.
 
 
@@ -261,8 +261,9 @@ En conclusion, nous observons une disparité majeure de risque selon le profil :
 """)
     
     st.markdown("""
-                
-                🚧 *EDA du comportement de paiement en cours*
+                  
+                  
+                #### 🚧 *Analyse exploratoire du comportement de paiement en cours*
                 """)
 
 
