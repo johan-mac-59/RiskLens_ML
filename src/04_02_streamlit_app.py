@@ -261,7 +261,7 @@ En conclusion, nous observons une disparité majeure de risque selon le profil :
 """)
     
 
-    # ==============================================================================
+# ==============================================================================
     # CALCULATEUR INTERACTIF RÉEL : TAUX DE DÉFAUT PAR PROFIL
     # ==============================================================================
     st.markdown("---")
@@ -314,7 +314,7 @@ En conclusion, nous observons une disparité majeure de risque selon le profil :
         # Mariage
         marital_options = [-1] + list(marital_map.keys())
         selected_marital = st.selectbox(
-            "Statut Matrimonial", 
+            "Statut Marital", 
             options=marital_options, 
             format_func=lambda x: f"{marital_map.get(x, 'Tous statuts')} ({x})" if x != -1 else "Tous statuts"
         )
@@ -366,7 +366,7 @@ En conclusion, nous observons une disparité majeure de risque selon le profil :
                                 delta_color="inverse" # Rouge si haut, vert si bas
                             )
                         
-                        st.info(f"Sur ces {data['total_clients']} clients, **{data['defaut_count']}** ont présenté un défaut.")
+                        st.info(f"Sur ces {data['total_clients']} clients, **{data['defaut_count']}** ont présenté un défaut de paiement le mois suivant.")
                         
                         # Visualisation contextuelle simple
                         if risk_pct:
@@ -380,10 +380,20 @@ En conclusion, nous observons une disparité majeure de risque selon le profil :
                                 st.metric(label="Écart à la moyenne", value=f"{delta_val:+.1f}%")
 
                 else:
-                    st.error("Impossible de joindre l'API pour le calcul.")
+                    st.error(f"Impossible de joindre l'API pour le calcul. Code erreur : {res.status_code}")
+                    # Afficher les détails de l'erreur si disponible
+                    try:
+                        error_data = res.json()
+                        st.error(f"Détails de l'erreur : {error_data}")
+                    except:
+                        st.error("Aucun détail d'erreur disponible")
 
+        except requests.exceptions.RequestException as e:
+            st.error(f"Erreur réseau lors du calcul : {e}")
         except Exception as e:
             st.error(f"Erreur lors du calcul : {e}")
+            import traceback
+            st.text_area("Détails de l'erreur", value=traceback.format_exc(), height=200)
     
     st.markdown("""
                   ---

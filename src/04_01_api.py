@@ -674,7 +674,7 @@ def get_risk_by_profile(
             params.append(gender_code)
             
         if marital_status is not None:
-            conditions.append("code_statut_marital = ?")
+            conditions.append("code_marital = ?")
             params.append(marital_status)
             
         if education_level is not None:
