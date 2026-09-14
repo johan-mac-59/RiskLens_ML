@@ -1,9 +1,9 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 import sqlite3
 import os
 from pydantic import BaseModel, Field
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional
 
 # Le chemin ABSOLU du dossier où se trouve ce script
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -643,3 +643,71 @@ def supprimer_un_client(client_id: int):
             raise HTTPException(status_code=409, detail="Erreur d'intégrité : il reste des liens non gérés.")
         raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
 
+
+# ==============================================================================
+# ROUTE : Calcul du taux de défaut par profil démographique
+# ==============================================================================
+@app.get("/analyze/risk-by-profile", tags=["Analyse"])
+def get_risk_by_profile(
+    gender_code: Optional[int] = Query(None, description="Code genre (1=M, 2=F)"),
+    marital_status: Optional[int] = Query(None, description="Statut marital"),
+    education_level: Optional[int] = Query(None, description="Niveau scolaire"),
+    age_min: Optional[int] = Query(None, description="Âge minimum"),
+    age_max: Optional[int] = Query(None, description="Âge maximum")
+):
+    """
+    Calcule le taux de défaut moyen pour un profil démographique spécifique.
+    Les paramètres sont optionnels (None = tous).
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Construction dynamique de la requête
+        query = "SELECT COUNT(*) as total, SUM(code_statut_defaut) as default_count FROM client"
+        params = []
+
+        conditions = []
+        
+        if gender_code is not None:
+            conditions.append("code_genre = ?")
+            params.append(gender_code)
+            
+        if marital_status is not None:
+            conditions.append("code_statut_marital = ?")
+            params.append(marital_status)
+            
+        if education_level is not None:
+            conditions.append("code_scolaire = ?")
+            params.append(education_level)
+            
+        if age_min is not None and age_max is not None:
+            conditions.append("age BETWEEN ? AND ?")
+            params.extend([age_min, age_max])
+        elif age_min is not None:
+            conditions.append("age >= ?")
+            params.append(age_min)
+        elif age_max is not None:
+            conditions.append("age <= ?")
+            params.append(age_max)
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        cursor.execute(query, params)
+        row = cursor.fetchone()
+        conn.close()
+
+        total = row[0]
+        defaults = row[1]
+        
+        rate = (defaults / total * 100) if total > 0 else None
+        
+        return {
+            "total_clients": total,
+            "defaut_count": defaults,
+            "default_rate_pct": round(rate, 2) if rate is not None else None
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")

@@ -260,8 +260,133 @@ Si on regarde ces 4 facteurs inversés :
 En conclusion, nous observons une disparité majeure de risque selon le profil : le taux de défaut peut varier de 16% à 36% selon la combinaison des facteurs démographiques. Bien que le segment à haut risque soit numériquement faible, l'écart de risque est significatif, ce qui justifie l'intégration de ces variables dans mon futur modèle de scoring.
 """)
     
+
+    # ==============================================================================
+    # CALCULATEUR INTERACTIF RÉEL : TAUX DE DÉFAUT PAR PROFIL
+    # ==============================================================================
+    st.markdown("---")
+    st.subheader("🧮 Simulateur de Risque par Profil Démographique")
+    st.markdown("Vous aussi, calculez le taux de défaut de paiement selon les critères démographiques choisis en direct sur la base de données")
+
+    col_sim1, col_sim2 = st.columns([1, 1])
+
+    with col_sim1:
+        st.info("Sélectionnez les critères du client hypothétique.")
+        
+        # Choix Âge : on offre des tranches
+        age_tranches = [
+            ("Tous âges", 0, 100),
+            ("21-25 ans", 21, 25),
+            ("26-30 ans", 26, 30),
+            ("31-35 ans", 31, 35),
+            ("36-40 ans", 36, 40),
+            ("41-50 ans", 41, 50),
+            ("51-60 ans", 51, 60),
+            ("61+ ans", 61, 80)
+        ]
+        
+        selected_tranche = st.selectbox(
+            "Tranche d'âge", 
+            options=[t[0] for t in age_tranches],
+            format_func=lambda x: x
+        )
+        
+        # On récupère les bornes de la tranche sélectionnée
+        age_min, age_max = next((t[1], t[2]) for t in age_tranches if t[0] == selected_tranche)
+
+        # Genre
+        genre_options = [-1] + list(genre_map.keys())
+        selected_genre = st.selectbox(
+            "Genre", 
+            options=genre_options, 
+            format_func=lambda x: f"{genre_map.get(x, 'Tous les genres')} ({x})" if x != -1 else "Tous les genres"
+        )
+
+    with col_sim2:
+        # Scolaire
+        edu_options = [-1] + list(scolaire_map.keys())
+        selected_edu = st.selectbox(
+            "Niveau Scolaire", 
+            options=edu_options, 
+            format_func=lambda x: f"{scolaire_map.get(x, 'Tous niveaux')} ({x})" if x != -1 else "Tous niveaux"
+        )
+
+        # Mariage
+        marital_options = [-1] + list(marital_map.keys())
+        selected_marital = st.selectbox(
+            "Statut Matrimonial", 
+            options=marital_options, 
+            format_func=lambda x: f"{marital_map.get(x, 'Tous statuts')} ({x})" if x != -1 else "Tous statuts"
+        )
+
+    # Bouton de calcul
+    if st.button("🔍 Calculer le taux de défaut", type="primary", use_container_width=True):
+        
+        # Préparation des paramètres pour l'API
+        params = {}
+        if selected_genre != -1:
+            params["gender_code"] = selected_genre
+        if selected_edu != -1:
+            params["education_level"] = selected_edu
+        if selected_marital != -1:
+            params["marital_status"] = selected_marital
+        
+        # Ajout des tranches d'âge
+        params["age_min"] = age_min
+        params["age_max"] = age_max
+
+        try:
+            with st.spinner("Interrogation de la BDD en temps réel..."):
+                res = requests.get(f"{API_URL}/analyze/risk-by-profile", params=params)
+                
+                if res.status_code == 200:
+                    data = res.json()
+                    
+                    if "error" in data:
+                        st.error(f"Erreur API : {data['error']}")
+                    elif data["total_clients"] == 0:
+                        st.warning("Aucun client ne correspond exactement à ces critères combinés. Essayez d'élargir les tranches.")
+                    else:
+                        # Affichage des résultats
+                        col_res1, col_res2 = st.columns(2)
+                        
+                        with col_res1:
+                            st.metric(
+                                label="Nombre de clients ciblés",
+                                value=f"{data['total_clients']:,}"
+                            )
+                        
+                        with col_res2:
+                            risk_pct = data['default_rate_pct']
+                            color = "green" if risk_pct < 25 else "orange" if risk_pct < 35 else "red"
+                            
+                            st.metric(
+                                label="Taux de défaut observé",
+                                value=f"{risk_pct}%",
+                                delta_color="inverse" # Rouge si haut, vert si bas
+                            )
+                        
+                        st.info(f"Sur ces {data['total_clients']} clients, **{data['defaut_count']}** ont présenté un défaut.")
+                        
+                        # Visualisation contextuelle simple
+                        if risk_pct:
+                            # On ajoute une barre visuelle pour comparer à la moyenne globale (ex: 22%)
+                            global_avg = 22.0 # À adapter avec ta vraie moyenne
+                            col_viz1, col_viz2 = st.columns([3, 1])
+                            with col_viz1:
+                                st.progress(risk_pct/100, f"Risque du profil ({risk_pct}%) vs Moyenne ({global_avg}%)")
+                            with col_viz2:
+                                delta_val = risk_pct - global_avg
+                                st.metric(label="Écart à la moyenne", value=f"{delta_val:+.1f}%")
+
+                else:
+                    st.error("Impossible de joindre l'API pour le calcul.")
+
+        except Exception as e:
+            st.error(f"Erreur lors du calcul : {e}")
+    
     st.markdown("""
-                  
+                  ---
                   
                 #### 🚧 *Analyse exploratoire du comportement de paiement en cours*
                 """)
