@@ -54,6 +54,7 @@ chargement de l'API via la commande Bash 'uvicorn src.04_01_api:app --reload'
 - informations d'un client via son ID : '@app.get("/client/{client_id}")'
 - informations historiques sur un mois pour un client : '@app.get("/historique_mensuel/{client_id}/{mois}/{annee}")'
 - informations sur tout l'historique transactionnel d'un client : '@app.get("/historique_mensuel/{client_id}")'
+- information sur 5 données en même temps permettant de sortir des stats : '@app.get("/analyze/risk-by-profile")''
 **Implémentations de POST :**
 - création d'un client avec ces caractéristiques obligatoires et optionnelles : '@app.post("/client/")'
 - création d'un historique mensuel pour un client via son ID : '@app.post("/historique_mensuel/")'
@@ -64,6 +65,8 @@ chargement de l'API via la commande Bash 'uvicorn src.04_01_api:app --reload'
 - suppression d'une ligne d'historique mensuel par l'ID du client, le mois et l'année : '@app.delete("/historique_mensuel/")'
 - suppression de tout l'historique transactionnel d'un client par son ID : '@app.delete("/historique_mensuel/client/{client_id}")'
 - supprimer un client via son ID ainsi que tout son historique transactionnel : '@app.delete("/client/{client_id}")'
+**Implémentations de Routes Admin :**
+- Télécharger la base de données après identification sécurisée : '@app.get("/admin/telecharger-db")'
 
 ## EDA
 Je constate une tendance de codification des colonnes 'PAY_n' légèrement différente de ce qui est décrit dans la documentation  
@@ -119,6 +122,7 @@ Le traitement de cette colonne avec cette donnée particulière sera à encoder 
 - Test déploiement sur Render avec BDD en ligne OK
 - Test déploiement sur Streamlit Community Cloud OK
 - API fonction get_metadata_mappings() : sert de passerelle dynamique entre les tables de correspondances et Streamlit (à mettre à jour si une nouvelle table est créée)
+- Zone Administrateur sécurisée avec une fonction API dédiée
 
 
 ## Problèmes rencontrés
