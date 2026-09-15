@@ -711,3 +711,58 @@ def get_risk_by_profile(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
+    
+    
+    
+#=======================================================
+# ZONE ADMIN
+#=======================================================
+
+from fastapi import Depends, status
+from dotenv import load_dotenv
+from fastapi.responses import FileResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+
+# Charge le fichier .env en local (ignoré automatiquement sur Render)
+load_dotenv()
+
+# Récupération des 2 variables
+ADMIN_USER = os.getenv("ADMIN_USER")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+
+# 1. Configuration du système de sécurité HTTP Basic
+security = HTTPBasic()
+
+def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
+    """
+    Fonction de dépendance (Dependency) injectée dans les routes protégées.
+    
+    Elle intercepte les identifiants envoyés par le client (Streamlit, Swagger UI, Curl),
+    les compare aux variables d'environnement secrètes, et autorise ou bloque l'accès.
+    """
+    is_correct_user = (credentials.username == ADMIN_USER)
+    is_correct_pass = (credentials.password == ADMIN_PASSWORD)
+    
+    if not (is_correct_user and is_correct_pass):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Identifiant ou mot de passe incorrect.",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
+
+# Route réservée à l'ADMIN pour télécharger la BDD
+@app.get("/admin/telecharger-db", tags=["Admin"], dependencies=[Depends(verify_credentials)])
+def telecharger_database():
+    """Permet à l'administrateur de télécharger une copie complète de la BDD SQLite."""
+    if not os.path.exists(DB_PATH):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Fichier de base de données introuvable."
+        )
+    
+    return FileResponse(
+        path=DB_PATH, 
+        filename="risklens_backup.db", 
+        media_type="application/x-sqlite3"
+    )

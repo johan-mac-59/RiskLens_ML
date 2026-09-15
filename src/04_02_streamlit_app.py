@@ -117,7 +117,8 @@ menu = st.sidebar.radio(
         "📊 Analyse & Insights",
         "👤 Gestion des Clients",
         "📅 Historique Transactionnel",
-        "📚 Architecture Technique"
+        "📚 Architecture Technique",
+        "🔐 Espace réservé à l'Administrateur"
     ]
 )
 
@@ -196,7 +197,7 @@ elif menu == "📊 Analyse & Insights":
                              color=list(age_dict.values()), 
                              color_continuous_scale="Viridis")
             # CORRECTION ICI : use_container_width au lieu de use_string_width
-            st.plotly_chart(fig_age, use_container_width=True)
+            st.plotly_chart(fig_age, width='stretch')
         else:
             st.info("Données d'âge indisponibles.")
 
@@ -209,7 +210,7 @@ elif menu == "📊 Analyse & Insights":
             fig_edu = px.bar(x=edu_labels, y=list(edu_dict.values()), 
                              labels={"x": "Éducation", "y": "Taux (%)"}, color=list(edu_dict.values()), 
                              color_continuous_scale="Reds")
-            st.plotly_chart(fig_edu, use_container_width=True)
+            st.plotly_chart(fig_edu, width='stretch')
         else:
             st.info("Données d'éducation indisponibles.")
 
@@ -224,7 +225,7 @@ elif menu == "📊 Analyse & Insights":
                              labels={"x": "Genre", "y": "Taux (%)"}, 
                              color=list(sex_dict.values()), 
                              color_continuous_scale="magma")
-            st.plotly_chart(fig_sex, use_container_width=True)
+            st.plotly_chart(fig_sex, width='stretch')
         else:
             st.info("Données de genre indisponibles.")
 
@@ -238,7 +239,7 @@ elif menu == "📊 Analyse & Insights":
                              labels={"x": "Statut", "y": "Taux (%)"}, 
                              color=list(mar_dict.values()), 
                              color_continuous_scale="GnBu")
-            st.plotly_chart(fig_mar, use_container_width=True)
+            st.plotly_chart(fig_mar, width='stretch')
         else:
             st.info("Données de mariage indisponibles.")
 
@@ -320,7 +321,7 @@ En conclusion, nous observons une disparité majeure de risque selon le profil :
         )
 
     # Bouton de calcul
-    if st.button("🔍 Calculer le taux de défaut", type="primary", use_container_width=True):
+    if st.button("🔍 Calculer le taux de défaut", type="primary", width='stretch'):
         
         # Préparation des paramètres pour l'API
         params = {}
@@ -436,7 +437,7 @@ elif menu == "👤 Gestion des Clients":
                     
                     st.markdown("#### 📋 Détails complets")
                     df_client = pd.DataFrame([client_data])
-                    st.dataframe(df_client, use_container_width=True, hide_index=True)
+                    st.dataframe(df_client, hide_index=True)
                 else:
                     st.error("Client non trouvé dans la base de données.")
             except Exception as e:
@@ -681,7 +682,7 @@ elif menu == "📅 Historique Transactionnel":
                                 "Statut Paiement": h.get("code_statut_paiement")
                             })
                         df_histo = pd.DataFrame(df_lignes)
-                        st.dataframe(df_histo, use_container_width=True, hide_index=True)
+                        st.dataframe(df_histo, hide_index=True)
                     else:
                         st.info("Aucun historique trouvé pour ce client.")
                 else:
@@ -846,16 +847,53 @@ elif menu == "📚 Architecture Technique":
     col_l1, col_l2, col_l3 = st.columns(3)
     
     with col_l1:
-        st.markdown("#### 🛠️ Technique")
-        st.link_button("📖 Documentation API", f"{API_URL}/docs", use_container_width=True)
-    
+        st.markdown("<h4 style='text-align: center;'>🛠️ Technique</h4>", unsafe_allow_html=True)
+        st.link_button("📖 Documentation API", f"{API_URL}/docs", width='stretch')
+
     with col_l2:
-        st.markdown("#### 💻 Code")
-        st.link_button("GitHub Repository", "https://github.com/johan-mac-59/RiskLens_ML", use_container_width=True)
+        st.markdown("<h4 style='text-align: center;'>💻 Code</h4>", unsafe_allow_html=True)
+        st.link_button("GitHub Repository", "https://github.com/johan-mac-59/RiskLens_ML", width='stretch')
         
     with col_l3:
-        st.markdown("#### 🤝 Réseau")
-        st.link_button("💼 Mon profil LinkedIn", "https://www.linkedin.com/in/johan-machu/", use_container_width=True)
+        st.markdown("<h4 style='text-align: center;'>🤝 Réseau</h4>", unsafe_allow_html=True)
+        st.link_button("💼 Mon profil LinkedIn", "https://www.linkedin.com/in/johan-machu/", width='stretch')
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: grey;'>RiskLens ML © 2024 — Projet Portfolio Data Analyst</p>", unsafe_allow_html=True)
+    
+    
+    
+# -------------------------------------------------------------
+# 2. ZONE PROTEGÉE (Authentification requise)
+# -------------------------------------------------------------
+elif menu == "🔐 Espace réservé à l'Administrateur":
+    st.subheader("🔐 Espace réservé à l'Administrateur")
+    st.info("Cet espace permet un accès complet à la BDD.")
+
+    if "admin_auth" in st.session_state:
+        st.markdown("---")
+        st.subheader("💾 Sauvegarde & Export")
+        
+        if st.button("📥 Préparer le téléchargement de la BDD"):
+            auth = st.session_state["admin_auth"]
+            
+            try:
+                # Recommandation : envoyer la requête GET avec l'authentification
+                response = requests.get(f"{API_URL}/admin/telecharger-db", auth=auth)
+                
+                if response.status_code == 200:
+                    # Proposer le téléchargement du fichier récupéré
+                    st.download_button(
+                        label="💾 Télécharger le fichier .db",
+                        data=response.content,
+                        file_name="risklens_backup.db",
+                        mime="application/x-sqlite3"
+                    )
+                elif response.status_code == 401:
+                    st.error("❌ Identifiants invalides pour télécharger la base.")
+                else:
+                    st.error(f"Erreur : {response.status_code}")
+                    
+            except Exception as e:
+                st.error(f"Impossible de contacter l'API : {e}")
+        
