@@ -102,6 +102,21 @@ Je n'envisage aucune correction de cette valeur, les indications que j'ai dans l
 La brusque envolée perçue peut etre le but de l'étude originelle de ce dataset, un réel emballement des impayés au plus fort de la crise de 2005. Cela pourrait finalement correspondre à un impayé de 30 jours comme l'indique la nomenclature.  
 Le traitement de cette colonne avec cette donnée particulière sera à encoder de manière spécifique pour le ML.  
 
+J'ai détecté une règle de correction pour les encours négatifs présentant des codifications 1 : je corrige en récupérant la valeur PAY_ du mois précédent
+Il reste 15 lignes avec une codification 1 en PAY_2 ou PAY_3
+Il reste 2521 lignes avec une codification PAY_1=1 soit 8% du dataset
+Certains se demandent peut-être pourquoi je m'obstine à nettoyer la colonne PAY_1 de ses 1 . Les graphiques sont faussés sur ce mois, le machine learning ne semble pas impacté par mes corrections jusque maintenant mais le poids de cette colonne dans leur décision tend à diminuer ou augmenter selon les modèles à mesure que je la rectifie. De plus, d'autres features seront impactées par ce changement de codification et impacteront encore davantage le ML (ex de la colonne frequence des incidents ou du total de codification risque d'un client)
+**Correction finale des PAY_n = 1**  
+- Correction des PAY_n = 1 : PAY_n = PAY_(n+1) si BILL_AMT(n+1) <= 0
+- correction des PAY_n = 1 restants : PAY_n = 0 si BILL-AMT(n+1) <= 0
+- le client 6783 a une codification PAY = 1 sur 4 mois alors qu'il paie chaque mois -> remettre sa codification en 0
+- si PAY_2 <=0 et ratio_PAY_AMT1_to_BILL_AMT2 > 4 alors PAY_1 = PAY_2 
+- si PAY_2 = 2 et ratio_PAY_AMT1_to_BILL_AMT2 > 10 alors PAY_1 = 0
+- si PAY_2 > 2 et ratio_PAY_AMT1_to_BILL_AMT2 > 4 alors PAY_1 = PAY_2
+Si ratio_PAY_AMT1_to_BILL_AMT2 < 4 alors il est impossible d'effectuer avec certitude de correction, le client peut continuer à etre en retard, le client peut avoir payer après le batch des 30 jours ou ne pas avoir payé du tout :
+- je maitiens PAY_1 = 1 si PAY_2 < 2
+- PAY_1 = PAY_2 si PAY_2 >= 2 pour considérer que le client n'a pas résorbé sa dette et que le retard est maintenu
+
 **Aberrations détectées :** éventuelles à traiter
 - 9 lignes présentant des montants payés et dus anormalement élevés par rapport à leur plafond, et par rapport au reste des valeurs présentes dans le datase
 - 692 lignes présentant des paiements sur des comptes à encours négatifs : expliqués majoritairement par des paiements supérieurs aux sommes dues
