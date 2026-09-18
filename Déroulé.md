@@ -117,6 +117,10 @@ Si ratio_PAY_AMT1_to_BILL_AMT2 < 4 alors il est impossible d'effectuer avec cert
 - je maitiens PAY_1 = 1 si PAY_2 < 2
 - PAY_1 = PAY_2 si PAY_2 >= 2 pour considérer que le client n'a pas résorbé sa dette et que le retard est maintenu
 
+**Corrections des PAY_n = -2 sur encours positif :**
+si PAY_n == -2 alors que BILL_AMT(n+1)>0 THEN PAY_n = -1
+si PAY_6 == -2 et que PAY_5 == -1 THEN PAY_6 = -1
+
 **Aberrations détectées :** éventuelles à traiter
 - 9 lignes présentant des montants payés et dus anormalement élevés par rapport à leur plafond, et par rapport au reste des valeurs présentes dans le datase
 - 692 lignes présentant des paiements sur des comptes à encours négatifs : expliqués majoritairement par des paiements supérieurs aux sommes dues
