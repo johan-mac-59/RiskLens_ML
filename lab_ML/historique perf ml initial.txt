@@ -1,0 +1,184 @@
+SANS ENCODER
+
+=== ÉVALUATION FINALE MULTI-TABLEAUX (X_TEST VS CV & TRAIN) ===
+
+=================================================================
+🎯 1. OPTIMISATION : F1-SCORE
+=================================================================
+
+--- Tableau 1A : Stabilité Métrique Cible (F1-Score) ---
+            Modèle  F1 Score (CV)  F1 Score (Test)  Diff Target Diagnostic
+LogisticRegression         0.4806           0.4618      -0.0188   ✅ Stable
+               SVM         0.5064           0.4970      -0.0094   ✅ Stable
+     MLPClassifier         0.4797           0.4803       0.0006   ✅ Stable
+      RandomForest         0.5461           0.5407      -0.0054   ✅ Stable
+          CatBoost         0.5453           0.5414      -0.0039   ✅ Stable
+
+--- Tableau 1B : Dérive du Rappel (Recall Train vs Test) ---
+            Modèle  Recall (Train)  Recall (Test)  Diff Recall      Diagnostic
+LogisticRegression          0.6461         0.6194      -0.0266        ✅ Stable
+               SVM          0.5170         0.4439      -0.0732 ⚠️ Chute Rappel
+     MLPClassifier          0.3835         0.3813      -0.0022        ✅ Stable
+      RandomForest          0.6598         0.6051      -0.0547 ⚠️ Chute Rappel
+          CatBoost          0.6743         0.6187      -0.0556 ⚠️ Chute Rappel
+
+
+
+=================================================================
+🎯 2. OPTIMISATION : ROC AUC
+=================================================================
+
+--- Tableau 2A : Stabilité Métrique Cible (ROC AUC) ---
+            Modèle  ROC AUC (CV)  ROC AUC (Test)  Diff Target Diagnostic
+LogisticRegression        0.7264          0.7084      -0.0180   ✅ Stable
+               SVM        0.7593          0.7522      -0.0071   ✅ Stable
+     MLPClassifier        0.7706          0.7708       0.0002   ✅ Stable
+      RandomForest        0.7836          0.7755      -0.0081   ✅ Stable
+          CatBoost        0.7835          0.7774      -0.0061   ✅ Stable
+
+--- Tableau 2B : Dérive du Rappel (Recall Train vs Test) ---
+            Modèle  Recall (Train)  Recall (Test)  Diff Recall      Diagnostic
+LogisticRegression          0.6468         0.6202      -0.0266        ✅ Stable
+               SVM          0.4990         0.4431      -0.0559 ⚠️ Chute Rappel
+     MLPClassifier          0.3905         0.3768      -0.0137        ✅ Stable
+      RandomForest          0.6621         0.6059      -0.0562 ⚠️ Chute Rappel
+          CatBoost          0.6783         0.6164      -0.0619 ⚠️ Chute Rappel
+
+
+AVEC ENCODER
+
+# Séparation des colonnes numériques et catégorielles
+num_col = ['LIMIT_BAL', 'AGE', 'BILL_AMT1', 'BILL_AMT2', 'BILL_AMT3', 'BILL_AMT4', 'BILL_AMT5', 'BILL_AMT6', 'PAY_AMT1', 'PAY_AMT2', 'PAY_AMT3', 'PAY_AMT4', 'PAY_AMT5', 'PAY_AMT6']
+cat_col = ['SEX', 'EDUCATION', 'MARRIAGE', 'PAY_1', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6']
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', StandardScaler(), num_col),
+        ('nom', OneHotEncoder(drop='first', sparse_output=False, handle_unknown='ignore'), cat_col)
+        ]
+)
+=== ÉVALUATION FINALE MULTI-TABLEAUX (X_TEST VS CV & TRAIN) ===
+
+=================================================================
+🎯 1. OPTIMISATION : F1-SCORE
+=================================================================
+
+--- Tableau 1A : Stabilité Métrique Cible (F1-Score) ---
+            Modèle  F1 Score (CV)  F1 Score (Test)  Diff Target Diagnostic
+LogisticRegression         0.5337           0.5221      -0.0116   ✅ Stable
+               SVM         0.5198           0.5017      -0.0181   ✅ Stable
+     MLPClassifier         0.4807           0.4545      -0.0262   ✅ Stable
+               KNN         0.4366           0.4267      -0.0099   ✅ Stable
+      RandomForest         0.5423           0.5408      -0.0015   ✅ Stable
+          CatBoost         0.5429           0.5334      -0.0095   ✅ Stable
+
+--- Tableau 1B : Dérive du Rappel (Recall Train vs Test) ---
+            Modèle  Recall (Train)  Recall (Test)  Diff Recall      Diagnostic
+LogisticRegression          0.5822         0.5554      -0.0268        ✅ Stable
+               SVM          0.5138         0.4574      -0.0564 ⚠️ Chute Rappel
+     MLPClassifier          0.3618         0.3429      -0.0190        ✅ Stable
+               KNN          0.9977         0.3248      -0.6729 ⚠️ Chute Rappel
+      RandomForest          0.6521         0.6112      -0.0409 ⚠️ Chute Rappel
+          CatBoost          0.7378         0.6074      -0.1304 ⚠️ Chute Rappel
+
+
+
+=================================================================
+🎯 2. OPTIMISATION : ROC AUC
+=================================================================
+
+--- Tableau 2A : Stabilité Métrique Cible (ROC AUC) ---
+            Modèle  ROC AUC (CV)  ROC AUC (Test)  Diff Target Diagnostic
+LogisticRegression        0.7695          0.7587      -0.0108   ✅ Stable
+               SVM        0.7682          0.7587      -0.0095   ✅ Stable
+     MLPClassifier        0.7775          0.7713      -0.0062   ✅ Stable
+               KNN        0.7378          0.7335      -0.0043   ✅ Stable
+      RandomForest        0.7817          0.7741      -0.0076   ✅ Stable
+          CatBoost        0.7832          0.7771      -0.0061   ✅ Stable
+
+--- Tableau 2B : Dérive du Rappel (Recall Train vs Test) ---
+            Modèle  Recall (Train)  Recall (Test)  Diff Recall      Diagnostic
+LogisticRegression          0.5822         0.5554      -0.0268        ✅ Stable
+               SVM          0.4472         0.4182      -0.0289        ✅ Stable
+     MLPClassifier          0.3618         0.3429      -0.0190        ✅ Stable
+               KNN          0.3503         0.3127      -0.0376        ✅ Stable
+      RandomForest          0.6530         0.6104      -0.0426 ⚠️ Chute Rappel
+          CatBoost          0.6777         0.6232      -0.0545 ⚠️ Chute Rappel
+
+
+
+ONEHOTENCODER et ORDINALENCODER
+
+# Séparation des colonnes numériques et catégorielles
+num_col = ['LIMIT_BAL', 'AGE', 'BILL_AMT1', 'BILL_AMT2', 'BILL_AMT3', 'BILL_AMT4', 'BILL_AMT5', 'BILL_AMT6', 'PAY_AMT1', 'PAY_AMT2', 'PAY_AMT3', 'PAY_AMT4', 'PAY_AMT5', 'PAY_AMT6']
+cat_col = ['SEX', 'EDUCATION', 'MARRIAGE']
+ord_col = ['PAY_1', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6']
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', StandardScaler(), num_col),
+        (
+            'nom',
+            OneHotEncoder(
+                drop='first', sparse_output=False, handle_unknown='ignore'
+            ),
+            cat_col,
+        ),
+        (
+            'ord',
+            OrdinalEncoder(
+                handle_unknown='use_encoded_value', unknown_value=-1
+            ),
+            ord_col,
+        ),
+    ]
+)
+
+
+=== ÉVALUATION FINALE MULTI-TABLEAUX (X_TEST VS CV & TRAIN) ===
+
+=================================================================
+🎯 1. OPTIMISATION : F1-SCORE
+=================================================================
+
+--- Tableau 1A : Stabilité Métrique Cible (F1-Score) ---
+            Modèle  F1 Score (CV)  F1 Score (Test)  Diff Target Diagnostic
+LogisticRegression         0.5337           0.5221      -0.0116   ✅ Stable
+               SVM         0.5198           0.5017      -0.0181   ✅ Stable
+     MLPClassifier         0.4807           0.4545      -0.0262   ✅ Stable
+               KNN         0.4366           0.4267      -0.0099   ✅ Stable
+      RandomForest         0.5423           0.5408      -0.0015   ✅ Stable
+          CatBoost         0.5429           0.5334      -0.0095   ✅ Stable
+
+--- Tableau 1B : Dérive du Rappel (Recall Train vs Test) ---
+            Modèle  Recall (Train)  Recall (Test)  Diff Recall      Diagnostic
+LogisticRegression          0.5822         0.5554      -0.0268        ✅ Stable
+               SVM          0.5138         0.4574      -0.0564 ⚠️ Chute Rappel
+     MLPClassifier          0.3618         0.3429      -0.0190        ✅ Stable
+               KNN          0.9977         0.3248      -0.6729 ⚠️ Chute Rappel
+      RandomForest          0.6521         0.6112      -0.0409 ⚠️ Chute Rappel
+          CatBoost          0.7378         0.6074      -0.1304 ⚠️ Chute Rappel
+
+
+
+=================================================================
+🎯 2. OPTIMISATION : ROC AUC
+=================================================================
+
+--- Tableau 2A : Stabilité Métrique Cible (ROC AUC) ---
+            Modèle  ROC AUC (CV)  ROC AUC (Test)  Diff Target Diagnostic
+LogisticRegression        0.7299          0.7587       0.0288   ✅ Stable
+               SVM        0.7593          0.7587      -0.0006   ✅ Stable
+     MLPClassifier        0.7688          0.7713       0.0025   ✅ Stable
+               KNN        0.7058          0.7335       0.0277   ✅ Stable
+      RandomForest        0.7687          0.7741       0.0054   ✅ Stable
+          CatBoost        0.7783          0.7771      -0.0012   ✅ Stable
+
+--- Tableau 2B : Dérive du Rappel (Recall Train vs Test) ---
+            Modèle  Recall (Train)  Recall (Test)  Diff Recall      Diagnostic
+LogisticRegression          0.5822         0.5554      -0.0268        ✅ Stable
+               SVM          0.4472         0.4182      -0.0289        ✅ Stable
+     MLPClassifier          0.3618         0.3429      -0.0190        ✅ Stable
+               KNN          0.3503         0.3127      -0.0376        ✅ Stable
+      RandomForest          0.6530         0.6104      -0.0426 ⚠️ Chute Rappel
+          CatBoost          0.6777         0.6232      -0.0545 ⚠️ Chute Rappel

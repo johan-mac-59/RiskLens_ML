@@ -62,6 +62,25 @@ Au sein de chaque niveau de correction, des scénarios autonomes sont appliqués
 * **`S3` (Filtrage encours actif)** : Restriction de la population aux clients avec $\text{BILL\_AMT1} > 0$.
 * **`S4` (Simplification clients à Jour)** : Regroupement des statuts sans retard ($\text{PAY}_n \in \{-2, -1\} \implies 0$).
 * **`S5` (Simplification plafonnement des impayés et clients à jours)** : S2 + S4
+* **`S6` (Simplification plafonnement des impayés, des clients à jours et filtrage des encours actifs uniquement)** : S2 + S3 + S4
 
+**Résultats de ces expérimentations :**  
+Le scénario 6 est le plus performant en termes de résultats de tous les modèles. Aucun modèle ne se démarque en bon ou en mauvais sauf KNN qui n'est pas adapté à ce type de données et MLPClassifier qui pose problème pour le recall (il faudra le gérer différemment par le seuil de prédiction si on travaille plus ce modèle)
+Les performances sont du niveau de celles vues pour le scenario 1 sur le dataset original mais tous les modèles sont cette fois au même niveau de performance, ce qui signifie que les corrections et ajustement ont nettoyé une partie du bruit. Il y a moins de surapprentissage que sur le dataset original, ce qui veut dire une meilleure stabilité d'apprentissage.
+Désormais, je vais modifier les features, en créer et les tester uniquement sur le dataset corrigé complètement (niveau 3)
 ---
 
+## 3. Features
+
+1. L'âge n'est presque pas utilisé par les modèles pour prédire le défaut. Et pour cause, j'ai constaté que l'âge n'avait de sens que s'il est traité par tranches pour le mettre en corrélation avec le défaut de paiement.
+Nouvelle Feature : tranches d'âge en remplacement de 'AGE'
+
+
+
+## Redémarrage suite à un début d'encodage sur certaines colonnes  
+J'ai testé :
+1. sans encodage (les variables catégorielles étaient des nombres entiers)
+2. lors de l'ajout de tranches d'âge, l'encodage est devenu obligatoire, je ne pouvais plus laisser des variables sans encodage, cela perturbait certaines de mes modèles testés, j'ai testé un OrdinalEncoder pour les tranches d'âge puis sur les PAY_n
+3. j'ai testé un OneHotEncodeur sur les catégories non ordonnées et un OrdinalEncoder sur les catégories ordonnées
+Après visualisation des résultats, le meilleur paramétrage était un encodage mixte : la solution `3`
+=> je vais relancer les 6 scnearii précédents pour tester vérifier si les résultats précédents se vérifiaient toujours
