@@ -82,5 +82,6 @@ J'ai testé :
 1. sans encodage (les variables catégorielles étaient des nombres entiers)
 2. lors de l'ajout de tranches d'âge, l'encodage est devenu obligatoire, je ne pouvais plus laisser des variables sans encodage, cela perturbait certaines de mes modèles testés, j'ai testé un OrdinalEncoder pour les tranches d'âge puis sur les PAY_n
 3. j'ai testé un OneHotEncodeur sur les catégories non ordonnées et un OrdinalEncoder sur les catégories ordonnées
-Après visualisation des résultats, le meilleur paramétrage était un encodage mixte : la solution `3`
+Après visualisation des résultats, le meilleur paramétrage était un encodage mixte : la solution `3`.  
+J'ai également détecté que mon comparatif et ma matrice de confusion se faisait sur les résultats d'entrainement -> j'ai modifié pour que ce soit les performances de validation qui soient exposées et comparées au test => Forte diminution de la perte de recall
 => je vais relancer les 6 scnearii précédents pour tester vérifier si les résultats précédents se vérifiaient toujours
