@@ -35,6 +35,13 @@ Ce mode de paiement physique et morcelé éclaire directement les anomalies obse
 - Logistique de la cavalerie : Pour maintenir leur crédit, les emprunteurs retiraient des billets aux ATM via la cash card d'une première banque, puis marchaient jusqu'à la supérette la plus proche pour déposer ces espèces au comptoir de la seconde banque.
 - Traitements par lots (Batch processing) : Le flux d'informations provenant des réseaux de supérettes et des banques tierces était réconcilié en fin de mois par des traitements batch, créant ce décalage d'un mois entre la table de gestion à chaud (PAY_1) et les historiques apurés (PAY_2 à PAY_6).
 
+**Dans le contexte financier taïwanais (Crise de 2005 / Dual-Card Crisis)**
+Absence de couverture par assurance (PPI) : Contrairement au modèle anglo-saxon ou européen où les cartes de crédit intègrent fréquemment des assurances de prêt/incapacité de paiement (Payment Protection Insurance / PPI), les crédits renouvelables et cartes de retrait (cash cards) à Taïwan en 2005 étaient accordés sans aucune garantie ni assurance adossée.
+
+Raison de l'agressivité des banques : Les banques compensaient l'absence d'assurance par des marges très élevées : l'application du taux usuraire plafond (18 à 20 %) ainsi que des pénalités de retard.
+
+Conséquence directe sur les banques : En l'absence d'assureur pour prendre en charge les impayés, les banques ont supporté à 100 % le choc des créances douteuses (bad debts). C'est ce défaut de couverture combiné à l'explosion des retards qui a provoqué les pertes massives dans le secteur bancaire taïwanais et contraint le régulateur (FSC) à instaurer d'urgence un mécanisme national de négociation de dette à la fin de l'année 2005.
+
 
 ## Recherche de Yeh & Lien
 

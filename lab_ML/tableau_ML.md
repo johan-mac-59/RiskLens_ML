@@ -43,16 +43,6 @@ Analyse du ratio $R = \frac{\text{PAY\_AMT1}}{\text{BILL\_AMT2}}$ pour corriger 
 
 ---
 
-### 🔴 Niveau 3 (`corrections_niveau3`) — Repositionnement des Soldes Positifs
-*Inclut l'intégralité des Niveaux 0, 1 et 2.*
-
-Correction des codifications `-2` (*compte inactif*) sur les comptes présentant un encours réel :
-
-* Si $\text{PAY}_n = -2$ et $\text{BILL\_AMT}_{n+1} > 0 \implies \text{PAY}_n = -1$.
-* Si $\text{PAY}_6 = -2$ et $\text{PAY}_5 = -1 \implies \text{PAY}_6 = -1$.
-
----
-
 ## 2. Scénarios d'Expérimentation Transversaux
 
 Au sein de chaque niveau de correction, des scénarios autonomes sont appliqués de façon identique :
@@ -85,3 +75,37 @@ J'ai testé :
 Après visualisation des résultats, le meilleur paramétrage était un encodage mixte : la solution `3`.  
 J'ai également détecté que mon comparatif et ma matrice de confusion se faisait sur les résultats d'entrainement -> j'ai modifié pour que ce soit les performances de validation qui soient exposées et comparées au test => Forte diminution de la perte de recall
 => je vais relancer les 6 scnearii précédents pour tester vérifier si les résultats précédents se vérifiaient toujours
+
+
+
+S8 : ajout des colonnes ratio_BILL_LIMIT = BILL_AMTn / LIMIT_BAL si BILL_AMTn>=0 SINON =0
+Limite à 200% pour limiter le bruit de certaines valeurs aberrantes
+
+S9 : classer les clients par leur type d'usage (paiement différé total, crédit, autres)
+pour ce faire, on va utiliser les colonnes ratio_PAY_to_BILL_AMTn pour regarder la médiane par client ratio_PAY_to_BILL_median :
+- si ratio_median == 0 : client en impayé chronique codifié 'impayé chronique'
+- si 0 < ratio_median <= 3 : client en paiement partiel codifié 'insuffisant'
+- si 3 < ratio_median <= 10 : client en paiement correct usage crédit codifié 'credit'
+- si 10 < ratio_median <= 90 : client en paiement partiel du total, usage mixte ou présentant des incidents sur son paiement total codifié 'mixte'
+- si ratio_median > 90 : client en paiement comptant codifié 'comptant'
+- si pas de donnée : 'autre'
+
+S10 : indicateur d'activation récente du crédit (entre M-1 et M-4 sans encours sur tous les mois précédent)  
+on va regarder l'activation des comptes sur la période et les taguer comme suit :
+- compte toujours actif : 0
+- actif depuis m-4 : 4
+- actif depuis m-3 : 3
+- actif depuis m-2 : 2
+- actif depuis m-1 : 1
+inclut S9  
+intéret : Ajouter un flag pour les clients récents qui peuvent avoir un 'ratio_PAY_to_BILL_median' trompeur  
+De plus, cela ajoute un indicateur aux modèles : client récent, activation de compte, réactivation de compte, sortie de contentieux  
+
+S11 : S10 + S8 ?
+
+
+S?? : Codification contentieux
+'CTX' = True si :
+- PAY_n == 2 sur les 6 mois
+- PAY_n == 2 et ((PAY_(n+1)>2) & (BILL_AMTn>0) & (PAY_AMTn == 0))
+sinon False
