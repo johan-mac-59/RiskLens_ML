@@ -6,10 +6,13 @@ dist/
 wheels/
 *.egg-info
 *.csv
+*.log
 
 
 # dossier de gestion ML
 catboost_info/
+best_models/
+run_all_notebooks.py
 
 # Fichiers personnels
 backup/

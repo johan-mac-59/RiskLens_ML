@@ -137,6 +137,8 @@ Cette codification signifie très probablement que le client n'a pas utilisé sa
 - **Versionnement** : Intégration du rapport `.pbix` dans le dépôt Git (`power_bi/`).
 
 
+## Machine Learning
+
 ## Déploiement en ligne
 - Test déploiement sur Render avec BDD en ligne OK
 - Test déploiement sur Streamlit Community Cloud OK
@@ -148,3 +150,4 @@ Cette codification signifie très probablement que le client n'a pas utilisé sa
 Comprendre la logique du dataset, la logique de la codification des impayés a pris énormément de temps. La documentation liée à ce dataset ne correspondait pas à ce que je pouvais constater tant dans l'étendue des valeurs codées que dans leur signification.
 Le dataset date de 2005 et l'équipe de recherche n'indique pas l'origine exacte des données, en tous cas elle n'indique pas si plusieurs tables ont servi à synthétiser ce jeu de données.  
 Le mode de fonctionnement de l'époque est assez opaque dans la gestion du crédit et la codification qui en découle
+L'utilisation de 2 scores et du recall pour comparer les performances des modèles en apprentissage automatique était problématique. J'ai fait le choix de basculer sur F2 score pour intégrer plus fortement le recall dans l'évaluation du modèle, tout en conservant le ROC AUC. Je fais ainsi une moyenne qui est un score maîitre cohérent pour décider de la performance d'un modèle et de la pertinence d'une feature intégrée ou modifiée.
