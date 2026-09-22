@@ -240,7 +240,7 @@ elif menu == "📊 Analyse & Insights":
                 yaxis_range=[0, max(rates_age["Taux"]) * 1.25],
                 height=380,
             )
-            st.plotly_chart(fig_age, use_container_width=True)
+            st.plotly_chart(fig_age, use_container_width='stretch')
         else:
             st.info("Données d'âge indisponibles.")
 
@@ -269,7 +269,7 @@ elif menu == "📊 Analyse & Insights":
                 yaxis_range=[0, max(rates_edu["dpnm"]) * 1.25],
                 height=380,
             )
-            st.plotly_chart(fig_edu, use_container_width=True)
+            st.plotly_chart(fig_edu, use_container_width='stretch')
         else:
             st.info("Données d'éducation indisponibles.")
 
@@ -298,7 +298,7 @@ elif menu == "📊 Analyse & Insights":
                 yaxis_range=[0, max(rates_sex["dpnm"]) * 1.25],
                 height=380,
             )
-            st.plotly_chart(fig_sex, use_container_width=True)
+            st.plotly_chart(fig_sex, use_container_width='stretch')
         else:
             st.info("Données de genre indisponibles.")
 
@@ -327,7 +327,7 @@ elif menu == "📊 Analyse & Insights":
                 yaxis_range=[0, max(rates_mar["dpnm"]) * 1.25],
                 height=380,
             )
-            st.plotly_chart(fig_mar, use_container_width=True)
+            st.plotly_chart(fig_mar, use_container_width='stretch')
         else:
             st.info("Données de mariage indisponibles.")
 
@@ -521,7 +521,9 @@ En conclusion, nous observons une disparité majeure de risque selon le profil :
 
     st.plotly_chart(fig1, use_container_width='stretch')
     
-    st.markdown(f"Le plafond moyen de crédit est de {f"{mean_val:,.0f}".replace(',', ' ')} NT\$ et la médiane se situe à {f"{median_val:,.0f}".replace(',', ' ')} NT\$.")
+    st.markdown(
+    rf"Le plafond moyen de crédit est de {f'{mean_val:,.0f}'.replace(',', ' ')} NT\$ et la médiane se situe à {f'{median_val:,.0f}'.replace(',', ' ')} NT\$."
+    )
     total_clients = len(df)
     clients_inf_500k = len(df[df['LIMIT_BAL'] <= 500000])
     pourcentage = (clients_inf_500k / total_clients) * 100
@@ -732,7 +734,7 @@ Au-delà, le nombre de clients est trop faible pour établir une tendance, le ta
     )
 
     # Affichage du graphique
-    st.plotly_chart(fig_repartition_ratio_plafond, use_container_width=True)
+    st.plotly_chart(fig_repartition_ratio_plafond, use_container_width='stretch')
     
     st.markdown(f"""
     dont :  
@@ -850,7 +852,7 @@ Au-delà, le nombre de clients est trop faible pour établir une tendance, le ta
             tickangle=-45
         )
         
-        st.plotly_chart(fig6, use_container_width=True)
+        st.plotly_chart(fig6, use_container_width='stretch')
         
     else:
         st.error("La colonne 'ratio_BILL_LIMIT1' n'existe pas dans le DataFrame")
@@ -1453,7 +1455,7 @@ elif menu == "🔐 Espace réservé à l'Administrateur":
         
         col_info, col_logout = st.columns([4, 1])
         with col_logout:
-            if st.button("🚪 Déconnexion", use_container_width=True):
+            if st.button("🚪 Déconnexion", use_container_width='stretch'):
                 del st.session_state["admin_auth"]
                 st.rerun()
 
