@@ -240,7 +240,7 @@ elif menu == "📊 Analyse & Insights":
                 yaxis_range=[0, max(rates_age["Taux"]) * 1.25],
                 height=380,
             )
-            st.plotly_chart(fig_age, use_container_width='stretch')
+            st.plotly_chart(fig_age, width='stretch')
         else:
             st.info("Données d'âge indisponibles.")
 
@@ -269,7 +269,7 @@ elif menu == "📊 Analyse & Insights":
                 yaxis_range=[0, max(rates_edu["dpnm"]) * 1.25],
                 height=380,
             )
-            st.plotly_chart(fig_edu, use_container_width='stretch')
+            st.plotly_chart(fig_edu, width='stretch')
         else:
             st.info("Données d'éducation indisponibles.")
 
@@ -298,7 +298,7 @@ elif menu == "📊 Analyse & Insights":
                 yaxis_range=[0, max(rates_sex["dpnm"]) * 1.25],
                 height=380,
             )
-            st.plotly_chart(fig_sex, use_container_width='stretch')
+            st.plotly_chart(fig_sex, width='stretch')
         else:
             st.info("Données de genre indisponibles.")
 
@@ -327,7 +327,7 @@ elif menu == "📊 Analyse & Insights":
                 yaxis_range=[0, max(rates_mar["dpnm"]) * 1.25],
                 height=380,
             )
-            st.plotly_chart(fig_mar, use_container_width='stretch')
+            st.plotly_chart(fig_mar, width='stretch')
         else:
             st.info("Données de mariage indisponibles.")
 
@@ -519,7 +519,7 @@ En conclusion, nous observons une disparité majeure de risque selon le profil :
                 annotation_text=f"Médiane: {int(median_val):,}".replace(',', ' '), 
                 annotation_position="top left")
 
-    st.plotly_chart(fig1, use_container_width='stretch')
+    st.plotly_chart(fig1, width='stretch')
     
     st.markdown(
     rf"Le plafond moyen de crédit est de {f'{mean_val:,.0f}'.replace(',', ' ')} NT\$ et la médiane se situe à {f'{median_val:,.0f}'.replace(',', ' ')} NT\$."
@@ -588,7 +588,7 @@ En conclusion, nous observons une disparité majeure de risque selon le profil :
             height=600,
         )
 
-        st.plotly_chart(fig3, use_container_width='stretch')
+        st.plotly_chart(fig3, width='stretch')
     else:
         st.error("Aucune colonne 'dpnm' trouvée dans le DataFrame")
 
@@ -625,7 +625,7 @@ Au-delà, le nombre de clients est trop faible pour établir une tendance, le ta
                 annotation_text=f"Médiane: {int(median_val):,}".replace(',', ' '), 
                 annotation_position="top left")
 
-    st.plotly_chart(fig2, use_container_width='stretch')
+    st.plotly_chart(fig2, width='stretch')
 
     # Histogramme du taux de dpnm par tranches de plafond <= 500000
     st.markdown('---')   
@@ -683,7 +683,7 @@ Au-delà, le nombre de clients est trop faible pour établir une tendance, le ta
             height=600,
         )
 
-        st.plotly_chart(fig4, use_container_width='stretch')
+        st.plotly_chart(fig4, width='stretch')
         
     else:
         st.error("Aucune colonne 'dpnm' trouvée dans le DataFrame")
@@ -734,7 +734,7 @@ Au-delà, le nombre de clients est trop faible pour établir une tendance, le ta
     )
 
     # Affichage du graphique
-    st.plotly_chart(fig_repartition_ratio_plafond, use_container_width='stretch')
+    st.plotly_chart(fig_repartition_ratio_plafond, width='stretch')
     
     st.markdown(f"""
     dont :  
@@ -803,7 +803,7 @@ Au-delà, le nombre de clients est trop faible pour établir une tendance, le ta
     fig5.update_xaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
     fig5.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
 
-    st.plotly_chart(fig5, use_container_width='stretch')
+    st.plotly_chart(fig5, width='stretch')
 
     st.markdown("Hausse constante du ratio d'utilisation de crédit sur les 6 derniers mois.")
     st.markdown("Mais qui utilise le plus son crédit ?")
@@ -852,7 +852,7 @@ Au-delà, le nombre de clients est trop faible pour établir une tendance, le ta
             tickangle=-45
         )
         
-        st.plotly_chart(fig6, use_container_width='stretch')
+        st.plotly_chart(fig6, width='stretch')
         
     else:
         st.error("La colonne 'ratio_BILL_LIMIT1' n'existe pas dans le DataFrame")
@@ -936,7 +936,7 @@ Au-delà, le nombre de clients est trop faible pour établir une tendance, le ta
         )
 
         # Affichage Streamlit adaptatif
-        st.plotly_chart(fig_defaut_ratio_plafond, use_container_width='stretch')
+        st.plotly_chart(fig_defaut_ratio_plafond, width='stretch')
     else:
         st.error(
         "Colonnes de ratio ou colonne cible 'dpnm' manquantes dans le DataFrame."
@@ -1455,7 +1455,7 @@ elif menu == "🔐 Espace réservé à l'Administrateur":
         
         col_info, col_logout = st.columns([4, 1])
         with col_logout:
-            if st.button("🚪 Déconnexion", use_container_width='stretch'):
+            if st.button("🚪 Déconnexion", width='stretch'):
                 del st.session_state["admin_auth"]
                 st.rerun()
 
