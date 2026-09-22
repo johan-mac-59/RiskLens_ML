@@ -19,7 +19,7 @@
     {"code_statut_defaut": 1, "description": "Défaillant"}
   ],
   "statut_paiement": [
-    {"code_statut_paiement": -2, "description": "Pas d'utilisation / Inactif"},
+    {"code_statut_paiement": -2, "description": "crédit non utilisé, paiement au comptant"},
     {"code_statut_paiement": -1, "description": "A jour de paiement"},
     {"code_statut_paiement": 0, "description": "A jour de paiement"},
     {"code_statut_paiement": 1, "description": "Alerte / incident en cours"},

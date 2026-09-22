@@ -27,3 +27,6 @@ enonce.md
 
 # Ecole
 ecole/
+
+#dataset synchronisé de mon EDA pour Streamlit
+!dataset_streamlit.csv

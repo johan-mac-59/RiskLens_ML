@@ -6,11 +6,59 @@ import plotly.graph_objects as go
 import matplotlib as plt
 import json
 import os
+import json
+from pathlib import Path
 
 
 # ==============================================================================
 # FONCTIONS UTILITAIRES
 # =============================================================================
+# --- 1. CHEMINS DE FICHIERS ---
+current_file = Path(__file__).resolve()
+BASE_DIR = next(
+    p for p in [current_file] + list(current_file.parents) if (p / "data").exists()
+)
+DATA_PATH = BASE_DIR / "data" / "csv_streamlit" / "dataset_streamlit.csv"
+MAPPING_PATH = BASE_DIR / "data" / "correspondances.json"
+
+# --- 2. FONCTIONS DE CHARGEMENT AVEC CACHE ---
+@st.cache_data
+def load_data():
+    return pd.read_csv(DATA_PATH)
+
+@st.cache_data
+def load_mappings():
+    """Charge le JSON et reformatte chaque table en dictionnaire {code_int: description}."""
+    if not os.path.exists(MAPPING_PATH):
+        return {}
+
+    with open(MAPPING_PATH, "r", encoding="utf-8") as f:
+        raw_data = json.load(f)
+
+    mappings = {}
+    for category, items in raw_data.items():
+        if isinstance(items, list) and items:
+            # Repère la colonne servant de clé (ex: 'code_genre', 'code_marital', etc.)
+            code_key = next(
+                (k for k in items[0].keys() if "code" in k or "id" in k),
+                list(items[0].keys())[0],
+            )
+
+            # Reconstruit le dictionnaire simple {1: 'Homme', 2: 'Femme'}
+            mappings[category] = {
+                int(item[code_key]): item["description"]
+                for item in items
+                if code_key in item and "description" in item
+            }
+        elif isinstance(items, dict):
+            mappings[category] = {int(k): v for k, v in items.items()}
+
+    return mappings
+
+df = load_data()
+mappings = load_mappings()
+
+
 @st.cache_data
 def load_eda_insights():
     """Charge les statistiques d'analyse calculées par le notebook."""
@@ -45,6 +93,7 @@ def load_app_mappings():
     except Exception:
         pass
     return {}
+
         
 # ==============================================================================
 # CONFIGURATION & STYLE
@@ -86,18 +135,6 @@ st.markdown("""
 API_URL = "https://risklens-ml-api.onrender.com" 
 # API_URL = "http://127.0.0.1:8000"  # En local 
 
-# ==============================================================================
-# FONCTIONS UTILITAIRES
-# ==============================================================================
-@st.cache_data
-def load_app_mappings():
-    try:
-        res = requests.get(f"{API_URL}/metadata/mappings")
-        if res.status_code == 200:
-            return res.json()
-    except Exception:
-        pass
-    return {}
 
 # ==============================================================================
 # NAVIGATION
@@ -118,12 +155,18 @@ menu = st.sidebar.radio(
         "👤 Gestion des Clients",
         "📅 Historique Transactionnel",
         "📚 Architecture Technique",
-        "🔐 Espace réservé à l'Administrateur"
+        "🔐 Espace réservé à l'Administrateur",
+        "🪣 Tests"
     ]
 )
 
 st.sidebar.markdown("---")
 st.sidebar.info("👨‍💻 **Développé par Johan**\n\n*Futur Data Analyst*")
+
+# SECTION TESTS
+if menu == "🪣 Tests" :
+    st.markdown("Mon bac à sable 🪣")
+
 
 # ==============================================================================
 # SECTION 1 : ACCUEIL & PRÉSENTATION
@@ -172,74 +215,140 @@ Pour découvrir comment des détails logistiques de l'époque (comme les règlem
 # ==============================================================================
 elif menu == "📊 Analyse & Insights":
     st.title("📊 Analyse Exploratoire & Insights")
-    st.markdown("L'analyse par segments révèle des signaux forts :")
+    st.markdown("L'analyse par segments démographiques révèle des signaux forts :")
 
-    # 1. Chargement des vrais insights et des mappings
-    insights = load_eda_insights()
-    api_mappings = load_app_mappings()
+    st.markdown("L'analyse par segments démographiques révèle des signaux forts :")
+
+    # Mappings métiers
+    sex_map = mappings.get("genre", {})
+    marriage_map = mappings.get("statut_marital", {})
+    education_map = mappings.get("niveau_scolaire", {})
     
-    # 2. Préparation des mappings pour la traduction (Genre, Mariage)
-    genre_map = {int(k): v for k, v in api_mappings.get("genre", {}).items()}
-    marital_map = {int(k): v for k, v in api_mappings.get("statut_marital", {}).items()}
-    scolaire_map = {int(k): v for k, v in api_mappings.get("niveau_scolaire", {}).items()}
-
-    # On crée deux lignes de graphiques pour ne pas surcharger la page
+    # Dispositions en grille 2x2
     row1_col1, row1_col2 = st.columns(2)
     row2_col1, row2_col2 = st.columns(2)
 
-    # --- LIGNE 1 : ÂGE & ÉDUCATION ---
+    # --- 1. TRANCHE D'ÂGE ---
     with row1_col1:
         st.subheader("📈 Le Risque par Tranche d'Âge")
-        if insights and 'age_risk' in insights:
-            age_dict = {str(k): v * 100 for k, v in insights['age_risk'].items()}
-            fig_age = px.bar(x=list(age_dict.keys()), y=list(age_dict.values()), 
-                             labels={"x": "Âge", "y": "Taux (%)"}, 
-                             color=list(age_dict.values()), 
-                             color_continuous_scale="Viridis")
-            # CORRECTION ICI : use_container_width au lieu de use_string_width
-            st.plotly_chart(fig_age, width='stretch')
+        df_age = df.copy()
+
+        # Binning automatique si la colonne AGE_BUCKET n'est pas pré-calculée
+        if "AGE_BUCKET" not in df_age.columns and "AGE" in df_age.columns:
+            labels_age = ['21-25', '26-30', '31-35', '36-40', '41-50', '51+']
+            df_age["AGE_BUCKET"] = pd.cut(
+                df_age["AGE"], bins=[20, 25, 30, 35, 40, 50, 80], labels=labels_age, right=False
+            )
+
+        if "AGE_BUCKET" in df_age.columns:
+            rates_age = (
+                df_age.groupby("AGE_BUCKET", observed=True)["dpnm"].mean() * 100
+            ).reset_index()
+            rates_age.columns = ["Tranche", "Taux"]
+
+            fig_age = px.bar(
+                rates_age,
+                x="Tranche",
+                y="Taux",
+                labels={"Tranche": "Tranche d'âge", "Taux": "Taux (%)"},
+                color="Tranche",
+                color_discrete_sequence=px.colors.qualitative.Safe
+            )
+            fig_age.update_traces(texttemplate="%{y:.1f}%", textposition="outside")
+            fig_age.update_layout(
+                showlegend=False,
+                coloraxis_showscale=False,
+                yaxis_range=[0, max(rates_age["Taux"]) * 1.25],
+                height=380,
+            )
+            st.plotly_chart(fig_age, use_container_width=True)
         else:
             st.info("Données d'âge indisponibles.")
 
+    # --- 2. NIVEAU SCOLAIRE ---
     with row1_col2:
         st.subheader("🎓 Impact du Niveau Scolaire")
-        if insights and 'edu_risk' in insights:
-            edu_dict = {str(k): v * 100 for k, v in insights['edu_risk'].items()}
-            # Traduction des codes en labels lisibles
-            edu_labels = [scolaire_map.get(int(k), k) for k in edu_dict.keys()]
-            fig_edu = px.bar(x=edu_labels, y=list(edu_dict.values()), 
-                             labels={"x": "Éducation", "y": "Taux (%)"}, color=list(edu_dict.values()), 
-                             color_continuous_scale="Reds")
-            st.plotly_chart(fig_edu, width='stretch')
+        if "EDUCATION" in df.columns:
+            df_edu = df[df["EDUCATION"].isin(education_map.keys())].copy()
+            rates_edu = (
+                df_edu.groupby("EDUCATION", observed=True)["dpnm"].mean() * 100
+            ).reset_index()
+            rates_edu["Niveau"] = rates_edu["EDUCATION"].map(education_map)
+
+            fig_edu = px.bar(
+                rates_edu,
+                x="Niveau",
+                y="dpnm",
+                labels={"Niveau": "Éducation", "dpnm": "Taux (%)"},
+                color="Niveau",
+                color_discrete_sequence=px.colors.qualitative.Safe
+            )
+            fig_edu.update_traces(texttemplate="%{y:.1f}%", textposition="outside")
+            fig_edu.update_layout(
+                showlegend=False,
+                coloraxis_showscale=False,
+                yaxis_range=[0, max(rates_edu["dpnm"]) * 1.25],
+                height=380,
+            )
+            st.plotly_chart(fig_edu, use_container_width=True)
         else:
             st.info("Données d'éducation indisponibles.")
 
-    # --- LIGNE 2 : GENRE & MARIAGE ---
+    # --- 3. GENRE ---
     with row2_col1:
         st.subheader("👫 Le Risque par Genre")
-        if insights and 'sex_risk' in insights:
-            sex_dict = {str(k): v * 100 for k, v in insights['sex_risk'].items()}
-            # On traduit les codes (ex: "1") en labels (ex: "Homme")
-            sex_labels = [genre_map.get(int(k), k) for k in sex_dict.keys()]
-            fig_sex = px.bar(x=sex_labels, y=list(sex_dict.values()), 
-                             labels={"x": "Genre", "y": "Taux (%)"}, 
-                             color=list(sex_dict.values()), 
-                             color_continuous_scale="magma")
-            st.plotly_chart(fig_sex, width='stretch')
+        if "SEX" in df.columns:
+            df_sex = df[df["SEX"].isin(sex_map.keys())].copy()
+            rates_sex = (
+                df_sex.groupby("SEX", observed=True)["dpnm"].mean() * 100
+            ).reset_index()
+            rates_sex["Genre"] = rates_sex["SEX"].map(sex_map)
+
+            fig_sex = px.bar(
+                rates_sex,
+                x="Genre",
+                y="dpnm",
+                labels={"Genre": "Genre", "dpnm": "Taux (%)"},
+                color="Genre",
+                color_discrete_sequence=px.colors.qualitative.Safe
+            )
+            fig_sex.update_traces(texttemplate="%{y:.1f}%", textposition="outside")
+            fig_sex.update_layout(
+                showlegend=False,
+                coloraxis_showscale=False,
+                yaxis_range=[0, max(rates_sex["dpnm"]) * 1.25],
+                height=380,
+            )
+            st.plotly_chart(fig_sex, use_container_width=True)
         else:
             st.info("Données de genre indisponibles.")
 
+    # --- 4. STATUT MARITAL ---
     with row2_col2:
         st.subheader("💍 Impact du Statut Marital")
-        if insights and 'marriage_risk' in insights:
-            mar_dict = {str(k): v * 100 for k, v in insights['marriage_risk'].items()}
-            # On traduit les codes (ex: "1") en labels (ex: "Marié")
-            mar_labels = [marital_map.get(int(k), k) for k in mar_dict.keys()]
-            fig_mar = px.bar(x=mar_labels, y=list(mar_dict.values()), 
-                             labels={"x": "Statut", "y": "Taux (%)"}, 
-                             color=list(mar_dict.values()), 
-                             color_continuous_scale="GnBu")
-            st.plotly_chart(fig_mar, width='stretch')
+        if "MARRIAGE" in df.columns:
+            df_mar = df[df["MARRIAGE"].isin(marriage_map.keys())].copy()
+            rates_mar = (
+                df_mar.groupby("MARRIAGE", observed=True)["dpnm"].mean() * 100
+            ).reset_index()
+            rates_mar["Statut"] = rates_mar["MARRIAGE"].map(marriage_map)
+
+            fig_mar = px.bar(
+                rates_mar,
+                x="Statut",
+                y="dpnm",
+                labels={"Statut": "Statut", "dpnm": "Taux (%)"},
+                color="Statut",
+                color_discrete_sequence=px.colors.qualitative.Safe
+            )
+            fig_mar.update_traces(texttemplate="%{y:.1f}%", textposition="outside")
+            fig_mar.update_layout(
+                showlegend=False,
+                coloraxis_showscale=False,
+                yaxis_range=[0, max(rates_mar["dpnm"]) * 1.25],
+                height=380,
+            )
+            st.plotly_chart(fig_mar, use_container_width=True)
         else:
             st.info("Données de mariage indisponibles.")
 
@@ -274,6 +383,12 @@ En conclusion, nous observons une disparité majeure de risque selon le profil :
     with col_sim1:
         st.info("Sélectionnez les critères du client hypothétique.")
         
+        # Conversion sécurisée des clés en entiers
+        genre_map = {int(k): v for k, v in mappings.get("genre", {}).items()}
+        marital_map = {int(k): v for k, v in mappings.get("statut_marital", {}).items()}
+        scolaire_map = {int(k): v for k, v in mappings.get("niveau_scolaire", {}).items()}
+        defaut_map = {int(k): v for k, v in mappings.get("statut_defaut", {}).items()}
+        
         # Choix Âge : on offre des tranches
         age_tranches = [
             ("Tous âges", 0, 100),
@@ -282,8 +397,7 @@ En conclusion, nous observons une disparité majeure de risque selon le profil :
             ("31-35 ans", 31, 35),
             ("36-40 ans", 36, 40),
             ("41-50 ans", 41, 50),
-            ("51-60 ans", 51, 60),
-            ("61+ ans", 61, 80)
+            ("51-+", 51, 80)
         ]
         
         selected_tranche = st.selectbox(
@@ -447,14 +561,11 @@ elif menu == "👤 Gestion des Clients":
     with tab_ajouter:
         st.markdown("### Nouveau client")
         
-        # --- CHARGEMENT DYNAMIQUE DES MAPPINGS DEPUIS L'API ---
-        api_mappings = load_app_mappings()
-        
         # Conversion sécurisée des clés en entiers
-        genre_map = {int(k): v for k, v in api_mappings.get("genre", {}).items()}
-        marital_map = {int(k): v for k, v in api_mappings.get("statut_marital", {}).items()}
-        scolaire_map = {int(k): v for k, v in api_mappings.get("niveau_scolaire", {}).items()}
-        defaut_map = {int(k): v for k, v in api_mappings.get("statut_defaut", {}).items()}
+        genre_map = {int(k): v for k, v in mappings.get("genre", {}).items()}
+        marital_map = {int(k): v for k, v in mappings.get("statut_marital", {}).items()}
+        scolaire_map = {int(k): v for k, v in mappings.get("niveau_scolaire", {}).items()}
+        defaut_map = {int(k): v for k, v in mappings.get("statut_defaut", {}).items()}
 
         with st.form("form_add_client"):
             col1, col2 = st.columns(2)
@@ -518,13 +629,13 @@ elif menu == "👤 Gestion des Clients":
         st.markdown("### Modification partielle d'un client")
         
         # --- CHARGEMENT DYNAMIQUE DES MAPPINGS DEPUIS L'API ---
-        api_mappings = load_app_mappings()
+        mappings = load_app_mappings()
         
         # Conversion sécurisée des clés en entiers (car le JSON convertit les clés dict en string)
-        genre_map = {int(k): v for k, v in api_mappings.get("genre", {}).items()}
-        marital_map = {int(k): v for k, v in api_mappings.get("statut_marital", {}).items()}
-        scolaire_map = {int(k): v for k, v in api_mappings.get("niveau_scolaire", {}).items()}
-        defaut_map = {int(k): v for k, v in api_mappings.get("statut_defaut", {}).items()}
+        genre_map = {int(k): v for k, v in mappings.get("genre", {}).items()}
+        marital_map = {int(k): v for k, v in mappings.get("statut_marital", {}).items()}
+        scolaire_map = {int(k): v for k, v in mappings.get("niveau_scolaire", {}).items()}
+        defaut_map = {int(k): v for k, v in mappings.get("statut_defaut", {}).items()}
 
         patch_id = st.number_input("ID du client à modifier", min_value=1, value=8765, step=1, key="patch_client_id")
         

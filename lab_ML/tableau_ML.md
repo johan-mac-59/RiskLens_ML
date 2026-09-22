@@ -186,6 +186,8 @@ Seul le `scénario 3` apporte une réelle valeur ajoutée et répond de surcroit
 🥇 CatBoost — Score Maître : 0.6795 | Recall  0.6105
 🥈 RandomForest — Score Maître : 0.6781
 🥉 LogisticRegression — Score Maître : 0.6419
+Légère baisse des performances par rapport au dataset initial
+Très légère baisse des performances et recall stable par rapport aux corrections de niveau 1
 
 **Résultats de `S2` :**  
 🥇 CatBoost — Score Maître : 0.6789 | Recall  0.6093
