@@ -22,16 +22,19 @@ $$\text{Niveau 0} \subset \text{Niveau 1} \subset \text{Niveau 2} \subset \text{
 * **Comptes inactifs** : Traitement des $860$ comptes sans activité ($\text{PAY\_AMT}_n = 0$ et $\text{BILL\_AMT}_n \le 0$ sur l'ensemble des $6$ mois).
 * **Anomalie isolée** : Correction manuelle du client `6783` ($\text{PAY} = 1$ sur $4$ mois alors que les paiements sont effectifs chaque mois $\implies$ rebinning à `0`).
 
-
 ---
 
-### 🟠 Niveau 2 (`corrections_niveau2`) — Recalage de la codification `PAY_1 = 1` par Ratio de Remboursement
+### 🟠 Niveau 2 (`corrections_niveau2`) — Recalage de la codification `PAY_1 = 1` cohérence avec l'encours du mois
 *Inclut l'intégralité des niveaux 0 et 1.*
 
 * **Correction des incohérences `PAY_n = 1`** :
   * Si $\text{BILL\_AMT}_{n+1} \le 0 \implies \text{PAY}_n = \text{PAY}_{n+1}$.
   * Si $\text{BILL\_AMT}_{n+1} \le 0$ persistant $\implies \text{PAY}_n = 0$.
 
+---
+
+### 🔴 Niveau 3 (`corrections_niveau3`) — Recalage de la codification `PAY_1 = 1` par Ratio de Remboursement
+*Inclut l'intégralité des niveaux précédents*
 Analyse du ratio $R = \frac{\text{PAY\_AMT1}}{\text{BILL\_AMT2}}$ pour corriger les faux retards en $M-1$ (`PAY_1`) :
 * **Si $R > 4$** :
   * Si $\text{PAY}_2 \le 0 \implies \text{PAY}_1 = \text{PAY}_2$.
@@ -54,10 +57,12 @@ Au sein de chaque niveau de correction, des scénarios autonomes sont appliqués
 * **`S4` (Simplification clients à Jour)** : Regroupement des statuts sans retard ($\text{PAY}_n \in \{-2, -1\} \implies 0$).
 * **`S5` (Simplification plafonnement des impayés et clients à jours)** : S2 + S4
 * **`S6` (Simplification plafonnement des impayés, des clients à jours et filtrage des encours actifs uniquement)** : S2 + S3 + S4
-* **`S7`(Plafonnement léger des impayés)** : Clamping des retards sévères ($\text{PAY}_n >3 \implies 3$).
+* **`S7` (Plafonnement léger des impayés)** : Clamping des retards sévères ($\text{PAY}_n >3 \implies 3$).
 * **`S8` (Filtrage encours actif + plafonnement léger des impayés)** : S3 + S7
 * **`S9` (Filtrage encours actif + Simplification clients à Jour)** : S3 + S4
 * **`S10` (Simplification plafonnement des impayés + Filtrage encours actif)** : S2 + S3
+* **`S11` (Suppression des clients atypiques gros plafond)** : Restriction de la population aux clients avec $\text{LIMIT\_BAL} \leq 500000$
+* **`S12` (Filtrage encours actif + suppression des clients atypiques gros plafond)** : S3 + S11
 
 
 ### Méthodologie
@@ -70,9 +75,9 @@ J'applique la moyenne de ces 2 métriques pour chaque modèle pour obtenir un sc
 ### Résultats de ces expérimentations sur le dataset initial
 
 S1 sert de base pour mesurer la progression éventuelle des scenarii suivants :
-🥇 RandomForest — Score Maître : 0.6876 |  Recall  0.6338
-🥈 CatBoost — Score Maître : 0.6871
-🥉 LogisticRegression — Score Maître : 0.6501
+🥇 CatBoost — Score Maître : 0.6881 | Recall  0.6310
+🥈 RandomForest — Score Maître : 0.6876
+🥉 LogisticRegression — Score Maître : 0.6492
 
 **Résultats de `S2` :**  
 🥇 RandomForest — Score Maître : 0.688 | Recall  0.6350
@@ -81,10 +86,9 @@ S1 sert de base pour mesurer la progression éventuelle des scenarii suivants :
 => neutre, à essayer en combinaison avec un autre scenario pour vérifier son impact
 
 **Résultats de `S3` :**  
-🥇 CatBoost — Score Maître : 0.6926 | Recall  0.6231
-🥈 RandomForest — Score Maître : 0.6924
+🥇 CatBoost — Score Maître : 0.6934 | Recall  0.6218
+🥈 RandomForest — Score Maître : 0.6915
 🥉 LogisticRegression — Score Maître : 0.6613
-CatBoost légèrement moins bon que RandomForest mais meilleur recall
 Hausse généralisée des performances de tous les modèles et généralisation des bonnes performances à tous les modèles, plus aucun n'est à la traîne mais légère baisse du recall  
 => scénario conservé  
 
@@ -118,33 +122,49 @@ Aucune amélioration par rapport à `S3`
 🥇 RandomForest — Score Maître : 0.6915 | Recall  0.621
 🥈 CatBoost — Score Maître : 0.6911
 🥉 LogisticRegression — Score Maître : 0.6669
-PAs d'amélioration par rapport à `S3`
+Pas d'amélioration par rapport à `S3`
+=> scénario écarté
+
+**Résultats de `S11` :**  
+🥇 CatBoost — Score Maître : 0.6924 | Recall  0.6369
+🥈 RandomForest — Score Maître : 0.6899
+🥉 LogisticRegression — Score Maître : 0.6485
+Très légère amélioration visible  
+perte de performance constaté sur le jeu de tests inhabituel mais pas anormal
+=> scénario conservé 
+
+**Résultats de `S12` :**  
+🥇 CatBoost — Score Maître : 0.6889 | Recall  0.6136
+🥈 RandomForest — Score Maître : 0.687
+🥉 LogisticRegression — Score Maître : 0.6559
+Phénomène rare : meilleurs résultats sur le test que sur la validation  
+Performances moins bonnes que S3 seul ou S11 seul
 => scénario écarté
 
 **Conclusion**  
-Pas de surapparentissage.  
-Seul le `scénario 3` apporte une réelle valeur ajoutée et répond de surcroit à une réalité métier. Les autres simplifications effacent des couches d'informations utiles aux modèles pour prédire le futur défaut de paiement.
+Pas de surapprentissage pour les scnéarii validés.  
+Seul les scénari `S3` et `S11` apportent une réelle valeur ajoutée et répondent de surcroit à une réalité métier. Les autres simplifications effacent des couches d'informations utiles aux modèles pour prédire le futur défaut de paiement.
 
 ### Résultats de ces expérimentations sur le dataset avec niveau 1 de corrections
 
 *Passage à cv=3 dans GridSearchCV pour gagner du temps sur les 2 premiers entrainements rapides.*
 `S1` sert de base pour mesurer la progression éventuelle des scenarii suivants :
-🥇 CatBoost — Score Maître : 0.6809 - Recall  0.6105
-🥈 RandomForest — Score Maître : 0.6805
-🥉 LogisticRegression — Score Maître : 0.6536
+🥇 CatBoost — Score Maître : 0.6818 | Recall  0.6087
+🥈 RandomForest — Score Maître : 0.6807
+🥉 LogisticRegression — Score Maître : 0.652
 Légère baisse des performances par rapport au niveau de correction 0, notamment 2 points de recall
 
 **Résultats de `S2` :**  
-🥇 CatBoost — Score Maître : 0.6809 | Recall  0.6099
-🥈 RandomForest — Score Maître : 0.6806
+🥇 CatBoost — Score Maître : 0.6817 | Recall  0.6081
+🥈 RandomForest — Score Maître : 0.6805
 🥉 LogisticRegression — Score Maître : 0.6534
 Performances stables
-=> à combiner avec d'autres scénarii
+=> à combiner éventuellement avec d'autres scénarii
 
 **Résultats de `S3` :**  
-🥇 CatBoost — Score Maître : 0.6914 | Recall  0.6206
-🥈 RandomForest — Score Maître : 0.6908
-🥉 LogisticRegression — Score Maître : 0.6599
+🥇 RandomForest — Score Maître : 0.692 | Recall  0.6191
+🥈 CatBoost — Score Maître : 0.6915
+🥉 LogisticRegression — Score Maître : 0.6621
 Améliorations de toutes les métriques
 => scénario conservé
 
@@ -176,64 +196,142 @@ Pas d'améliorations par rapport à `S3` seul
 Légère baisse des performances
 => scénario écarté
 
+**Résultats de `S11` :**  
+🥇 CatBoost — Score Maître : 0.6872 | Recall  0.6184
+🥈 RandomForest — Score Maître : 0.6824
+🥉 LogisticRegression — Score Maître : 0.6541
+Très légère amélioration des performances mais surapprentissage léger sur certains modèles  
+baisse des performances et du recall notable sur le jeu de tests
+=> à combiner avec un autre scénario
+
 **Conclusion**  
-Pas de surapparentissage.  
+Surapprentissage léger sur certains modèles.  
 Seul le `scénario 3` apporte une réelle valeur ajoutée et répond de surcroit à une réalité métier. Les autres simplifications effacent des couches d'informations utiles aux modèles pour prédire le futur défaut de paiement.
 
 ### Résultats de ces expérimentations sur le dataset avec niveau 2 de corrections
 
 `S1` sert de base pour mesurer la progression éventuelle des scenarii suivants :
-🥇 CatBoost — Score Maître : 0.6795 | Recall  0.6105
-🥈 RandomForest — Score Maître : 0.6781
-🥉 LogisticRegression — Score Maître : 0.6419
+🥇 CatBoost — Score Maître : 0.6807 | Recall  0.6097
+🥈 RandomForest — Score Maître : 0.679
+🥉 LogisticRegression — Score Maître : 0.649
 Légère baisse des performances par rapport au dataset initial
 Très légère baisse des performances et recall stable par rapport aux corrections de niveau 1
+
+**Résultats de `S2` :**  
+🥇 CatBoost — Score Maître : 0.6802 | Recall  0.6095
+🥈 RandomForest — Score Maître : 0.679
+🥉 LogisticRegression — Score Maître : 0.6485
+pas d'amélioration
+=> à tester en combinaison avec un autre scénario
+
+**Résultats de `S3` :**  
+🥇 RandomForest — Score Maître : 0.6917 | Recall  0.6181
+🥈 CatBoost — Score Maître : 0.6909 | 0.6195
+🥉 LogisticRegression — Score Maître : 0.6595
+Améliorations notables de toutes les performances
+=> scénario conservé
+
+**Résultats de `S10` :**  
+🥇 CatBoost — Score Maître : 0.6913 | Recall  0.6210
+🥈 RandomForest — Score Maître : 0.6906 | 0.6185
+🥉 LogisticRegression — Score Maître : 0.6596
+pas d'améliorataion par rapport à `S3` seul
+=> scénario écarté
+
+**Résultats de `S7` :**  
+🥇 CatBoost — Score Maître : 0.6808 | Recall  0.6091
+🥈 RandomForest — Score Maître : 0.679
+🥉 LogisticRegression — Score Maître : 0.6484
+Performances équivalentes à `S1`
+=> scénario écarté
+
+**Résultats de `S8` :** 
+🥇 RandomForest — Score Maître : 0.6918 | Recall  0.6183
+🥈 CatBoost — Score Maître : 0.6905
+🥉 LogisticRegression — Score Maître : 0.6597
+Pas d'amélioration par rapport à `S3` seul  
+=> scénario écarté
+
+**Résultats de `S4` :**  
+🥇 CatBoost — Score Maître : 0.6787 | Recall  0.6063
+🥈 RandomForest — Score Maître : 0.6779
+🥉 LogisticRegression — Score Maître : 0.6533
+Perte de performances
+=> scénario écarté
+
+**Résultats de `S11` :**  
+🥇 CatBoost — Score Maître : 0.687 | Recall  0.6158
+🥈 RandomForest — Score Maître : 0.683
+🥉 LogisticRegression — Score Maître : 0.65
+Très légère amélioration des performances 
+=> scénario conservé
+
+**Résultats de `S12` :**  
+🥇 CatBoost — Score Maître : 0.6875 | Recall  0.6169
+🥈 RandomForest — Score Maître : 0.6842
+🥉 LogisticRegression — Score Maître : 0.6528 
+Performances similaires à `S11` mais inférieures à `S3`  
+=> scénario écarté
+
+**Conclusion**  
+Pas de surapparentissage.  
+Seuls les `S3` et `S11` apportent une réelle valeur ajoutée et répondent de surcroit à une réalité métier. Les autres simplifications effacent des couches d'informations utiles aux modèles pour prédire le futur défaut de paiement.
+
+### Résultats de ces expérimentations sur le dataset avec niveau 3 de corrections
+
+`S1` sert de base pour mesurer la progression éventuelle des scenarii suivants :
+🥇 CatBoost — Score Maître : 0.6808 | Recall  0.611
+🥈 RandomForest — Score Maître : 0.6786
+🥉 LogisticRegression — Score Maître : 0.6431
+Un tout petit peu moins bon que le niveau de correction 0, équivalent aux niveau 1 et 2
 
 **Résultats de `S2` :**  
 🥇 CatBoost — Score Maître : 0.6789 | Recall  0.6093
 🥈 RandomForest — Score Maître : 0.678
 🥉 LogisticRegression — Score Maître : 0.6423
-pas d'amélioration
-=> à tester en combinaison avec un autre scénario
+pas d'amélioration des performances  
+=> scénario écarté
 
 **Résultats de `S3` :**  
-🥇 CatBoost — Score Maître : 0.6906 | Recall  0.6216
-🥈 RandomForest — Score Maître : 0.6898
-🥉 LogisticRegression — Score Maître : 0.6591
-Amélioration notables de toutes les performances
+🥇 CatBoost — Score Maître : 0.6907 | Recall  0.6214
+🥈 RandomForest — Score Maître : 0.6891
+🥉 LogisticRegression — Score Maître : 0.66
+Amélioration générales de toute les performances
 => scénario conservé
 
-**Résultats de `S10` :**  
-🥇 CatBoost — Score Maître : 0.6907 | Recall  0.6220
-🥈 RandomForest — Score Maître : 0.6896
-🥉 LogisticRegression — Score Maître : 0.6587
-pas d'améliorataion par rapport à `S3` seul
-=> scénario écarté
-
 **Résultats de `S7` :**  
-🥇 CatBoost — Score Maître : 0.6801 | Recall  0.6115
-🥈 RandomForest — Score Maître : 0.6781
-🥉 LogisticRegression — Score Maître : 0.6413
-Performances équivalentes à `S1`
-=> à combiner avec un autre scénario
+🥇 CatBoost — Score Maître : 0.6805 | Recall  0.6107
+🥈 RandomForest — Score Maître : 0.6786
+🥉 LogisticRegression — Score Maître : 0.6432
+Pas d'amélioration par rapport à S1  
+=> à combiner avec un autre scénario pour voir s'il apporte quelque chose en plus
 
-**Résultats de `S8` :** 
-🥇 CatBoost — Score Maître : 0.6901 | Recall  0.6206
-🥈 RandomForest — Score Maître : 0.6898
-🥉 LogisticRegression — Score Maître : 0.6582
-pas d'amélioration par rapport à `S3` seul
-=> scénario écarté
+**Résultats de `S8` :**  
+🥇 CatBoost — Score Maître : 0.6908 | Recall  0.6212
+🥈 RandomForest — Score Maître : 0.6891
+🥉 LogisticRegression — Score Maître : 0.6599
+Performances stables par rapport à `S3` seul
+=> scénario à mettre de côté
 
 **Résultats de `S4` :**  
-🥇 CatBoost — Score Maître : 0.6774 | Recall  0.6063
+🥇 CatBoost — Score Maître : 0.6793 | Recall  0.6093
 🥈 RandomForest — Score Maître : 0.6763
-🥉 LogisticRegression — Score Maître : 0.6504
-Perte de performances
+🥉 LogisticRegression — Score Maître : 0.6516
+pas d'amélioration des performances
 => scénario écarté
 
+**Résultats de `S11` :**  
+🥇 CatBoost — Score Maître : 0.6856 | Recall  0.6170
+🥈 RandomForest — Score Maître : 0.6824
+🥉 LogisticRegression — Score Maître : 0.6467
+Amélioration des performances
+Phénomène notable : baisse du recall de 2 points du recall sur le test
+=> scénario conservé
+
+**Résultats de `S12` :**  
+
+
 **Conclusion**  
-Pas de surapparentissage.  
-Seul le `scénario 3` apporte une réelle valeur ajoutée et répond de surcroit à une réalité métier. Les autres simplifications effacent des couches d'informations utiles aux modèles pour prédire le futur défaut de paiement.
 
 
 ### Conclusion sur les différents niveaux de nettoyage et leurs scénarii
