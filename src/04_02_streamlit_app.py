@@ -366,6 +366,7 @@ Cela ne signifie pas que le taux de clients à jour est stable car un client peu
     
     
     # Graphe Evolution du taux de clients qui présentent un paiement sur encours positif
+    st.markdown("#### Evolution des ratios de paiement moyen et médian par rapport à l'encours de crédit")
     # 1. Appairage chronologique : PAY_AMTn comparé à BILL_AMT(n+1)
     paires_chronologiques = [
         ('PAY_AMT5', 'BILL_AMT6', 'M-5'),
@@ -444,7 +445,133 @@ Cela ne signifie pas que le taux de clients à jour est stable car un client peu
     with col_graph2 :
         st.markdown("#### Evolution du taux de clients présentant un paiement sur encours positif")
         st.plotly_chart(fig_pay, width='stretch')
-    
+        
+        
+    # GRAPHES EVOLUTION DES RATIOS DE PAIEMENT SUR DETTE MOYEN ET MEDIAN
+
+    col_graph1, col_graph2 = st.columns([1, 1])
+
+    # 1. Définition des paires de colonnes et des étiquettes de M-5 à M-1
+    mapping_ratios = [
+        ('ratio_PAY_AMT5_to_BILL_AMT6', 'M-5'),
+        ('ratio_PAY_AMT4_to_BILL_AMT5', 'M-4'),
+        ('ratio_PAY_AMT3_to_BILL_AMT4', 'M-3'),
+        ('ratio_PAY_AMT2_to_BILL_AMT3', 'M-2'),
+        ('ratio_PAY_AMT1_to_BILL_AMT2', 'M-1'),
+    ]
+
+    # Filtrage des colonnes présentes dans le DataFrame
+    colonnes_actives = [
+        col for col, label in mapping_ratios if col in df.columns
+    ]
+    labels_x = [label for col, label in mapping_ratios if col in df.columns]
+
+    if len(colonnes_actives) > 0:
+
+    # =========================================================================
+    # 1. GRAPHIQUE BLEU : RATIO MOYEN
+    # =========================================================================
+        moyennes = df[colonnes_actives].mean()
+
+        fig_ratio = go.Figure()
+        fig_ratio.add_trace(
+            go.Scatter(
+                x=labels_x,
+                y=moyennes.values,
+                mode='lines+markers+text',
+                text=[f'{val:.2f}' for val in moyennes.values],
+                textposition='top center',
+                textfont=dict(size=14, color='black'),
+                marker=dict(size=9, color='#1f77b4'),  # Bleu
+                line=dict(width=2.5, color='#1f77b4'),
+                hovertemplate=(
+                    '<b>%{x}</b><br>Ratio de paiement moyen :'
+                    ' %{y:.2f}%<extra></extra>'
+                ),
+            )
+        )
+
+        max_val_moy = moyennes.max()
+        min_val_moy = moyennes.min()
+        marge_moy = (
+            (max_val_moy - min_val_moy) * 0.25 if max_val_moy != min_val_moy else 0.05
+        )
+
+        fig_ratio.update_layout(
+            title=dict(
+                text=(
+                    '<b>Évolution du ratio moyen (Paiement / Facture'
+                    ' précédente)</b>'
+                ),
+                font=dict(size=14),
+            ),
+            xaxis_title='Mois (Période relative)',
+            yaxis_title='Ratio de paiement moyen (%)',
+            yaxis=dict(
+                range=[min_val_moy - marge_moy, max_val_moy + marge_moy],
+                showgrid=True,
+                gridcolor='rgba(0,0,0,0.1)',
+                gridwidth=1,
+            ),
+            height=500,
+        )
+
+        with col_graph1:
+            st.plotly_chart(fig_ratio, width='stretch')
+
+        # =========================================================================
+        # 2. GRAPHIQUE VIOLET : RATIO MÉDIAN
+        # =========================================================================
+        medianes = df[colonnes_actives].median()
+
+        fig_medianes = go.Figure()
+        fig_medianes.add_trace(
+            go.Scatter(
+                x=labels_x,
+                y=medianes.values,
+                mode='lines+markers+text',
+                text=[f'{val:.2f}' for val in medianes.values],
+                textposition='top center',
+                textfont=dict(size=14, color='black'),
+                marker=dict(size=9, color='#8e44ad'),  # Violet
+                line=dict(width=2.5, color='#8e44ad'),
+                hovertemplate=(
+                    '<b>%{x}</b><br>Ratio de paiement médian :'
+                    ' %{y:.2f}%<extra></extra>'
+                ),
+            )
+        )
+
+        max_val_med = medianes.max()
+        min_val_med = medianes.min()
+        marge_med = (
+            (max_val_med - min_val_med) * 0.25 if max_val_med != min_val_med else 0.05
+        )
+
+        fig_medianes.update_layout(
+            title=dict(
+                text=(
+                    '<b>Évolution du ratio médian (Paiement / Facture'
+                    ' précédente)</b>'
+                ),
+                font=dict(size=14),
+            ),
+            xaxis_title='Mois',
+            yaxis_title='Ratio de paiement médian (%)',
+            yaxis=dict(
+                range=[min_val_med - marge_med, max_val_med + marge_med],
+                showgrid=True,
+                gridcolor='rgba(0,0,0,0.1)',
+                gridwidth=1,
+            ),
+            height=500,
+        )
+
+        with col_graph2:
+            st.plotly_chart(fig_medianes, width='stretch')
+
+    else:
+        st.warning("Aucune des colonnes de ratios n'a été trouvée dans le dataset.")
     
 
 # ==============================================================================
