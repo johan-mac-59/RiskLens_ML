@@ -9,6 +9,7 @@ import os
 import json
 from pathlib import Path
 import numpy as np
+from plotly.subplots import make_subplots
 
 
 # ==============================================================================
@@ -145,7 +146,131 @@ st.sidebar.info("👨‍💻 **Développé par Johan**\n\n*Futur Data Analyst*")
 if menu == "🪣 Tests" :
     st.markdown("Mon bac à sable 🪣")
     
+    
+    st.markdown("#### Corrélation entre comptes récemment actifs et risque")
+    
+    col_graphn, col_comment = st.columns([2,1])
+    # 1. Définition des cycles chronologiques
+    cycles = [
+        {'mois': 'Mai (M-5)', 'curr_bill': 'BILL_AMT5', 'dormant_cols': [6]},
+        {'mois': 'Juin (M-4)', 'curr_bill': 'BILL_AMT4', 'dormant_cols': [6, 5]},
+        {'mois': 'Juillet (M-3)', 'curr_bill': 'BILL_AMT3', 'dormant_cols': [6, 5, 4]},
+        {'mois': 'Août (M-2)', 'curr_bill': 'BILL_AMT2', 'dormant_cols': [6, 5, 4, 3]},
+        {'mois': 'Septembre (M-1)', 'curr_bill': 'BILL_AMT1', 'dormant_cols': [6, 5, 4, 3, 2]}
+    ]
 
+    # Calculs des réactivations et du taux de défaut
+    resultats = []
+
+    for c in cycles:
+        nom_mois = c['mois']
+        curr_bill = c['curr_bill']
+        dormant_cols = c['dormant_cols']
+        
+        # Masque de dormance cumulée : BILL_AMT <= 0 ET PAY_AMT == 0 sur TOUS les mois antérieurs
+        mask_inactif_cumul = pd.Series(True, index=df.index)
+        for m in dormant_cols:
+            mask_inactif_cumul &= (df[f'BILL_AMT{m}'] <= 0) & (df[f'PAY_AMT{m}'] == 0)
+        
+        # Masque de sortie de sommeil au mois courant
+        mask_reactivation = mask_inactif_cumul & (df[curr_bill] > 0)
+        nb_reactives = mask_reactivation.sum()
+        
+        # Calcul du taux de défaut pour cette population
+        if nb_reactives > 0:
+            nb_defauts = df.loc[mask_reactivation, 'dpnm'].sum()
+            tx_defaut = (nb_defauts / nb_reactives) * 100
+        else:
+            tx_defaut = 0.0
+        
+        resultats.append({
+            'Mois de réactivation': nom_mois,
+            'Nombre de réactivations': nb_reactives,
+            'Taux de défaut': tx_defaut
+        })
+
+    df_res = pd.DataFrame(resultats)
+
+    # 2. Création du graphique Plotly avec double axe Y
+    fig_defaut_dormant = make_subplots(specs=[[{"secondary_y": True}]])
+
+    # Axe Y principal : Barres pour le nombre de réactivations
+    fig_defaut_dormant.add_trace(
+        go.Bar(
+            x=df_res['Mois de réactivation'],
+            y=df_res['Nombre de réactivations'],
+            name="Activations",
+            marker_color='#1f77b4',
+            text=df_res['Nombre de réactivations'],
+            textposition='outside',
+            textfont=dict(size=15, color='black'),
+            hovertemplate="<b>%{x}</b><br>Comptes réactivés : %{y}<extra></extra>"
+        ),
+        secondary_y=False
+    )
+
+    # Axe Y secondaire : Ligne + marqueurs pour le taux de défaut
+    fig_defaut_dormant.add_trace(
+        go.Scatter(
+            x=df_res['Mois de réactivation'],
+            y=df_res['Taux de défaut'],
+            name="Taux de défaut futur (%)",
+            mode='lines+markers+text',
+            marker=dict(color='orange', size=10),
+            line=dict(color='orange', width=2),
+            text=[f"{val:.1f}%" for val in df_res['Taux de défaut']],
+            textfont=dict(size=15, color='orange'),
+            textposition='top center',
+            hovertemplate="<b>%{x}</b><br>Taux de défaut : %{y:.2f}%<extra></extra>"
+        ),
+        secondary_y=True
+    )
+
+    # 3. Personnalisation de la mise en page
+    max_react = df_res['Nombre de réactivations'].max()
+    max_tx = df_res['Taux de défaut'].max()
+
+    fig_defaut_dormant.update_layout(
+        xaxis_title="Mois d\'activation",
+        legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="right", x=1),
+        height=600,
+        margin=dict(t=50, b=20, l=20, r=20)
+    )
+
+    # Axe Y gauche (Effectifs)
+    fig_defaut_dormant.update_yaxes(
+        title_text="Nombre de comptes devenus actifs",
+        range=[0, max_react * 1.2 if max_react > 0 else 10],
+        showgrid=True,
+        ticks='outside',      # <-- Petit trait de graduation vers l'extérieur
+        secondary_y=False
+    )
+
+    # Axe Y droit (Taux de défaut)
+    fig_defaut_dormant.update_yaxes(
+        title_text="Taux de défaut (%)",
+        title_font=dict(color="orange"),
+        tickfont=dict(color="orange"),
+        range=[0, max_tx * 1.3 if max_tx > 0 else 10],
+        showgrid=False,
+        secondary_y=True
+    )
+
+    # 4. Affichage Streamlit
+    with col_graphn :
+        st.plotly_chart(fig_defaut_dormant, use_container_width='stretch')
+    
+    # 5. Commentaires
+    with col_comment :
+        st.markdown('')
+        st.markdown('')
+        st.markdown('')
+        st.markdown(f"""
+                    J'ai considéré comme compte devenant actif tout client ayant un encours à un mois donné, tout en ayant aucune activité de paiement ou d'utilisation de crédit sur tous les mois précédents.  
+                    Le nombre d'activations de compte diminue en première période puis se stabilise. **Le taux de défaut futur ne semble pas être affecté par l'ancienneté récente d'un client.**  
+                    *Pour rappel, le taux défaut moyen sur l'ensemble des clients du jeu de données est de **{round(df['dpnm'].sum()/df['dpnm'].count()*100,2)} %**.*  
+                    Il m'est impossible de comparer avec une fermeture de comptes, des clients sont en effet avec des comptes gelés sur la période qu'il est difficile de mesurer avec les données à ma disposition.  
+                    """)
     
     
 
@@ -944,7 +1069,7 @@ Au-delà, le nombre de clients est trop faible pour établir une tendance, le ta
     
     st.markdown("""
 Malgré les nettoyages effectués sur le jeu de données, des artéfacts subsistent avec des encours nuls ou négatifs qui ressortent en paiement (ici 106 clients concernés). Il s'agit évidemment d'une donnée à ne pas prendre en compte pour regarder la tendance.  
-La tendance est claire : plus un client utilisent son autorisation de crédit, plus sont taux de défaut augmente.  
+La tendance est claire : plus un client utilise son autorisation de crédit, plus son taux de défaut augmente.  
 **Le seul montant du plafond ne peut pas expliquer le risque de crédit, on voit ici que le ratio de son utilisation est également en corrélation forte avec le risque d'impayé futur.**
     """)
 
