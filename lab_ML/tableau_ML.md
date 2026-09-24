@@ -63,6 +63,11 @@ Au sein de chaque niveau de correction, des scénarios autonomes sont appliqués
 * **`S10` (Simplification plafonnement des impayés + Filtrage encours actif)** : S2 + S3
 * **`S11` (Suppression des clients atypiques gros plafond)** : Restriction de la population aux clients avec $\text{LIMIT\_BAL} \leq 500000$
 * **`S12` (Filtrage encours actif + suppression des clients atypiques gros plafond)** : S3 + S11
+* **`S13` (Suppression de la colonne PAY_1)** : On retire une colonne très pollulée avec df = df.drop(columns=['PAY_1'])
+* **`S14` (Suppression des colonnes antérieures à PAY_1)** : on retire les colonnes antérieures à 'PAY_1' pour vérifier son poids seul avec et sans correction avec df = df.drop(columns=['PAY_2','PAY_3','PAY_4','PAY_5','PAY_6'])
+* **`S15` (Remplacement de 'PAY_1' par un ratio de paiement sur dette)** : $\text{RATIO\_PAY\_1} = \begin{cases} \min\left(\max\left(\frac{\text{PAY\_AMT1}}{\text{BILL\_AMT2}}, \, 0.0\right), \, 2.0\right) & \text{si } \text{BILL\_AMT2} > 0 \\ 1.0 & \text{si } \text{BILL\_AMT2} \le 0 \end{cases}$
+
+
 
 
 ### Méthodologie
@@ -103,7 +108,7 @@ Pas d'amélioration par rapport à `S3`
 🥇 CatBoost — Score Maître : 0.6882 | Recall  0.6306
 🥈 RandomForest — Score Maître : 0.6876
 🥉 LogisticRegression — Score Maître : 0.6487
-=> neutre, à essayer en combinaison d'un autre scénario pour vérifier son impact
+=> scénario mis de côté
 
 **Résultats de `S8` :**  
 🥇 RandomForest — Score Maître : 0.6924 | Recall  0.6233
@@ -116,7 +121,8 @@ Aucune amélioration par rapport à `S3`
 🥇 CatBoost — Score Maître : 0.6872 | Recall  0.6299
 🥈 RandomForest — Score Maître : 0.6864
 🥉 LogisticRegression — Score Maître : 0.6581
-=> neutre, à essayer en combinaison avec un autre scenario pour vérifier son impact
+légère baisse des performances
+=> scénario écarté
 
 **Résultats de `S9` :**  
 🥇 RandomForest — Score Maître : 0.6915 | Recall  0.621
@@ -139,6 +145,27 @@ perte de performance constaté sur le jeu de tests inhabituel mais pas anormal
 🥉 LogisticRegression — Score Maître : 0.6559
 Phénomène rare : meilleurs résultats sur le test que sur la validation  
 Performances moins bonnes que S3 seul ou S11 seul
+=> scénario écarté
+
+**Résultats de `S13` :**  
+🥇 CatBoost — Score Maître : 0.6572 | Recall  0.6058
+🥈 RandomForest — Score Maître : 0.6543
+🥉 LogisticRegression — Score Maître : 0.6164
+Performances dégradées de 0.0309 et recall abaissé de 0.0252
+=> scécnario écarté pour la prédiction du risque à M
+
+**Résultats de `S14` :**  
+🥇 CatBoost — Score Maître : 0.683 | Recall  0.6238
+🥈 RandomForest — Score Maître : 0.6815
+🥉 LogisticRegression — Score Maître : 0.646
+Performances dégradées
+=> scénario écarté
+
+**Résultats de `S15` :**  
+🥇 CatBoost — Score Maître : 0.6576 | Recall  0.6073
+🥈 RandomForest — Score Maître : 0.6528
+🥉 LogisticRegression — Score Maître : 0.6199
+Performances dégradées de plus de 3 points sur le score
 => scénario écarté
 
 **Conclusion**  
@@ -197,12 +224,34 @@ Légère baisse des performances
 => scénario écarté
 
 **Résultats de `S11` :**  
-🥇 CatBoost — Score Maître : 0.6872 | Recall  0.6184
-🥈 RandomForest — Score Maître : 0.6824
-🥉 LogisticRegression — Score Maître : 0.6541
-Très légère amélioration des performances mais surapprentissage léger sur certains modèles  
-baisse des performances et du recall notable sur le jeu de tests
-=> à combiner avec un autre scénario
+🥇 CatBoost — Score Maître : 0.6867 | Recall  0.6148
+🥈 RandomForest — Score Maître : 0.6841
+🥉 LogisticRegression — Score Maître : 0.6537
+baisse des performances légères
+Phénomène notable : perte de recall sur le jeu de tests
+=> scénario écarté
+
+**Résultats de `S13` :**  
+🥇 CatBoost — Score Maître : 0.6467 | Recall  0.5806
+🥈 RandomForest — Score Maître : 0.6455
+🥉 LogisticRegression — Score Maître : 0.6296
+Performances dégradées de 0.0351 et recall abaissé de 0.0281
+=> scécnario écarté pour la prédiction du risque à M
+
+**Résultats de `S14` :**  
+🥇 CatBoost — Score Maître : 0.6776 | Recall  0.6075
+🥈 RandomForest — Score Maître : 0.6761
+🥉 LogisticRegression — Score Maître : 0.6467
+LR a un recall de 0.6516 !
+performances légèrement moins bonnes
+=> scénario écarté
+
+**Résultats de `S15` :**  
+🥇 CatBoost — Score Maître : 0.6472 | Recall  0.5771
+🥈 RandomForest — Score Maître : 0.6373
+🥉 LogisticRegression — Score Maître : 0.6298
+Perte de plus de 3 points de performances et recall
+=> scénario écarté
 
 **Conclusion**  
 Surapprentissage léger sur certains modèles.  
@@ -221,8 +270,8 @@ Très légère baisse des performances et recall stable par rapport aux correcti
 🥇 CatBoost — Score Maître : 0.6802 | Recall  0.6095
 🥈 RandomForest — Score Maître : 0.679
 🥉 LogisticRegression — Score Maître : 0.6485
-pas d'amélioration
-=> à tester en combinaison avec un autre scénario
+Perfomances stables
+=> scénario écarté
 
 **Résultats de `S3` :**  
 🥇 RandomForest — Score Maître : 0.6917 | Recall  0.6181
@@ -273,9 +322,30 @@ Très légère amélioration des performances
 Performances similaires à `S11` mais inférieures à `S3`  
 => scénario écarté
 
+**Résultats de `S13` :**  
+🥇 CatBoost — Score Maître : 0.6467 | Recall  0.5806
+🥈 RandomForest — Score Maître : 0.6451
+🥉 LogisticRegression — Score Maître : 0.6295
+Performances dégradées de 0.0340 et recall abaissé de 0.0291
+=> scécnario écarté pour la prédiction du risque à M
+
+**Résultats de `S14` :**  
+🥇 CatBoost — Score Maître : 0.677 | Recall  0.6055
+🥈 RandomForest — Score Maître : 0.675
+🥉 LogisticRegression — Score Maître : 0.6409
+
+**Résultats de `S15` :**  
+🥇 CatBoost — Score Maître : 0.6472 | Recall  0.5814
+🥈 RandomForest — Score Maître : 0.6402
+🥉 LogisticRegression — Score Maître : 0.6295
+Perte de plus de 3 points de performances et pres de 3 points de recall
+=> scénario écarté
+
 **Conclusion**  
 Pas de surapparentissage.  
 Seuls les `S3` et `S11` apportent une réelle valeur ajoutée et répondent de surcroit à une réalité métier. Les autres simplifications effacent des couches d'informations utiles aux modèles pour prédire le futur défaut de paiement.
+Performances légèrement moins bonnes
+=> scénario écarté
 
 ### Résultats de ces expérimentations sur le dataset avec niveau 3 de corrections
 
@@ -304,7 +374,7 @@ Amélioration générales de toute les performances
 🥈 RandomForest — Score Maître : 0.6786
 🥉 LogisticRegression — Score Maître : 0.6432
 Pas d'amélioration par rapport à S1  
-=> à combiner avec un autre scénario pour voir s'il apporte quelque chose en plus
+=> scénario écarté
 
 **Résultats de `S8` :**  
 🥇 CatBoost — Score Maître : 0.6908 | Recall  0.6212
@@ -329,14 +399,50 @@ Phénomène notable : baisse du recall de 2 points du recall sur le test
 => scénario conservé
 
 **Résultats de `S12` :**  
+🥇 CatBoost — Score Maître : 0.686 | Recall  0.6209
+🥈 RandomForest — Score Maître : 0.6842
+🥉 LogisticRegression — Score Maître : 0.6519
+Phénomène notable : résultats meilleurs sur le jeu de tests
+Très légère amélioration des performances par rapport à `S11`
+Pas d'amélioration par rapport à `S3`
+=> scénario conservé en lieu et place de `S11`
 
+**Résultats de `S13` :**  
+🥇 CatBoost — Score Maître : 0.6467 | Recall 0.5806
+🥈 RandomForest — Score Maître : 0.6417
+🥉 LogisticRegression — Score Maître : 0.6295 | Recall 0.6441
+Performances dégradées de 0.0341 et recall abaissé de 0.0304
+A noter un recall élevé pour LR
+=> scécnario écarté pour la prédiction du risque à M
+
+**Résultats de `S14` :**  
+🥇 CatBoost — Score Maître : 0.6768 | Recall  0.6099
+🥈 RandomForest — Score Maître : 0.6736
+🥉 LogisticRegression — Score Maître : 0.6337
+Performances légèrement dégradées
+=> scénario écarté
+
+**Résultats de `S15` :**  
+🥇 CatBoost — Score Maître : 0.6472 | Recall  0.5814
+🥈 RandomForest — Score Maître : 0.6405
+🥉 LogisticRegression — Score Maître : 0.6281
+Dégradation de plus de 3 points du score et du recall
+=> scénario écarté
 
 **Conclusion**  
+Pas de surapparentissage.  
+Seuls les `S3` et `S12` apportent une réelle valeur ajoutée et répondent de surcroit à une réalité métier. Les autres simplifications effacent des couches d'informations utiles aux modèles pour prédire le futur défaut de paiement.
 
 
 ### Conclusion sur les différents niveaux de nettoyage et leurs scénarii
 
+A modèle fixe, les performances DE `S3` sur les différents niveaux de nettoyages est quasi stable. Il semble préférable de travailler sur le jeu de données avec un nettoyage de niveau 3 et un scénario 3. Les variables implémentées par la suite dépendant de la propreté des données n'en seront que meilleures et fiables.  
+Le scénario `13` visait à comparer la perte de performances selon le niveau de correction si on retirait la colonne 'PAY_1'. Statistiquement, j'aurais tendance à dire que le niveau 0 de correction a été le moins impacté par une perte de performances brute. J'en concluerais que la correction apportée sur PAY_1 est positive en terme d'impact sur la prédiction des modèles.  
+Les scénarii `14` et `15` visaient à déterminer l'importance de la colonne PAY_1 en l'état. Corrigée ou non, elle apporte une information primordiale pour la prédiction du défaut.  
 
+Si je décide de conserver le niveau de correction 3 pour la suite de mon feature engineering, il est préférable de partir sur le scénario `12` (qui inclut `S3`) qui a les memes performances que ce dernier mais restreint très légèrement la population à la masse principale de notre dataset et qui correspond à la clientèle standard
+
+**Je choisis de travailler sur de nouvelles variables à partir du jeu de données corrigé de niveau 3, uniquement sur les clients avec un encours positif à M-1 et avec un plafond de crédit inférieur ou égal à 500 000 NT$.**
 
 
 ---
@@ -344,25 +450,24 @@ Phénomène notable : baisse du recall de 2 points du recall sur le test
 ## 3. Features
 
 1. L'âge n'est presque pas utilisé par les modèles pour prédire le défaut. Et pour cause, j'ai constaté que l'âge n'avait de sens que s'il est traité par tranches pour le mettre en corrélation avec le défaut de paiement.
-Nouvelle Feature : tranches d'âge en remplacement de 'AGE'
+Nouvelle Feature : tranches d'âge 'AGE_BUCKET' en remplacement de 'AGE'
 
 
 
-## Redémarrage suite à un début d'encodage sur certaines colonnes  
-J'ai testé :
-1. sans encodage (les variables catégorielles étaient des nombres entiers)
-2. lors de l'ajout de tranches d'âge, l'encodage est devenu obligatoire, je ne pouvais plus laisser des variables sans encodage, cela perturbait certaines de mes modèles testés, j'ai testé un OrdinalEncoder pour les tranches d'âge puis sur les PAY_n
-3. j'ai testé un OneHotEncodeur sur les catégories non ordonnées et un OrdinalEncoder sur les catégories ordonnées
-Après visualisation des résultats, le meilleur paramétrage était un encodage mixte : la solution `3`.  
-J'ai également détecté que mon comparatif et ma matrice de confusion se faisait sur les résultats d'entrainement -> j'ai modifié pour que ce soit les performances de validation qui soient exposées et comparées au test => Forte diminution de la perte de recall
-=> je vais relancer les 6 scnearii précédents pour tester vérifier si les résultats précédents se vérifiaient toujours
 
 
 
-S8 : ajout des colonnes ratio_BILL_LIMIT = BILL_AMTn / LIMIT_BAL si BILL_AMTn>=0 SINON =0
+
+
+
+
+
+
+
+S12_1 : ajout des colonnes ratio_BILL_LIMIT = BILL_AMTn / LIMIT_BAL si BILL_AMTn>=0 SINON =0
 Limite à 200% pour limiter le bruit de certaines valeurs aberrantes
 
-S9 : classer les clients par leur type d'usage (paiement différé total, crédit, autres)
+S12_2 : classer les clients par leur type d'usage (paiement différé total, crédit, autres)
 pour ce faire, on va utiliser les colonnes ratio_PAY_to_BILL_AMTn pour regarder la médiane par client ratio_PAY_to_BILL_median :
 - si ratio_median == 0 : client en impayé chronique codifié 'impayé chronique'
 - si 0 < ratio_median <= 3 : client en paiement partiel codifié 'insuffisant'
@@ -371,7 +476,7 @@ pour ce faire, on va utiliser les colonnes ratio_PAY_to_BILL_AMTn pour regarder 
 - si ratio_median > 90 : client en paiement comptant codifié 'comptant'
 - si pas de donnée : 'autre'
 
-S10 : indicateur d'activation récente du crédit (entre M-1 et M-4 sans encours sur tous les mois précédent)  
+S12_3 : indicateur d'activation récente du crédit (entre M-1 et M-4 sans encours sur tous les mois précédent)  
 on va regarder l'activation des comptes sur la période et les taguer comme suit :
 - compte toujours actif : 0
 - actif depuis m-4 : 4
@@ -396,4 +501,16 @@ sinon False
 
 
 
-Remonter cv dans GridSearchCV quand on approfondit les modèles
+`Remonter cv dans GridSearchCV quand on approfondit les modèles`
+
+
+## Problèmes rencontrés
+
+### Redémarrage suite à un début d'encodage sur certaines colonnes  
+J'ai testé :
+1. sans encodage (les variables catégorielles étaient des nombres entiers)
+2. lors de l'ajout de tranches d'âge, l'encodage est devenu obligatoire, je ne pouvais plus laisser des variables sans encodage, cela perturbait certaines de mes modèles testés, j'ai testé un OrdinalEncoder pour les tranches d'âge puis sur les PAY_n
+3. j'ai testé un OneHotEncodeur sur les catégories non ordonnées et un OrdinalEncoder sur les catégories ordonnées
+Après visualisation des résultats, le meilleur paramétrage était un encodage mixte : la solution `3`.  
+J'ai également détecté que mon comparatif et ma matrice de confusion se faisait sur les résultats d'entrainement -> j'ai modifié pour que ce soit les performances de validation qui soient exposées et comparées au test => Forte diminution de la perte de recall
+=> je vais relancer les 6 scnearii précédents pour tester vérifier si les résultats précédents se vérifiaient toujours
