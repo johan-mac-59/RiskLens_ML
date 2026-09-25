@@ -449,53 +449,98 @@ Si je décide de conserver le niveau de correction 3 pour la suite de mon featur
 
 ## 3. Features
 
-1. L'âge n'est presque pas utilisé par les modèles pour prédire le défaut. Et pour cause, j'ai constaté que l'âge n'avait de sens que s'il est traité par tranches pour le mettre en corrélation avec le défaut de paiement.
-Nouvelle Feature : tranches d'âge 'AGE_BUCKET' en remplacement de 'AGE'
+**Méthodologie**  
+Seuls les 3 modèles les plus performants ci dessus restent employés pour évaluer les performances des nouvelles variables utilisées.  
+Les apprentissages sont simplifiés piur gagner en rapidité et limiter au maximul le surapprentissage.  
 
+Le jeu de données utilisé est celui de niveau de corrections 3.  
+Ne sont traités que les clients avec un encours positif strict en M-1, et un plafond de crédit au maximum de 500 000 NT$. 
 
+Je crée un pipeline simplifié
+`S12_0` référence
+🥇 CatBoost — Score Maître : 0.6865 | Recall  0.6196
+🥈 RandomForest — Score Maître : 0.6771
+🥉 LogisticRegression — Score Maître : 0.6515
 
-
-
-
-
-
-
-
-
-
-
-S12_1 : ajout des colonnes ratio_BILL_LIMIT = BILL_AMTn / LIMIT_BAL si BILL_AMTn>=0 SINON =0
+`S12_1` : ajout des colonnes ratio_BILL_LIMITn = BILL_AMTn / LIMIT_BAL
 Limite à 200% pour limiter le bruit de certaines valeurs aberrantes
+Limite basse à 0% pour les encours non utilisés ou négatifs
+🥇 CatBoost — Score Maître : 0.6877 | Recall  0.6211
+🥈 RandomForest — Score Maître : 0.6791
+🥉 LogisticRegression — Score Maître : 0.6507
+=> nouveau scénario privilégié
 
-S12_2 : classer les clients par leur type d'usage (paiement différé total, crédit, autres)
-pour ce faire, on va utiliser les colonnes ratio_PAY_to_BILL_AMTn pour regarder la médiane par client ratio_PAY_to_BILL_median :
-- si ratio_median == 0 : client en impayé chronique codifié 'impayé chronique'
-- si 0 < ratio_median <= 3 : client en paiement partiel codifié 'insuffisant'
-- si 3 < ratio_median <= 10 : client en paiement correct usage crédit codifié 'credit'
-- si 10 < ratio_median <= 90 : client en paiement partiel du total, usage mixte ou présentant des incidents sur son paiement total codifié 'mixte'
-- si ratio_median > 90 : client en paiement comptant codifié 'comptant'
-- si pas de donnée : 'autre'
+`S12_2` : `S12_1` + 'AGE' décomposé en bins pertinents
+L'âge n'est presque pas utilisé par les modèles pour prédire le défaut. Et pour cause, j'ai constaté que l'âge n'avait de sens que s'il est traité par tranches pour le mettre en corrélation avec le défaut de paiement.
+Nouvelle Feature : tranches d'âge 'AGE_BUCKET' en remplacement de 'AGE'.  
+🥇 CatBoost — Score Maître : 0.6866 | Recall  0.6175
+🥈 RandomForest — Score Maître : 0.6773
+🥉 LogisticRegression — Score Maître : 0.6505
+=> scénario écarté
 
-S12_3 : indicateur d'activation récente du crédit (entre M-1 et M-4 sans encours sur tous les mois précédent)  
+`S12_3` : `S12_1` + ajout des colonnes de ratio de paiement / encours utilisé
+Elles indiquent au modèle indirectement si le client paie sa dette ou non, et quelle proportion, en évitant les NaN (si un client n'a pas de dette à M-1, on considère qu'il a payé 100%)
+$\text{ratio\_PAY\_BILLn} = \begin{cases} \min\left(\max\left(\frac{\text{PAY\_AMTn}}{\text{BILL\_AMTn+1}}, \, 0.0\right), \, 2.0\right) & \text{si } \text{BILL\_AMTn+1} > 0 \\ 1.0 & \text{si } \text{BILL\_AMTn+1} \le 0 \end{cases}$
+🥇 CatBoost — Score Maître : 0.6878 | Recall  0.6180
+🥈 RandomForest — Score Maître : 0.6787
+🥉 LogisticRegression — Score Maître : 0.6593
+pas de gain, les informations étaient déjà présentes
+=> scnéario écarté
+
+`S12_4` : `S12_0` + substitution des colonnes PAY_AMTn et BILL_AMTn au profit des ratios de `S12_1` ration_BILL_LIMITn et `S12_3` ratio_PAY_BILLn
+🥇 CatBoost — Score Maître : 0.686 | Recall  0.6150
+🥈 RandomForest — Score Maître : 0.6773
+🥉 LogisticRegression — Score Maître : 0.6505
+pas de gain
+=> scénario écarté
+
+`S12_5` : `S12_1` + classer les clients par leur type d'usage (paiement différé total, crédit, autres)
+pour ce faire, on va utiliser les colonnes ratio_PAY_AMTn_to_BILL_AMTn+1 pour regarder la médiane par client ratio_PAY_to_BILL_median et laisser les modèles faire leur propre découpage pour le lier au défaut de paiement
+🥇 CatBoost — Score Maître : 0.6878 | Recall  0.6226
+🥈 RandomForest — Score Maître : 0.6793
+🥉 LogisticRegression — Score Maître : 0.6569
+Très légère amélioration des performances par rapport à `S12_1`
+=> nouveau scnéario privilégié
+
+`S12_6` : `S12_5` + ajout d'un indicateur d'ancienneté d'activité du compte  
+justement pour aider les modèles à mieux comprendre quoi faire du ratio de paiement médian et notamment les '-1'
+Indicateur d'activation récente du crédit (entre M-1 et M-4 sans encours sur tous les mois précédent)  
 on va regarder l'activation des comptes sur la période et les taguer comme suit :
-- compte toujours actif : 0
+- compte toujours actif : 7
 - actif depuis m-4 : 4
 - actif depuis m-3 : 3
 - actif depuis m-2 : 2
 - actif depuis m-1 : 1
-inclut S9  
 intéret : Ajouter un flag pour les clients récents qui peuvent avoir un 'ratio_PAY_to_BILL_median' trompeur  
-De plus, cela ajoute un indicateur aux modèles : client récent, activation de compte, réactivation de compte, sortie de contentieux  
+De plus, cela ajoute un indicateur aux modèles : client récent, activation de compte, réactivation de compte, sortie de contentieux.  
+🥇 CatBoost — Score Maître : 0.6885 | Recall  0.6247
+🥈 RandomForest — Score Maître : 0.6789
+🥉 LogisticRegression — Score Maître : 0.6622
+Cette variable a un impact légèrement positif sur les prédictions
+=> nouveau scénario privilégié
 
-S11 : S10 + S8 ?
-
-
-S?? : Codification contentieux
-'CTX' = True si :
+`S12_7` : `S12_6` + Codification contentieux
+J'ai détecté dans mon EDA un phénomène avec PAY_n = 2, il ne s'agit pas toujours d'un retard de 2 mois constaté
+Créer une variable "flag" appelée 'CTX' qui est True si :
 - PAY_n == 2 sur les 6 mois
 - PAY_n == 2 et ((PAY_(n+1)>2) & (BILL_AMTn>0) & (PAY_AMTn == 0))
 sinon False
-
+🥇 CatBoost — Score Maître : 0.6875 | Recall  0.6198
+🥈 RandomForest — Score Maître : 0.6772
+🥉 LogisticRegression — Score Maître : 0.66
+Ce premier résultat (moins bon que `S12_6` et surtout moins bon qu'attendu malgré une variable ultra discriminante implémentée) sans besoin de brider les modèles qui sont d'habitude en surapprentissage est un message, d'autant plus que les arbres n'utilisent pas cette variable : il y a peut etre un sous apprentissage par manque de profondeur. Je décide d'augmenter les fenêtres de paramètres pour ce scénario :  
+🥇 CatBoost — Score Maître : 0.6875 | Recall  0.6198
+🥈 RandomForest — Score Maître : 0.6846
+🥉 LogisticRegression — Score Maître : 0.66
+Aucune évolution donc pas la cause du problème. Probable que les modèles avaient déjà compris par eux-mêmes cette anomalie
+Autre test pour vérifer un aspect étonnant (progression de 2 points de toutes les perf pour tous les modèles sur le jeu de test) : répartir équitablement les clients présumés 'CTX' :
+🥇 CatBoost — Score Maître : 0.6872 | Recall  0.6221
+🥈 RandomForest — Score Maître : 0.6848
+🥉 LogisticRegression — Score Maître : 0.6562
+Même si les résultats ne progressent pas (CTX n'est pas uniformisé dans les boucles du cross_validation), les résultats sur le jeu de tests surperforment encore davantage que précédemment, atteignant des scores jamais atteints auparavant. C'est la preuve que la variable 'CTX' a un impact fort. Ici, je suis confronté à un dilemne : conserver cette variable et l'intégrer de manière uniforme partout et sortir cette clientèle du circuit des clients sains, en entreprise j'aurais pu avoir ma réponse sur cette classification, mais je ne peux que supposer ici.
+**71.27% des clients ayant un encours et étant taggé contentieux sont en défaut de paiement à M.**  
+**Dans le jeu de données initial, 77.55% de taux de défaut de paiement pour les clients avec PAY_n = 2 sur les 6 mois**
+Ces clients représentent 3.61% du jeu de données nettoyé. J'ai affaire à une anomalie dans les codifications de risques et de comportement des paiements et encours, couplé à un taux de défaut énorme
 
 
 
