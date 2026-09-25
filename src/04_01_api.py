@@ -48,42 +48,47 @@ class MoisEnum(int, Enum):
     decembre = 12
 
 
+# Bornes de validation partagées par les modèles (alignées sur correspondances.json et les CHECK SQL)
+AGE_MIN, AGE_MAX = 18, 120
+STATUT_PAIEMENT_MIN, STATUT_PAIEMENT_MAX = -2, 9
+
+
 # Créer la classe ClientRequest pour avoir un modèle de client
 class ClientRequest(BaseModel) :
-    age: int = Field(..., description="Âge du client en années : nombre entier positif")
+    age: int = Field(..., description="Âge du client en années : entier entre 18 et 120", ge=AGE_MIN, le=AGE_MAX)
     # C'est ici qu'on ajoute la "notice" pour l'utilisateur dans la doc
     code_genre: GenreEnum = Field(..., description="Genre du client : 1 = Homme, 2 = Femme")
     code_marital: CodeMaritalEnum = Field(..., description="Statut matrimonial du client : 1 = Marié(e), 2 = Célibataire, 3 = Autre")
     code_scolaire: CodeScolaireEnum = Field(..., description="Code de niveau scolaire : 1 = Doctorat/Master, 2 = License, 3 = Baccalauréat, 4 = Autre")
-    plafond: int = Field(..., description="Plafond de la carte bancaire : nombre entier positif")
-    code_statut_defaut: int = Field(..., description="Code du statut de défaut futur : 0 = Paiement à jour, 1 = Défaut")
+    plafond: int = Field(..., description="Plafond de la carte bancaire : nombre entier positif", ge=0)
+    code_statut_defaut: int = Field(..., description="Code du statut de défaut futur : 0 = Paiement à jour, 1 = Défaut", ge=0, le=1)
     
 # Créer la classe HistoriqueMensuelRequest pour avoir un modèle de historique_mensuel
 class HistoriqueMensuelRequest(BaseModel) :
-    client_id: int = Field(..., description="ID du client existant")
+    client_id: int = Field(..., description="ID du client existant", ge=1)
     # On sépare la date pour que l'utilisateur puisse choisir mois/année
     mois: MoisEnum = Field(..., description="Mois de l'historique : (1-12)")
     annee: int = Field(..., description="Année de l'historique : (ex: 2023)", ge=2000, le=2100)
-    montant_encours: int = Field(..., description="Montant total dû de la carte")
-    montant_paye: int = Field(..., description="Montant payé")
-    code_statut_paiement: int = Field(..., description="Score de statut du compte client")
+    montant_encours: int = Field(..., description="Montant total dû de la carte (négatif si trop-perçu)")
+    montant_paye: int = Field(..., description="Montant payé : nombre entier positif", ge=0)
+    code_statut_paiement: int = Field(..., description="Code statut de paiement : de -2 à 9", ge=STATUT_PAIEMENT_MIN, le=STATUT_PAIEMENT_MAX)
 
 class HistoriqueUpdateRequest(BaseModel):
     """
     Modèle pour une mise à jour partielle (PATCH).
     """
-    montant_encours: Optional[int] = Field(default=None, description="Nouveau montant dû")
-    montant_paye: Optional[int] = Field(default=None, description="Nouveau montant payé")
-    code_statut_paiement: Optional[int] = Field(default=None, description="Nouveau code_statut_paiement")
+    montant_encours: Optional[int] = Field(default=None, description="Nouveau montant dû (négatif si trop-perçu)")
+    montant_paye: Optional[int] = Field(default=None, description="Nouveau montant payé", ge=0)
+    code_statut_paiement: Optional[int] = Field(default=None, description="Nouveau code statut de paiement : de -2 à 9", ge=STATUT_PAIEMENT_MIN, le=STATUT_PAIEMENT_MAX)
     
 class ClientUpdateRequest(BaseModel):
     """Modèle pour la mise à jour partielle d'un client."""
-    age: Optional[int] = Field(default=None, description="Âge du client")
+    age: Optional[int] = Field(default=None, description="Âge du client", ge=AGE_MIN, le=AGE_MAX)
     code_genre: Optional[GenreEnum] = Field(default=None, description="Code genre")
     code_marital: Optional[CodeMaritalEnum] = Field(default=None, description="Code statut marital")
     code_scolaire: Optional[CodeScolaireEnum] = Field(default=None, description="Code niveau scolaire")
     plafond: Optional[int] = Field(default=None, description="Plafond de crédit", ge=0)
-    code_statut_defaut: Optional[int] = Field(default=None, description="Code statut défaut")
+    code_statut_defaut: Optional[int] = Field(default=None, description="Code statut défaut : 0 ou 1", ge=0, le=1)
     
 
 # créer la connexion
@@ -179,24 +184,30 @@ def lire_un_client(client_id: int):
     """
     Récupère la fiche d'un client par son ID
     """
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM client WHERE client_id = ?", (client_id,)) 
+        cursor.execute("SELECT * FROM client WHERE client_id = ?", (client_id,))
         row = cursor.fetchone()
-        conn.close()
 
         if row:
             return dict(row)
         else:
             raise HTTPException(status_code=404, detail="Client non trouvé")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur BDD : {e}")
+    finally:
+        if conn:
+            conn.close()
 
 
 # Route Post : Ajouter un client
 @app.post("/client/", tags=["Gestion client"])
 def ajouter_un_client(client_data: ClientRequest):
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -216,16 +227,20 @@ def ajouter_un_client(client_data: ClientRequest):
         
         conn.commit() # On valide le changement
         new_id = cursor.lastrowid # On récupère l'ID auto-généré par SQLite
-        
-        conn.close()
-        
+
         return {
-            "message": f"Client ajouté avec succès !", 
+            "message": f"Client ajouté avec succès !",
             "client_id": new_id
         }
 
+    except sqlite3.IntegrityError as e:
+        # Contrainte SQL non respectée (code inconnu dans une table de correspondance, CHECK...)
+        raise HTTPException(status_code=400, detail=f"Données refusées par la BDD : {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
+    finally:
+        if conn:
+            conn.close()
     
     
 # Route Get : Lire un historique client
@@ -234,6 +249,7 @@ def lire_historique_client(client_id: int):
     """
     Récupère tout l'historique transactionnel d'un client via son ID.
     """
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -241,7 +257,6 @@ def lire_historique_client(client_id: int):
         # 1. Vérifier si le client existe
         cursor.execute("SELECT * FROM client WHERE client_id = ?", (client_id,))
         if not cursor.fetchone():
-            conn.close()
             raise HTTPException(status_code=404, detail="Le client n'existe pas.")
 
         # 2. Récupérer l'historique avec jointure sur dim_date
@@ -276,8 +291,6 @@ def lire_historique_client(client_id: int):
                 "code_statut_paiement": ligne['code_statut_paiement']
             })
 
-        conn.close()
-        
         return {
             "client_id": client_id,
             "nombre_lignes": len(historique),
@@ -288,6 +301,9 @@ def lire_historique_client(client_id: int):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
+    finally:
+        if conn:
+            conn.close()
     
     
 @app.get("/historique_mensuel/{client_id}/{mois}/{annee}", tags=["Gestion historique"])
@@ -295,6 +311,7 @@ def lire_historique_mensuel(client_id: int, mois: MoisEnum, annee: int):
     """
     Récupère les détails d'une ligne d'historique spécifique pour un client via son ID, le mois et l'année.
     """
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -302,7 +319,6 @@ def lire_historique_mensuel(client_id: int, mois: MoisEnum, annee: int):
         # 1. Vérifier si le client existe (bonnes pratiques)
         cursor.execute("SELECT * FROM client WHERE client_id = ?", (client_id,))
         if not cursor.fetchone():
-            conn.close()
             raise HTTPException(status_code=404, detail="Le client n'existe pas.")
 
         # 2. Récupérer le date_id pour la combinaison mois/année
@@ -313,7 +329,6 @@ def lire_historique_mensuel(client_id: int, mois: MoisEnum, annee: int):
         row_date = cursor.fetchone()
 
         if not row_date:
-            conn.close()
             raise HTTPException(status_code=404, detail=f"La date {mois.name}/{annee} n'existe pas dans le catalogue.")
 
         date_id = row_date['date_id']
@@ -328,8 +343,6 @@ def lire_historique_mensuel(client_id: int, mois: MoisEnum, annee: int):
             (client_id, date_id)
         )
         row_histo = cursor.fetchone()
-
-        conn.close()
 
         if not row_histo:
             return {
@@ -354,6 +367,9 @@ def lire_historique_mensuel(client_id: int, mois: MoisEnum, annee: int):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
+    finally:
+        if conn:
+            conn.close()
 
     
 # Route Post : ajouter un historique_mensuel pour un client
@@ -363,9 +379,15 @@ def ajouter_historique_mensuel(data: HistoriqueMensuelRequest):
     Ajoute une ligne d'historique pour un client donné.
     Si la date (mois/année) n'existe pas dans 'dim_date', elle est créée automatiquement.
     """
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        # 0. Vérifier si le client existe (message clair plutôt qu'une erreur de clé étrangère)
+        cursor.execute("SELECT 1 FROM client WHERE client_id = ?", (data.client_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail=f"Le client {data.client_id} n'existe pas.")
 
         # 1. Recherche de la date dans le dictionnaire dim_date
         cursor.execute(
@@ -420,15 +442,12 @@ def ajouter_historique_mensuel(data: HistoriqueMensuelRequest):
     except HTTPException:
         raise
     except sqlite3.IntegrityError as e:
-        # Capture les violations de clés étrangères (ex: client_id inexistant)
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Erreur d'intégrité BDD : Vérifiez que le client {data.client_id} existe bien."
-        )
+        # Contrainte SQL non respectée (code statut inconnu, CHECK...)
+        raise HTTPException(status_code=400, detail=f"Données refusées par la BDD : {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
     finally:
-        if 'conn' in locals() and conn:
+        if conn:
             conn.close()
         
 
@@ -446,6 +465,7 @@ def modifier_client(client_id: int, data: ClientUpdateRequest):
     if not champs_a_modifier:
         raise HTTPException(status_code=400, detail="Aucun champ à modifier.")
 
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -467,10 +487,14 @@ def modifier_client(client_id: int, data: ClientUpdateRequest):
 
     except HTTPException:
         raise
+    except sqlite3.IntegrityError as e:
+        # Contrainte SQL non respectée (code inconnu dans une table de correspondance, CHECK...)
+        raise HTTPException(status_code=400, detail=f"Données refusées par la BDD : {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
     finally:
-        conn.close()
+        if conn:
+            conn.close()
     
 
 # Route Patch : modifier un historique mensuel
@@ -489,6 +513,7 @@ def modifier_historique_mensuel(
     if not champs_a_modifier:
         raise HTTPException(status_code=400, detail="Aucun champ à modifier.")
 
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -525,16 +550,21 @@ def modifier_historique_mensuel(
 
     except HTTPException:
         raise
+    except sqlite3.IntegrityError as e:
+        # Contrainte SQL non respectée (code inconnu dans une table de correspondance, CHECK...)
+        raise HTTPException(status_code=400, detail=f"Données refusées par la BDD : {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
     finally:
-        conn.close()
+        if conn:
+            conn.close()
         
  
 # Route Delete : Supprimer un historique_mensuel par ID client et date
 @app.delete("/historique_mensuel/{client_id}/{mois}/{annee}", tags=["Gestion historique"])
 def supprimer_historique_mensuel(client_id: int, mois: MoisEnum, annee: int):
     """Supprime un historique mensuel spécifique en utilisant les paramètres de l'URL."""
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -558,7 +588,6 @@ def supprimer_historique_mensuel(client_id: int, mois: MoisEnum, annee: int):
         )
         
         if cursor.rowcount == 0:
-            conn.close()
             raise HTTPException(status_code=404, detail="Aucun historique trouvé pour ce client à cette date.")
 
         conn.commit()
@@ -569,7 +598,8 @@ def supprimer_historique_mensuel(client_id: int, mois: MoisEnum, annee: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
     finally:
-        conn.close()
+        if conn:
+            conn.close()
         
     
 # Route Delete : Supprimer les historiques mensuels d'un client via son ID    
@@ -616,6 +646,7 @@ def supprimer_un_client(client_id: int):
     Supprime un client via son ID, 
     ⚠️ supprime d'abord tout l'historique transactionnel.
     """
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -623,7 +654,6 @@ def supprimer_un_client(client_id: int):
         # 1. Vérifier si le client existe
         cursor.execute("SELECT * FROM client WHERE client_id = ?", (client_id,))
         if not cursor.fetchone():
-            conn.close()
             raise HTTPException(status_code=404, detail="Le client n'existe pas")
 
         # 2. Nettoyage : Supprimer l'historique lié (si on ne veut pas de CASCADE en BDD)
@@ -632,8 +662,7 @@ def supprimer_un_client(client_id: int):
         # 3. Suppression du client
         cursor.execute("DELETE FROM client WHERE client_id = ?", (client_id,))
         conn.commit()
-        
-        conn.close()
+
         return {"message": f"Le client {client_id} et ses données ont été supprimés."}
 
     except HTTPException:
@@ -642,6 +671,9 @@ def supprimer_un_client(client_id: int):
         if "FOREIGN KEY constraint failed" in str(e):
             raise HTTPException(status_code=409, detail="Erreur d'intégrité : il reste des liens non gérés.")
         raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
+    finally:
+        if conn:
+            conn.close()
 
 
 # ==============================================================================
@@ -649,16 +681,20 @@ def supprimer_un_client(client_id: int):
 # ==============================================================================
 @app.get("/analyze/risk-by-profile", tags=["Analyse"])
 def get_risk_by_profile(
-    gender_code: Optional[int] = Query(None, description="Code genre (1=M, 2=F)"),
-    marital_status: Optional[int] = Query(None, description="Statut marital"),
-    education_level: Optional[int] = Query(None, description="Niveau scolaire"),
-    age_min: Optional[int] = Query(None, description="Âge minimum"),
-    age_max: Optional[int] = Query(None, description="Âge maximum")
+    gender_code: Optional[int] = Query(None, description="Code genre (1=M, 2=F)", ge=1, le=2),
+    marital_status: Optional[int] = Query(None, description="Statut marital (1 à 3)", ge=1, le=3),
+    education_level: Optional[int] = Query(None, description="Niveau scolaire (1 à 4)", ge=1, le=4),
+    age_min: Optional[int] = Query(None, description="Âge minimum", ge=0, le=AGE_MAX),
+    age_max: Optional[int] = Query(None, description="Âge maximum", ge=0, le=AGE_MAX)
 ):
     """
     Calcule le taux de défaut moyen pour un profil démographique spécifique.
     Les paramètres sont optionnels (None = tous).
     """
+    if age_min is not None and age_max is not None and age_min > age_max:
+        raise HTTPException(status_code=400, detail="L'âge minimum doit être inférieur ou égal à l'âge maximum.")
+
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -696,10 +732,9 @@ def get_risk_by_profile(
 
         cursor.execute(query, params)
         row = cursor.fetchone()
-        conn.close()
 
         total = row[0]
-        defaults = row[1]
+        defaults = row[1] or 0
         
         rate = (defaults / total * 100) if total > 0 else None
         
@@ -711,6 +746,9 @@ def get_risk_by_profile(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
+    finally:
+        if conn:
+            conn.close()
     
     
     
@@ -718,6 +756,7 @@ def get_risk_by_profile(
 # ZONE ADMIN
 #=======================================================
 
+import secrets
 from fastapi import Depends, status
 from dotenv import load_dotenv
 from fastapi.responses import FileResponse
@@ -740,8 +779,21 @@ def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
     Elle intercepte les identifiants envoyés par le client (Streamlit, Swagger UI, Curl),
     les compare aux variables d'environnement secrètes, et autorise ou bloque l'accès.
     """
-    is_correct_user = (credentials.username == ADMIN_USER)
-    is_correct_pass = (credentials.password == ADMIN_PASSWORD)
+    # Si les variables d'environnement ne sont pas définies, l'accès est refusé à tout le monde
+    if not ADMIN_USER or not ADMIN_PASSWORD:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Espace admin non configuré sur le serveur.",
+        )
+
+    # compare_digest compare en temps constant : on ne peut pas deviner le mot de passe
+    # caractère par caractère en mesurant le temps de réponse (attaque temporelle)
+    is_correct_user = secrets.compare_digest(
+        credentials.username.encode("utf-8"), ADMIN_USER.encode("utf-8")
+    )
+    is_correct_pass = secrets.compare_digest(
+        credentials.password.encode("utf-8"), ADMIN_PASSWORD.encode("utf-8")
+    )
     
     if not (is_correct_user and is_correct_pass):
         raise HTTPException(
