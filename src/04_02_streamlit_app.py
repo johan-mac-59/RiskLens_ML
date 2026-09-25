@@ -165,6 +165,7 @@ if menu == "🪣 Tests" :
     for c in cycles:
         nom_mois = c['mois']
         curr_bill = c['curr_bill']
+        curr_pay = curr_bill.replace('BILL_AMT', 'PAY_AMT')
         dormant_cols = c['dormant_cols']
         
         # Masque de dormance cumulée : BILL_AMT <= 0 ET PAY_AMT == 0 sur TOUS les mois antérieurs
@@ -172,8 +173,8 @@ if menu == "🪣 Tests" :
         for m in dormant_cols:
             mask_inactif_cumul &= (df[f'BILL_AMT{m}'] <= 0) & (df[f'PAY_AMT{m}'] == 0)
         
-        # Masque de sortie de sommeil au mois courant
-        mask_reactivation = mask_inactif_cumul & (df[curr_bill] > 0)
+        # Masque de sortie de sommeil au mois courant (facture > 0 OU paiement > 0)
+        mask_reactivation = mask_inactif_cumul & ((df[curr_bill] > 0) | (df[curr_pay] > 0))
         nb_reactives = mask_reactivation.sum()
         
         # Calcul du taux de défaut pour cette population
