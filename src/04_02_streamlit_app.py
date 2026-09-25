@@ -3,10 +3,8 @@ import requests
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import matplotlib as plt
 import json
 import os
-import json
 from pathlib import Path
 import numpy as np
 from plotly.subplots import make_subplots
@@ -62,14 +60,48 @@ mappings = load_mappings()
 
 
 @st.cache_data
+def _fetch_app_mappings():
+    # Une exception n'est jamais mise en cache par st.cache_data :
+    # si l'API est en veille, le prochain appel retentera la requête
+    res = requests.get(f"{API_URL}/metadata/mappings", timeout=API_TIMEOUT)
+    res.raise_for_status()
+    return res.json()
+
+def message_erreur_api(res):
+    """Transforme la réponse d'erreur de l'API en message lisible pour l'utilisateur."""
+    try:
+        detail = res.json().get("detail")
+    except ValueError:
+        # Réponse non JSON (ex : page d'erreur Render pendant le réveil du serveur)
+        return f"réponse inattendue du serveur (code {res.status_code})"
+    if isinstance(detail, list):
+        # Erreur de validation FastAPI (422) : liste de champs refusés
+        return " ; ".join(
+            f"{err.get('loc', ['?'])[-1]} : {err.get('msg', '')}" for err in detail
+        )
+    return detail
+
+
 def load_app_mappings():
     try:
-        res = requests.get(f"{API_URL}/metadata/mappings")
-        if res.status_code == 200:
-            return res.json()
+        return _fetch_app_mappings()
     except Exception:
-        pass
-    return {}
+        return {}
+
+
+@st.cache_data(ttl=600)
+def _fetch_global_default_rate():
+    # Taux de défaut sur toute la BDD (même population que le simulateur), rafraîchi toutes les 10 min
+    res = requests.get(f"{API_URL}/analyze/risk-by-profile", timeout=API_TIMEOUT)
+    res.raise_for_status()
+    return res.json()["default_rate_pct"]
+
+def load_global_default_rate():
+    try:
+        return _fetch_global_default_rate()
+    except Exception:
+        # Repli sur le dataset local si l'API ne répond pas
+        return round(df["dpnm"].mean() * 100, 2)
 
         
 # ==============================================================================
@@ -110,13 +142,16 @@ st.markdown("""
 
 # Configuration de l'URL de l'API
 API_URL = "https://risklens-ml-api.onrender.com" 
-# API_URL = "http://127.0.0.1:8000"  # En local 
+# API_URL = "http://127.0.0.1:8000"  # En local
+
+# Délai max d'attente d'une réponse API (Render peut mettre ~2 min à sortir de veille)
+API_TIMEOUT = 180
 
 
 # ==============================================================================
 # NAVIGATION
 # ==============================================================================
-st.sidebar.image("images/logo_risklens.svg", width=250)
+st.sidebar.image(str(BASE_DIR / "images" / "logo_risklens.svg"), width=250)
 st.sidebar.title("🏦 RiskLens ML — Analyse & Prédiction du Défaut de Paiement 💳")
 st.sidebar.markdown("---")
 st.info(
@@ -593,7 +628,7 @@ Le projet suit un cycle de vie data complet : du diagnostic initial et la struct
 
 L'enjeu est de déterminer si les habitudes de paiement et l'utilisation du crédit ainsi que les informations de bases d'un client sont des indicateurs suffisamment robustes pour anticiper un défaut, sans avoir accès à des données macro-économiques ou des scores de crédit externes.
 
-Ce dataset est la base de données publique qui résulte de [l'étude scientifique de I-Cheng Yeh et Che-hui Lien (2009)](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/DefaultCreditCardClients_yeh_2009.pdf) (traduit en français [ici](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/traduction_DefaultCreditCardClients_yeh_2009.md)). Cette étude s'appuyait principalement sur l'Exactitude (Accuracy) globale. Mon but est de dépasser le score maximal de 2009 qui était de 0.54, ce qui équivaut à un **AUC de 0.77**.
+Ce dataset est la base de données publique qui résulte de [l'étude scientifique de I-Cheng Yeh et Che-hui Lien (2009)](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/DefaultCreditCardClients_yeh_2009.pdf) (traduit en français [ici](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/traduction_DefaultCreditCardClients_yeh_2009.md)). Cette étude comparait plusieurs modèles pour repérer les clients à risque. Le meilleur, un réseau de neurones, obtenait un score de 0.54, ce qui correspond à un **AUC de 0.77**. L'AUC mesure la capacité d'un modèle à distinguer les bons payeurs des futurs défaillants. Mon but est de dépasser ce score.
 Ma démarche adopte un prisme résolument **orienté métier**. En combinant un nettoyage rigoureux des données et un pilotage par le F1-score et le Recall, je cherche à optimiser la détection réelle des risques de défaut, garantissant ainsi une performance robuste et réellement actionnable pour la gestion des risques bancaires.
 
 
@@ -606,8 +641,7 @@ Pour découvrir comment des détails logistiques de l'époque (comme les règlem
 
     
 
-    st.markdown("**🚀 Objectif ML Engineer :** Mon but est de dépasser le score d'exactitude de 2009 (AUC 0.77) en optimisant le **Recall**. En banque, oublier un client à risque (Faux Négatif) coûte bien plus cher que de suspecter un client sûr (Faux Positif).")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("**🚀 Objectif ML Engineer :** Mon but est de dépasser le score de référence de 2009 (ratio de surface de 0.54, soit un AUC de 0.77) en optimisant le **Recall**. En banque, oublier un client à risque (Faux Négatif) coûte bien plus cher que de suspecter un client sûr (Faux Positif).")
 
     st.markdown("---")
     st.subheader("🛠️ Roadmap du Projet")
@@ -640,9 +674,11 @@ elif menu == "📊 Analyse & Insights":
 
         # Binning automatique si la colonne AGE_BUCKET n'est pas pré-calculée
         if "AGE_BUCKET" not in df_age.columns and "AGE" in df_age.columns:
-            labels_age = ['21-25', '26-30', '31-35', '36-40', '41-50', '51+']
+            # Mêmes buckets que dans 05_02_EDA_storytelling (intervalles fermés à droite : 21-25, 26-30, ...)
+            age_bins = [20, 25, 30, 35, 40, 50, 80]
+            age_labels = ['21-25', '26-30', '31-35', '36-40', '41-50', '51+']
             df_age["AGE_BUCKET"] = pd.cut(
-                df_age["AGE"], bins=[20, 25, 30, 35, 40, 50, 80], labels=labels_age, right=False
+                df_age["AGE"], bins=age_bins, labels=age_labels, include_lowest=True
             )
 
         if "AGE_BUCKET" in df_age.columns:
@@ -857,7 +893,7 @@ En conclusion, nous observons une disparité majeure de risque selon le profil :
 
         try:
             with st.spinner("Interrogation de la BDD en temps réel..."):
-                res = requests.get(f"{API_URL}/analyze/risk-by-profile", params=params)
+                res = requests.get(f"{API_URL}/analyze/risk-by-profile", params=params, timeout=API_TIMEOUT)
                 
                 if res.status_code == 200:
                     data = res.json()
@@ -878,7 +914,6 @@ En conclusion, nous observons une disparité majeure de risque selon le profil :
                         
                         with col_res2:
                             risk_pct = data['default_rate_pct']
-                            color = "green" if risk_pct < 25 else "orange" if risk_pct < 35 else "red"
                             
                             st.metric(
                                 label="Taux de défaut observé",
@@ -890,8 +925,8 @@ En conclusion, nous observons une disparité majeure de risque selon le profil :
                         
                         # Visualisation contextuelle simple
                         if risk_pct:
-                            # On ajoute une barre visuelle pour comparer à la moyenne globale (ex: 22%)
-                            global_avg = 22.0 # À adapter avec ta vraie moyenne
+                            # On ajoute une barre visuelle pour comparer à la moyenne globale de la BDD
+                            global_avg = load_global_default_rate()
                             col_viz1, col_viz2 = st.columns([3, 1])
                             with col_viz1:
                                 st.progress(risk_pct/100, f"Risque du profil ({risk_pct}%) vs Moyenne ({global_avg}%)")
@@ -1020,7 +1055,7 @@ En conclusion, nous observons une disparité majeure de risque selon le profil :
 
     st.markdown("""
 On constate un taux de défaut moyen qui a tendance à baisser jusqu'à 500 000 NT$ de crédit autorisé.  
-Au-delà, le nombre de clients est trop faible pour établir une tendance, le taux de défaut oscille entre 0 et 25% avec un nombre très faible et parfois nul par tranche de plafond")
+Au-delà, le nombre de clients est trop faible pour établir une tendance, le taux de défaut oscille entre 0 et 25% avec un nombre très faible et parfois nul par tranche de plafond.
     """)
     st.markdown('---')   
     st.markdown("#### Focus sur les plafonds les plus courants")
@@ -1060,7 +1095,7 @@ Au-delà, le nombre de clients est trop faible pour établir une tendance, le ta
     df_filtered = df[df['LIMIT_BAL'] <= 500000].copy()
 
     if 'dpnm' in df_filtered.columns:
-        # Tranches de 25 000 NT$ pour garder un détail fin et lisible (20 barres)
+        # Tranches de 10 000 NT$ pour garder un détail fin (50 barres)
         bin_size = 10000
         bins = np.arange(1, 500001 + bin_size, bin_size)
         labels = [f'{i//1000}k-{(i+bin_size)//1000}k' for i in bins[:-1]]
@@ -1077,12 +1112,6 @@ Au-delà, le nombre de clients est trop faible pour établir une tendance, le ta
 
         # Remplace les NaN (tranches sans clients) par 0
         rates_values = default_rates.fillna(0).values
-
-        # Libellés au-dessus des barres
-        text_labels = [
-            f'{v:.1f}%' if not pd.isna(r) else '0 client'
-            for r, v in zip(default_rates.values, rates_values)
-        ]
 
         fig4 = go.Figure(
             data=[
@@ -1396,7 +1425,7 @@ elif menu == "👤 Gestion des Clients":
         
         if st.button("Rechercher le client", type="primary"):
             try:
-                res = requests.get(f"{API_URL}/client/{c_id}")
+                res = requests.get(f"{API_URL}/client/{c_id}", timeout=API_TIMEOUT)
                 if res.status_code == 200:
                     client_data = res.json()
                     st.success("Client trouvé !") 
@@ -1477,12 +1506,12 @@ elif menu == "👤 Gestion des Clients":
                 "code_statut_defaut": code_statut_defaut
             }
             try:
-                res = requests.post(f"{API_URL}/client/", json=payload_client)
+                res = requests.post(f"{API_URL}/client/", json=payload_client, timeout=API_TIMEOUT)
                 if res.status_code == 200:
                     resp_json = res.json()
                     st.success(f"✅ {resp_json.get('message')} (ID attribué : **{resp_json.get('client_id')}**)")
                 else:
-                    st.error(f"Erreur : {res.json().get('detail')}")
+                    st.error(f"Erreur : {message_erreur_api(res)}")
             except Exception as e:
                 st.error(f"Erreur API : {e}")
 
@@ -1490,119 +1519,122 @@ elif menu == "👤 Gestion des Clients":
     with tab_modifier:
         st.markdown("### Modification partielle d'un client")
         
-        # --- CHARGEMENT DYNAMIQUE DES MAPPINGS DEPUIS L'API ---
-        mappings = load_app_mappings()
+        # --- CHARGEMENT DYNAMIQUE DES MAPPINGS DEPUIS L'API (repli sur le JSON local si l'API ne répond pas) ---
+        mappings_patch = load_app_mappings() or mappings
         
         # Conversion sécurisée des clés en entiers (car le JSON convertit les clés dict en string)
-        genre_map = {int(k): v for k, v in mappings.get("genre", {}).items()}
-        marital_map = {int(k): v for k, v in mappings.get("statut_marital", {}).items()}
-        scolaire_map = {int(k): v for k, v in mappings.get("niveau_scolaire", {}).items()}
-        defaut_map = {int(k): v for k, v in mappings.get("statut_defaut", {}).items()}
+        genre_map = {int(k): v for k, v in mappings_patch.get("genre", {}).items()}
+        marital_map = {int(k): v for k, v in mappings_patch.get("statut_marital", {}).items()}
+        scolaire_map = {int(k): v for k, v in mappings_patch.get("niveau_scolaire", {}).items()}
+        defaut_map = {int(k): v for k, v in mappings_patch.get("statut_defaut", {}).items()}
 
         patch_id = st.number_input("ID du client à modifier", min_value=1, value=8765, step=1, key="patch_client_id")
         
-        # Chargement automatique dès que l'ID change ou s'il n'est pas encore en cache
+        # Chargement automatique dès que l'ID change (seuls les clients trouvés sont mis en cache)
         cache_key = f"current_client_{patch_id}"
         if cache_key not in st.session_state:
             try:
-                res_info = requests.get(f"{API_URL}/client/{patch_id}")
+                res_info = requests.get(f"{API_URL}/client/{patch_id}", timeout=API_TIMEOUT)
                 if res_info.status_code == 200:
                     st.session_state[cache_key] = res_info.json()
-                else:
-                    st.session_state[cache_key] = None
-            except Exception:
-                st.session_state[cache_key] = None
+            except Exception as e:
+                st.error(f"Impossible de joindre l'API : {e}")
         
         current_data = st.session_state.get(cache_key)
         
-        # Affichage dynamique selon le résultat (avec affichage textuel propre basé sur les mappings dynamiques)
-        if current_data:
-            g_lib = genre_map.get(current_data.get('code_genre'), current_data.get('code_genre'))
-            m_lib = marital_map.get(current_data.get('code_marital'), current_data.get('code_marital'))
-            s_lib = scolaire_map.get(current_data.get('code_scolaire'), current_data.get('code_scolaire'))
-            d_lib = defaut_map.get(current_data.get('code_statut_defaut'), current_data.get('code_statut_defaut'))
-
-            st.info(
-                f"✅ **Client trouvé** ➔ "
-                f"Âge : {current_data.get('age')} ans | "
-                f"Plafond : {current_data.get('plafond')} NT$ | "
-                f"Genre : {g_lib} | "
-                f"Marital : {m_lib} | "
-                f"Scolaire : {s_lib} | "
-                f"Défaut : {d_lib}"
-            )
-        else:
+        if not current_data:
             st.warning("⚠️ Aucun client trouvé avec cet ID dans la base de données.")
+        else:
+            def options_avec_valeur(map_codes, valeur):
+                """Liste des codes du référentiel, complétée par la valeur en base si elle n'y figure pas."""
+                options = list(map_codes.keys())
+                if valeur is not None and valeur not in options:
+                    options.append(valeur)
+                return options
 
-        with st.form("form_patch_client"):
-            st.info("Laissez les champs sur 'Ignorer' si vous ne souhaitez pas les modifier.")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                new_age = st.number_input("Nouvel Âge", min_value=0, value=0)
+            st.info("Les champs sont pré-remplis avec les valeurs actuelles : seuls les champs modifiés seront envoyés.")
+
+            with st.form("form_patch_client"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    new_age = st.number_input(
+                        "Âge", min_value=18, max_value=120,
+                        value=int(current_data["age"]), key=f"patch_age_{patch_id}"
+                    )
+                    
+                    genre_options = options_avec_valeur(genre_map, current_data["code_genre"])
+                    new_genre = st.selectbox(
+                        "Genre", 
+                        options=genre_options, 
+                        index=genre_options.index(current_data["code_genre"]),
+                        format_func=lambda x: f"{genre_map.get(x, x)} ({x})",
+                        key=f"patch_genre_{patch_id}"
+                    )
+                    
+                    marital_options = options_avec_valeur(marital_map, current_data["code_marital"])
+                    new_marital = st.selectbox(
+                        "Statut Matrimonial", 
+                        options=marital_options, 
+                        index=marital_options.index(current_data["code_marital"]),
+                        format_func=lambda x: f"{marital_map.get(x, x)} ({x})",
+                        key=f"patch_marital_{patch_id}"
+                    )
+                    
+                with col2:
+                    scolaire_options = options_avec_valeur(scolaire_map, current_data["code_scolaire"])
+                    new_scolaire = st.selectbox(
+                        "Niveau Scolaire", 
+                        options=scolaire_options, 
+                        index=scolaire_options.index(current_data["code_scolaire"]),
+                        format_func=lambda x: f"{scolaire_map.get(x, x)} ({x})",
+                        key=f"patch_scolaire_{patch_id}"
+                    )
+                    
+                    new_plafond = st.number_input(
+                        "Plafond (NT$)", min_value=0,
+                        value=int(current_data["plafond"]), key=f"patch_plafond_{patch_id}"
+                    )
+                    
+                    defaut_options = options_avec_valeur(defaut_map, current_data["code_statut_defaut"])
+                    new_defaut = st.selectbox(
+                        "Statut Défaut", 
+                        options=defaut_options, 
+                        index=defaut_options.index(current_data["code_statut_defaut"]),
+                        format_func=lambda x: f"{defaut_map.get(x, x)} ({x})",
+                        key=f"patch_defaut_{patch_id}"
+                    )
                 
-                genre_options = [-1] + list(genre_map.keys())
-                new_genre = st.selectbox(
-                    "Nouveau Genre", 
-                    options=genre_options, 
-                    format_func=lambda x: "Ignorer" if x == -1 else f"{genre_map.get(x, x)} ({x})"
-                )
+                submit_patch = st.form_submit_button("Mettre à jour", type="primary")
                 
-                marital_options = [-1] + list(marital_map.keys())
-                new_marital = st.selectbox(
-                    "Nouveau Statut Matrimonial", 
-                    options=marital_options, 
-                    format_func=lambda x: "Ignorer" if x == -1 else f"{marital_map.get(x, x)} ({x})"
-                )
-                
-            with col2:
-                scolaire_options = [-1] + list(scolaire_map.keys())
-                new_scolaire = st.selectbox(
-                    "Nouveau Niveau Scolaire", 
-                    options=scolaire_options, 
-                    format_func=lambda x: "Ignorer" if x == -1 else f"{scolaire_map.get(x, x)} ({x})"
-                )
-                
-                new_plafond = st.number_input("Nouveau Plafond", min_value=0, value=0)
-                
-                defaut_options = [-1] + list(defaut_map.keys())
-                new_defaut = st.selectbox(
-                    "Nouveau Statut Défaut", 
-                    options=defaut_options, 
-                    format_func=lambda x: "Ignorer" if x == -1 else f"{defaut_map.get(x, x)} ({x})"
-                )
-            
-            submit_patch = st.form_submit_button("Mettre à jour", type="primary")
-            
-        if submit_patch:
-            payload_patch = {}
-            if new_age > 0:
-                payload_patch["age"] = new_age
-            if new_genre != -1:
-                payload_patch["code_genre"] = new_genre
-            if new_marital != -1:
-                payload_patch["code_marital"] = new_marital
-            if new_scolaire != -1:
-                payload_patch["code_scolaire"] = new_scolaire
-            if new_plafond > 0:
-                payload_patch["plafond"] = new_plafond
-            if new_defaut != -1:
-                payload_patch["code_statut_defaut"] = new_defaut
-                
-            if payload_patch:
-                try:
-                    res = requests.patch(f"{API_URL}/client/{patch_id}", json=payload_patch)
-                    if res.status_code == 200:
-                        st.success(f"✅ {res.json().get('message')}")
-                        # On supprime le cache pour forcer un rechargement frais des nouvelles données
-                        if cache_key in st.session_state:
-                            del st.session_state[cache_key]
-                    else:
-                        st.error(f"Erreur : {res.json().get('detail')}")
-                except Exception as e:
-                    st.error(f"Erreur API : {e}")
-            else:
-                st.warning("Aucun champ valide sélectionné pour la modification.")
+            if submit_patch:
+                # On n'envoie que les champs dont la valeur diffère de celle en base
+                nouvelles_valeurs = {
+                    "age": new_age,
+                    "code_genre": new_genre,
+                    "code_marital": new_marital,
+                    "code_scolaire": new_scolaire,
+                    "plafond": new_plafond,
+                    "code_statut_defaut": new_defaut,
+                }
+                payload_patch = {
+                    champ: valeur
+                    for champ, valeur in nouvelles_valeurs.items()
+                    if valeur != current_data.get(champ)
+                }
+                    
+                if payload_patch:
+                    try:
+                        res = requests.patch(f"{API_URL}/client/{patch_id}", json=payload_patch, timeout=API_TIMEOUT)
+                        if res.status_code == 200:
+                            st.success(f"✅ {res.json().get('message')} (champs modifiés : {', '.join(payload_patch)})")
+                            # On met à jour le cache avec les nouvelles valeurs
+                            st.session_state[cache_key] = {**current_data, **payload_patch}
+                        else:
+                            st.error(f"Erreur : {message_erreur_api(res)}")
+                    except Exception as e:
+                        st.error(f"Erreur API : {e}")
+                else:
+                    st.warning("Aucune valeur n'a été modifiée.")
     # --- ONGLET 4 : SUPPRIMER (DELETE /client/{id}) ---
     with tab_supprimer:
         st.markdown("### Supprimer un client")
@@ -1611,11 +1643,11 @@ elif menu == "👤 Gestion des Clients":
         
         if st.button("🗑️ Supprimer définitivement ce client", type="secondary"):
             try:
-                res = requests.delete(f"{API_URL}/client/{del_client_id}")
+                res = requests.delete(f"{API_URL}/client/{del_client_id}", timeout=API_TIMEOUT)
                 if res.status_code == 200:
                     st.success(f"✅ {res.json().get('message')}")
                 else:
-                    st.error(f"Erreur : {res.json().get('detail')}")
+                    st.error(f"Erreur : {message_erreur_api(res)}")
             except Exception as e:
                 st.error(f"Erreur API : {e}")
 
@@ -1634,9 +1666,9 @@ elif menu == "📅 Historique Transactionnel":
         st.markdown("### Historique complet d'un client")
         hist_client_id = st.number_input("ID du client", min_value=1, value=12238, step=1, key="get_hist_id")
         
-        if st.button("Affirmer l'historique", type="primary"):
+        if st.button("Afficher l'historique", type="primary"):
             try:
-                res = requests.get(f"{API_URL}/historique_mensuel/{hist_client_id}")
+                res = requests.get(f"{API_URL}/historique_mensuel/{hist_client_id}", timeout=API_TIMEOUT)
                 if res.status_code == 200:
                     data = res.json()
                     historique_list = data.get("historique", [])
@@ -1673,9 +1705,9 @@ elif menu == "📅 Historique Transactionnel":
                 annee = st.number_input("Année", min_value=2000, max_value=2100, value=2026)
                 mois = st.selectbox("Mois", options=list(range(1, 13)), format_func=lambda x: f"Mois {x}")
             with col2:
-                montant_encours = st.number_input("Montant encours (NT$)", min_value=0, value=10000)
+                montant_encours = st.number_input("Montant encours (NT$, négatif si trop-perçu)", value=10000)
                 montant_paye = st.number_input("Montant payé (NT$)", min_value=0, value=5000)
-                code_statut = st.number_input("Code statut paiement", value=0)
+                code_statut = st.number_input("Code statut paiement (-2 à 9)", min_value=-2, max_value=9, value=0)
                 
             submit_histo = st.form_submit_button("Envoyer l'historique", type="primary")
             
@@ -1689,54 +1721,102 @@ elif menu == "📅 Historique Transactionnel":
                 "code_statut_paiement": code_statut
             }
             try:
-                res = requests.post(f"{API_URL}/historique_mensuel/", json=payload_histo)
+                res = requests.post(f"{API_URL}/historique_mensuel/", json=payload_histo, timeout=API_TIMEOUT)
                 if res.status_code == 200:
                     result_data = res.json()
                     st.success(f"✅ {result_data.get('message', 'Enregistrement réussi !')}")
                     if 'date_id_utilise' in result_data:
                         st.info(f"📅 Date ID associé : **{result_data.get('date_id_utilise')}**")
                 else:
-                    st.error(f"❌ Erreur : {res.json().get('detail')}")
+                    st.error(f"❌ Erreur : {message_erreur_api(res)}")
             except Exception as e:
                 st.error(f"Erreur de communication : {e}")
 
     # --- ONGLET 3 : MODIFIER (PATCH /historique_mensuel/{client_id}/{mois}/{annee}) ---
     with tab_h_modifier:
         st.markdown("### Modifier un historique mensuel spécifique")
-        with st.form("form_patch_histo"):
-            col1, col2 = st.columns(2)
-            with col1:
-                p_client_id = st.number_input("ID du client", min_value=1, value=12238, key="p_h_client")
-                p_mois = st.selectbox("Mois concerné", options=list(range(1, 13)), format_func=lambda x: f"Mois {x}", key="p_h_mois")
-            with col2:
-                p_annee = st.number_input("Année concernée", min_value=2000, max_value=2100, value=2026, key="p_h_annee")
-                p_statut = st.number_input("Nouveau code statut (laisser -1 pour ignorer)", value=-1)
-            
-            p_encours = st.number_input("Nouveau montant encours (-1 pour ignorer)", value=-1)
-            p_paye = st.number_input("Nouveau montant payé (-1 pour ignorer)", value=-1)
-            
-            submit_patch_histo = st.form_submit_button("Mettre à jour la ligne", type="primary")
-            
-        if submit_patch_histo:
-            payload_patch_histo = {}
-            if p_encours >= 0:
-                payload_patch_histo["montant_encours"] = p_encours
-            if p_paye >= 0:
-                payload_patch_histo["montant_paye"] = p_paye
-            if p_statut >= -1 and p_statut != -1:
-                payload_patch_histo["code_statut_paiement"] = p_statut
-                
-            if payload_patch_histo:
-                try:
-                    res = requests.patch(f"{API_URL}/historique_mensuel/{p_client_id}/{p_mois}/{p_annee}", json=payload_patch_histo)
-                    if res.status_code == 200:
-                        st.success(f"✅ {res.json().get('message')}")
-                    else:
-                        st.error(f"Erreur : {res.json().get('detail')}")
-                except Exception as e:
-                    st.error(f"Erreur API : {e}")
-            else:
-                st.warning("Aucune modification renseignée.")
+
+        # Sélection de la ligne hors formulaire pour pouvoir charger ses valeurs actuelles
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            p_client_id = st.number_input("ID du client", min_value=1, value=12238, key="p_h_client")
+        with col2:
+            p_mois = st.selectbox("Mois concerné", options=list(range(1, 13)), index=8, format_func=lambda x: f"Mois {x}", key="p_h_mois")
+        with col3:
+            p_annee = st.number_input("Année concernée", min_value=2000, max_value=2100, value=2005, key="p_h_annee")
+
+        # Chargement de la ligne actuelle (seules les lignes trouvées sont mises en cache)
+        histo_key = f"current_histo_{p_client_id}_{p_mois}_{p_annee}"
+        if histo_key not in st.session_state:
+            try:
+                res_info = requests.get(f"{API_URL}/historique_mensuel/{p_client_id}/{p_mois}/{p_annee}", timeout=API_TIMEOUT)
+                if res_info.status_code == 200 and res_info.json().get("found"):
+                    st.session_state[histo_key] = res_info.json()
+            except Exception as e:
+                st.error(f"Impossible de joindre l'API : {e}")
+
+        current_histo = st.session_state.get(histo_key)
+
+        if not current_histo:
+            st.warning("⚠️ Aucun historique trouvé pour ce client à cette date.")
+        else:
+            statut_map = mappings.get("statut_paiement", {})
+            statut_options = list(statut_map.keys()) or list(range(-2, 10))
+            statut_actuel = current_histo["code_statut_paiement"]
+            if statut_actuel not in statut_options:
+                statut_options.append(statut_actuel)
+
+            st.info("Les champs sont pré-remplis avec les valeurs actuelles : seuls les champs modifiés seront envoyés.")
+
+            with st.form("form_patch_histo"):
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    p_encours = st.number_input(
+                        "Montant encours (NT$)",
+                        value=int(current_histo["montant_encours"]), key=f"p_h_encours_{histo_key}"
+                    )
+                with col2:
+                    p_paye = st.number_input(
+                        "Montant payé (NT$)", min_value=0,
+                        value=int(current_histo["montant_paye"]), key=f"p_h_paye_{histo_key}"
+                    )
+                with col3:
+                    p_statut = st.selectbox(
+                        "Code statut paiement",
+                        options=statut_options,
+                        index=statut_options.index(statut_actuel),
+                        format_func=lambda x: f"{x} : {statut_map.get(x, '')}",
+                        key=f"p_h_statut_{histo_key}"
+                    )
+
+                submit_patch_histo = st.form_submit_button("Mettre à jour la ligne", type="primary")
+
+            if submit_patch_histo:
+                # On n'envoie que les champs dont la valeur diffère de celle en base
+                nouvelles_valeurs = {
+                    "montant_encours": p_encours,
+                    "montant_paye": p_paye,
+                    "code_statut_paiement": p_statut,
+                }
+                payload_patch_histo = {
+                    champ: valeur
+                    for champ, valeur in nouvelles_valeurs.items()
+                    if valeur != current_histo.get(champ)
+                }
+
+                if payload_patch_histo:
+                    try:
+                        res = requests.patch(f"{API_URL}/historique_mensuel/{p_client_id}/{p_mois}/{p_annee}", json=payload_patch_histo, timeout=API_TIMEOUT)
+                        if res.status_code == 200:
+                            st.success(f"✅ {res.json().get('message')} (champs modifiés : {', '.join(payload_patch_histo)})")
+                            # On met à jour le cache avec les nouvelles valeurs
+                            st.session_state[histo_key] = {**current_histo, **payload_patch_histo}
+                        else:
+                            st.error(f"Erreur : {message_erreur_api(res)}")
+                    except Exception as e:
+                        st.error(f"Erreur API : {e}")
+                else:
+                    st.warning("Aucune valeur n'a été modifiée.")
 
     # --- ONGLET 4 : SUPPRIMER (DELETE /historique_mensuel/...) ---
     with tab_h_supprimer:
@@ -1754,11 +1834,11 @@ elif menu == "📅 Historique Transactionnel":
                 
             if sub_del_one:
                 try:
-                    res = requests.delete(f"{API_URL}/historique_mensuel/{d_client_id}/{d_mois}/{d_annee}")
+                    res = requests.delete(f"{API_URL}/historique_mensuel/{d_client_id}/{d_mois}/{d_annee}", timeout=API_TIMEOUT)
                     if res.status_code == 200:
                         st.success(f"✅ {res.json().get('message')}")
                     else:
-                        st.error(f"Erreur : {res.json().get('detail')}")
+                        st.error(f"Erreur : {message_erreur_api(res)}")
                 except Exception as e:
                     st.error(f"Erreur API : {e}")
                     
@@ -1766,11 +1846,11 @@ elif menu == "📅 Historique Transactionnel":
             d_client_all = st.number_input("ID du client dont il faut vider l'historique", min_value=1, value=12238, key="d_all_client")
             if st.button("🗑️ Vider tout l'historique de ce client", type="secondary"):
                 try:
-                    res = requests.delete(f"{API_URL}/historique_mensuel/client/{d_client_all}")
+                    res = requests.delete(f"{API_URL}/historique_mensuel/{d_client_all}", timeout=API_TIMEOUT)
                     if res.status_code == 200:
                         st.success(f"✅ {res.json().get('message')} ({res.json().get('lignes_supprimees')} lignes supprimées)")
                     else:
-                        st.error(f"Erreur : {res.json().get('detail')}")
+                        st.error(f"Erreur : {message_erreur_api(res)}")
                 except Exception as e:
                     st.error(f"Erreur API : {e}")
 
@@ -1797,7 +1877,7 @@ elif menu == "📚 Architecture Technique":
         
         if st.button("Charger la structure des tables", type="primary"):
             try:
-                res = requests.get(f"{API_URL}/tables")
+                res = requests.get(f"{API_URL}/tables", timeout=API_TIMEOUT)
                 if res.status_code == 200:
                     tables = res.json()
                     for t_name, cols in tables.items():
@@ -1832,7 +1912,7 @@ elif menu == "📚 Architecture Technique":
         st.link_button("💼 Mon profil LinkedIn", "https://www.linkedin.com/in/johan-machu/", width='stretch')
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: grey;'>RiskLens ML © 2024 — Projet Portfolio Data Analyst</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: grey;'>RiskLens ML © 2026 — Projet Portfolio Data Analyst</p>", unsafe_allow_html=True)
     
     
     
@@ -1857,7 +1937,7 @@ elif menu == "🔐 Espace réservé à l'Administrateur":
                 
                 try:
                     # Envoi d'une requête GET pour tester l'accès avec les identifiants
-                    res = requests.get(f"{API_URL}/admin/telecharger-db", auth=test_auth)
+                    res = requests.get(f"{API_URL}/admin/telecharger-db", auth=test_auth, timeout=API_TIMEOUT)
                     
                     if res.status_code == 200:
                         # Identifiants valides : on sauvegarde la session ET le fichier téléchargé
@@ -1883,27 +1963,32 @@ elif menu == "🔐 Espace réservé à l'Administrateur":
         with col_logout:
             if st.button("🚪 Déconnexion", width='stretch'):
                 del st.session_state["admin_auth"]
+                st.session_state.pop("db_content", None)
                 st.rerun()
 
         st.markdown("---")
         st.subheader("💾 Sauvegarde & Export")
-        
-        if st.button("📥 Préparer le téléchargement de la BDD"):
+
+        # La copie de la BDD récupérée à la connexion est réutilisée ; on peut la rafraîchir à la demande
+        if st.button("🔄 Récupérer une copie à jour de la BDD"):
             auth = st.session_state["admin_auth"]
-            
+
             try:
-                response = requests.get(f"{API_URL}/admin/telecharger-db", auth=auth)
-                
+                response = requests.get(f"{API_URL}/admin/telecharger-db", auth=auth, timeout=API_TIMEOUT)
+
                 if response.status_code == 200:
-                    st.success("✅ Fichier prêt !")
-                    st.download_button(
-                        label="💾 Enregistrer le fichier .db",
-                        data=response.content,
-                        file_name="risklens_backup.db",
-                        mime="application/x-sqlite3"
-                    )
+                    st.session_state["db_content"] = response.content
+                    st.success("✅ Copie mise à jour !")
                 else:
                     st.error(f"Erreur lors de la récupération : {response.status_code}")
-                    
+
             except Exception as e:
                 st.error(f"Impossible de contacter l'API : {e}")
+
+        if st.session_state.get("db_content"):
+            st.download_button(
+                label="💾 Enregistrer le fichier .db",
+                data=st.session_state["db_content"],
+                file_name="risklens_backup.db",
+                mime="application/x-sqlite3"
+            )
