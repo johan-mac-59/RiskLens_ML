@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 import json
+import sqlite3
+from pathlib import Path
 
 # Le chemin ABSOLU du dossier où se trouve ce script
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -13,9 +15,6 @@ CSV_PATH = os.path.join(root_dir, 'data', 'creditcard_pret_ingestion.csv')
 JSON_PATH = os.path.join(root_dir, 'data', 'correspondances.json')
 DB_PATH = os.path.join(root_dir, 'database', 'creditcard.db')
 SCHEMA_PATH = os.path.join(root_dir, 'src', '03_02_creation_tables.sql')
-
-import sqlite3
-from pathlib import Path
 
 
 def creer_tables(db_path: str | Path, schema_path: str | Path) -> None:
