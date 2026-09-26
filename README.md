@@ -49,8 +49,9 @@ Pour découvrir comment des détails logistiques de l'époque (comme les règlem
 *   Implémentation des 4 types d'opérations **CRUD** (Create, Read, Update, Delete) pour permettre l'accès et la gestion des données sans accès direct à la base : [fichier API](/src/04_01_api.py)
 
 ### 🔍 Étape 4 : Analyse Exploratoire
-*   Analyse statistique approfondie (corrélations, tendances) avec Python : [EDA laboratoire](/src/EDA_lab.ipynb)
-*   Data Visualisation pour identifier les facteurs clés du défaut de paiement : [EDA DataViz](/src/EDA_storytelling.ipynb)
+*   Analyse statistique approfondie (corrélations, tendances) avec Python : [EDA laboratoire](/src/05_01_EDA_lab.ipynb)
+*   Recherche du périmètre de la population contentieuse (CTX) à isoler : [EDA contentieux](/src/05_02_EDA_contentieux.ipynb)
+*   Data Visualisation pour identifier les facteurs clés du défaut de paiement : [EDA DataViz](/src/05_03_EDA_storytelling.ipynb)
 
 ### 📊 Étape 5 : Restitution Décisionnelle (Power BI)
 *   Construction d'un dashboard interactif sous **Power BI**.
