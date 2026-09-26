@@ -674,7 +674,7 @@ elif menu == "📊 Analyse & Insights":
 
         # Binning automatique si la colonne AGE_BUCKET n'est pas pré-calculée
         if "AGE_BUCKET" not in df_age.columns and "AGE" in df_age.columns:
-            # Mêmes buckets que dans 05_02_EDA_storytelling (intervalles fermés à droite : 21-25, 26-30, ...)
+            # Mêmes buckets que dans 05_03_EDA_storytelling (intervalles fermés à droite : 21-25, 26-30, ...)
             age_bins = [20, 25, 30, 35, 40, 50, 80]
             age_labels = ['21-25', '26-30', '31-35', '36-40', '41-50', '51+']
             df_age["AGE_BUCKET"] = pd.cut(
