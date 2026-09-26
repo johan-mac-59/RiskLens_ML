@@ -28,22 +28,19 @@ $$\text{Niveau 0} \subset \text{Niveau 1} \subset \text{Niveau 2} \subset \text{
 *Inclut l'intégralité des niveaux 0 et 1.*
 
 * **Correction des incohérences `PAY_n = 1`** :
-  * Si $\text{BILL\_AMT}_{n+1} \le 0 \implies \text{PAY}_n = \text{PAY}_{n+1}$.
+  * Si $\text{BILL\_AMT}_{n+1} \le 0 \implies \text{PAY}_n = \text{PAY}_{n+1}$ (parcours de `PAY_5` vers `PAY_1`, passes de vérification jusqu'à ce qu'aucune correction ne s'effectue).
   * Si $\text{BILL\_AMT}_{n+1} \le 0$ persistant $\implies \text{PAY}_n = 0$.
 
 ---
 
 ### 🔴 Niveau 3 (`corrections_niveau3`) — Recalage de la codification `PAY_1 = 1` par Ratio de Remboursement
 *Inclut l'intégralité des niveaux précédents*
-Analyse du ratio $R = \frac{\text{PAY\_AMT1}}{\text{BILL\_AMT2}}$ pour corriger les faux retards en $M-1$ (`PAY_1`) :
-* **Si $R > 4$** :
-  * Si $\text{PAY}_2 \le 0 \implies \text{PAY}_1 = \text{PAY}_2$.
-  * Si $\text{PAY}_2 > 2 \implies \text{PAY}_1 = \text{PAY}_2$.
-* **Si $R > 10$** :
-  * Si $\text{PAY}_2 = 2 \implies \text{PAY}_1 = 0$.
-* **Zone d'incertitude ($R < 4$)** :
-  * Si $\text{PAY}_2 < 2 \implies \text{PAY}_1 = 1$ (Maintien de la codification 1 d'alerte).
-  * Si $\text{PAY}_2 \ge 2 \implies \text{PAY}_1 = \text{PAY}_2$ (Non-résorption de la dette, retard initial maintenu).
+Analyse du ratio de remboursement en pourcentage $R = \frac{\text{PAY\_AMT1}}{\text{BILL\_AMT2}} \times 100$ pour corriger les faux retards en $M-1$ (`PAY_1 = 1`) :
+* **Si $R \ge 90$ et $\text{PAY}_2 \le 0$** $\implies \text{PAY}_1 = \text{PAY}_2$ (facture soldée : payeur au comptant / à jour, reprise de la codification antérieure).
+* **Tous les autres cas** (remboursement partiel ou nul) : $\text{PAY}_1 = 1$ maintenu, la vraie codification ne pouvant être déterminée.
+
+> ⚠️ **Version actuelle (v2).** L'ancienne version (v1) utilisait des seuils à $R > 4$ % et $R > 10$ % et recopiait $\text{PAY}_2$ dans $\text{PAY}_1$ si $\text{PAY}_2 \ge 2$ : elle créait des `PAY_1 = 2` qui faisaient entrer des clients à tort dans la population contentieuse (CTX). Elle est abandonnée.
+> **Les résultats ML du niveau 3 présentés ci-dessous ont été obtenus avec la v1.**
 
 ---
 
@@ -348,6 +345,7 @@ Performances légèrement moins bonnes
 => scénario écarté
 
 ### Résultats de ces expérimentations sur le dataset avec niveau 3 de corrections
+*Résultats obtenus avec la v1 du niveau 3 (abandonnée, voir section 1).*
 
 `S1` sert de base pour mesurer la progression éventuelle des scenarii suivants :
 🥇 CatBoost — Score Maître : 0.6808 | Recall  0.611
@@ -453,7 +451,7 @@ Si je décide de conserver le niveau de correction 3 pour la suite de mon featur
 Seuls les 3 modèles les plus performants ci dessus restent employés pour évaluer les performances des nouvelles variables utilisées.  
 Les apprentissages sont simplifiés piur gagner en rapidité et limiter au maximul le surapprentissage.  
 
-Le jeu de données utilisé est celui de niveau de corrections 3.  
+Le jeu de données utilisé est celui de niveau de corrections 3 (v1, abandonnée depuis : voir section 1).  
 Ne sont traités que les clients avec un encours positif strict en M-1, et un plafond de crédit au maximum de 500 000 NT$. 
 
 Je crée un pipeline simplifié
