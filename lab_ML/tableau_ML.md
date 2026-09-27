@@ -556,7 +556,7 @@ Ces clients représentent 3.61% du jeu de données nettoyé. J'ai affaire à une
 * La population CTX est identique à celle de la règle 1 ; la définition 2 **affine le grain des retards** transmis au ML.
 
 **Changement de périmètre**
-* Les clients `CTX` à M (`FLAG_CTX` = 1 et `MOIS_SORTIE_CTX` = -1) sont **retirés du dataset ML** et prédits en défaut par une règle métier. Le ML traite les clients `Retard payé`, `Sorti`, `Retard régularisé` et `Jamais CTX`.
+* Les clients `CTX` à M (`FLAG_CTX` = 1 et `MOIS_SORTIE_CTX` = -1) sont **retirés du dataset ML** et prédits en défaut par une règle métier. Le ML traite les clients `Retard considéré régularisé M-1`, `Sorti`, `Retard régularisé` et `Jamais CTX`.
 * Split commun avec le notebook contentieux : périmètre `S12`, 80/20, `stratify=dpnm`, `random_state=42`.
 * Évaluation du **système complet** (règle CTX + modèle) sur le même test, pour rester comparable à `S12_6` / `S12_7`, à la règle `PAY_n >= 2` et à l'AUC de Yeh (0.77).
 * La variable `CTX` de `S12_7` est remplacée par les features ci-dessous.
