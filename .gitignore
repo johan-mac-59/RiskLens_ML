@@ -18,8 +18,8 @@ run_all_notebooks.py
 backup/
 banque/
 .env
-
 enonce.md
+CLAUDE.md
 
 # Virtual environments
 .venv
