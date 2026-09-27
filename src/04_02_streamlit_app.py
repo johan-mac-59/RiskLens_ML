@@ -55,6 +55,17 @@ def load_mappings():
 
     return mappings
 
+def ratios_affichables(d, cols):
+    """Ratios de paiement à afficher dans les graphiques : uniquement quand une facture était exigible
+    (BILL_AMT(n+1) > 0). La colonne ratio_PAY_BILLn garde sa définition unique (100 % sans facture
+    exigible, voir docs/colonnes_creees.md) : ce filtre ne sert qu'à l'affichage."""
+    out = d[cols].copy()
+    for col in cols:
+        n = int(col.replace('ratio_PAY_BILL', ''))
+        out[col] = out[col].where(d[f'BILL_AMT{n + 1}'] > 0)
+    return out
+
+
 df = load_data()
 mappings = load_mappings()
 
@@ -507,7 +518,7 @@ Cela ne signifie pas que le taux de clients à jour est stable car un client peu
     # =========================================================================
     # 1. GRAPHIQUE BLEU : RATIO MOYEN
     # =========================================================================
-        moyennes = df[colonnes_actives].mean()
+        moyennes = ratios_affichables(df, colonnes_actives).mean()
 
         fig_ratio = go.Figure()
         fig_ratio.add_trace(
@@ -558,7 +569,7 @@ Cela ne signifie pas que le taux de clients à jour est stable car un client peu
         # =========================================================================
         # 2. GRAPHIQUE VIOLET : RATIO MÉDIAN
         # =========================================================================
-        medianes = df[colonnes_actives].median()
+        medianes = ratios_affichables(df, colonnes_actives).median()
 
         fig_medianes = go.Figure()
         fig_medianes.add_trace(
