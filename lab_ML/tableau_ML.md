@@ -551,7 +551,7 @@ Ces clients représentent 3.61% du jeu de données nettoyé. J'ai affaire à une
 
 **Définition du CTX retenue : définition 2 (deux codes >= 2 successifs)**
 * Dans l'historique, un passage au CTX nécessite deux codifications >= 2 successives ; un 2 isolé est un **retard régularisé**. Un 2 isolé en M-6 est considéré comme un passage au CTX par défaut (M-7 non observé).
-* À M-1, tout code >= 2 place le client au CTX, sauf facture payée à 90 % ou plus en M-1 ou en M-2 (**retard payé**).
+* À M-1, tout code >= 2 place le client au CTX, sauf facture payée à 90 % ou plus en M-1 ou en M-2 (**retard payé**, traité comme une régularisation présumée au plus tard en M).
 * Règles communes avec la règle 1 (« un seul >= 2 suffit ») : correction des faux 2 (faux codage neutralisé, compte endormi sous surveillance) et recodage du mois de transition (remis à 2 seulement si deux factures exigibles sont impayées).
 * La population CTX est identique à celle de la règle 1 ; la définition 2 **affine le grain des retards** transmis au ML.
 
@@ -565,9 +565,8 @@ Ces clients représentent 3.61% du jeu de données nettoyé. J'ai affaire à une
 * `PAY_1_recode` : PAY_1 recodé au mois de transition (PAY_2 >= 2 et PAY_1 <= 1) selon les paiements, en remplacement de `PAY_1`.
 * `ANTERIORITE_CTX` : 1 si le client a eu un passage au CTX (au moins deux mois à >= 2) sur la période, 0 sinon.
 * `MOIS_SORTIE_CTX` : mois de la dernière sortie du CTX (1 à 5), -1 si aucun passage au CTX. Variante à tester en 2 indicateurs (`ANTERIORITE_CTX` + `MOIS_SORTIE_CTX` à 0 si aucun passage) si le mélange perturbe la régression logistique.
-* `RETARD_REGULARISE` : 1 si le client a eu un retard isolé (un seul mois à >= 2) régularisé sur la période.
-* `MOIS_REGULARISATION` : mois du retour sous 2 après le dernier retard isolé (1 à 4), -1 sinon.
-* `RETARD_PAYE` : 1 si le client est codé >= 2 à M-1 mais a payé au moins 90 % de sa facture en M-1 ou en M-2.
+* `RETARD_REGULARISE` : 1 si le client a eu un retard isolé (un seul mois à >= 2) régularisé sur la période, ou un retard payé à M-1.
+* `MOIS_REGULARISATION` : 0 = retard payé à M-1 (code >= 2 à M-1 mais facture payée à 90 % ou plus en M-1 ou M-2, régularisation présumée), 1 à 4 = mois du retour sous 2 après le dernier retard isolé, -1 = aucune régularisation. La valeur -1 mélange jamais CTX et sortis : à lire avec `RETARD_REGULARISE` et `ANTERIORITE_CTX`, et à traiter en catégoriel pour la régression logistique.
 * `NB_MOIS_CTX` : nombre de mois à >= 2 entre M-2 et M-6. À mois de sortie égal, un passage plus long au CTX reste associé à un risque plus élevé (non encore calculé dans le notebook).
 * `SURVEILLANCE_RECENTE` : 1 si le client est entré au CTX par un faux 2 sur compte endormi (code 2 posé sur une facture nulle, sans paiement ni encours avant).
 * `FAUX_CODAGE` : 1 si un faux 2 a été neutralisé (client qui venait de payer ou avait un encours).

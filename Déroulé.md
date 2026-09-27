@@ -133,7 +133,7 @@ Définition retenue (définition 2) :
 - dans l'historique, un passage au CTX nécessite deux codes >= 2 successifs ; un 2 isolé est un retard régularisé ; un 2 isolé en M-6 est considéré comme un passage au CTX (M-7 inconnu)
 - à M-1, tout code >= 2 place au CTX, sauf facture payée à 90 % ou plus en M-1 ou M-2 (retard payé)
 
-Les autres clients restent dans le ML avec des indicateurs de leur historique : antériorité et mois de sortie du CTX, retard régularisé et mois de régularisation, retard payé, surveillance récente, faux codage.  
+Les autres clients restent dans le ML avec des indicateurs de leur historique : antériorité et mois de sortie du CTX, retard régularisé et mois de régularisation (le retard payé à M-1 est codé comme une régularisation présumée au mois 0), surveillance récente, faux codage.  
 La codification des retards est très incohérente (un même code 2 recouvre un vrai retard, une surveillance de compte réactivé, un décalage de mise à jour...) : j'ai gardé les codes de la banque autant que possible et ne les corrige que lorsque les montants les contredisent.
 
 
