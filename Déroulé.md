@@ -124,6 +124,18 @@ Cette codification signifie très probablement que le client n'a pas utilisé sa
 - 692 lignes présentant des paiements sur des comptes à encours négatifs : expliqués majoritairement par des paiements supérieurs aux sommes dues
 - des comptes en incidents qui voient leur note de risque fortement diminuer sans paiement effectif
 
+**Population contentieuse (CTX)** : [EDA contentieux](/src/05_02_EDA_contentieux.ipynb)  
+Une poche de clients au taux de défaut très élevé plafonnait les performances du ML. Je l'isole par une règle métier : ces clients sont retirés du dataset ML et prédits en défaut.  
+Méthode : split train / test fait avant toute analyse, règles justifiées par la logique métier, `dpnm` utilisé uniquement pour valider sur le train, test utilisé une seule fois.  
+Définition retenue (définition 2) :
+- correction des faux 2 : un code 2 posé sur une facture nulle est conservé sur un compte endormi (flag surveillance récente) et neutralisé chez un client qui venait de payer (flag faux codage)
+- mois de transition (PAY_2 >= 2 puis PAY_1 <= 1) : PAY_1 est recodé selon le paiement de M-1, et remis à 2 seulement si deux factures exigibles sont restées impayées
+- dans l'historique, un passage au CTX nécessite deux codes >= 2 successifs ; un 2 isolé est un retard régularisé ; un 2 isolé en M-6 est considéré comme un passage au CTX (M-7 inconnu)
+- à M-1, tout code >= 2 place au CTX, sauf facture payée à 90 % ou plus en M-1 ou M-2 (retard payé)
+
+Les autres clients restent dans le ML avec des indicateurs de leur historique : antériorité et mois de sortie du CTX, retard régularisé et mois de régularisation, retard payé, surveillance récente, faux codage.  
+La codification des retards est très incohérente (un même code 2 recouvre un vrai retard, une surveillance de compte réactivé, un décalage de mise à jour...) : j'ai gardé les codes de la banque autant que possible et ne les corrige que lorsque les montants les contredisent.
+
 
 
 

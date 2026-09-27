@@ -58,6 +58,18 @@ Problématique scientifique : Les chercheurs voulaient démontrer qu'en période
 Ce que mesure réellement dpnm  
 Dans le protocole de Yeh & Lien, $dpnm = 1$ indique uniquement un manquement sur l'échéance d'octobre 2005. Il s'agit d'un premier niveau d'impayé (30 jours). Un client étiqueté $dpnm = 1$ en octobre pouvait très bien régulariser sa situation en novembre.
 
+**Limites de la définition de dpnm**  
+La règle de calcul de dpnm n'est pas documentée. Le dictionnaire du dataset indique seulement « default payment next month » (Oui = 1, Non = 0) et l'étude ne précise pas comment la banque a attribué cette étiquette.
+Plusieurs constats de l'EDA montrent que dpnm n'est pas le simple report du code de retard du mois suivant :
+- une partie des clients dont le code reste figé à 2 sur les 6 mois est notée saine, alors que leur code ne bouge jamais ;
+- chez les clients en retard à M-1 (PAY_1 = 2), le taux de défaut ne varie pas selon qu'ils aient payé ou non les deux derniers mois.
+
+Une partie des étiquettes peut donc être imprécise (règle de calcul inconnue, arrangements de paiement, régularisations non visibles). Deux conséquences pour le projet :
+- la population contentieuse est définie par des règles métier et non à partir de dpnm, qui sert seulement à vérifier que ces règles isolent bien une population à risque ;
+- si une partie des étiquettes est bruitée, les modèles ne pourront pas dépasser un certain niveau de performance, quel que soit l'algorithme utilisé.
+
+Le système construit prédit donc le défaut tel que la banque l'a noté en octobre 2005, pas forcément un impayé définitif.
+
 
 ## Dans quels cas cette crise pourrait survenir à nouveau ?
 
