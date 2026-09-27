@@ -110,7 +110,7 @@ Certains se demandent peut-être pourquoi je m'obstine à nettoyer la colonne PA
 - Correction des PAY_n = 1 : PAY_n = PAY_(n+1) si BILL_AMT(n+1) <= 0 (de PAY_5 vers PAY_1, passes de vérification jusqu'à ce qu'aucune correction ne s'effectue)
 - correction des PAY_n = 1 restants : PAY_n = 0 si BILL-AMT(n+1) <= 0
 - le client 6783 a une codification PAY = 1 sur 4 mois alors qu'il paie chaque mois -> remettre sa codification en 0
-- si PAY_1 = 1, PAY_2 <= 0 et ratio_PAY_AMT1_to_BILL_AMT2 >= 90 (en %) alors PAY_1 = PAY_2 : le client a soldé sa facture (payeur au comptant / à jour), il reprend sa codification antérieure
+- si PAY_1 = 1, PAY_2 <= 0 et ratio_PAY_BILL1 >= 90 (en %, facture exigible BILL_AMT2 > 0) alors PAY_1 = PAY_2 : le client a soldé sa facture (payeur au comptant / à jour), il reprend sa codification antérieure
 - dans tous les autres cas (remboursement partiel ou nul), impossible de déterminer la vraie codification : PAY_1 = 1 est maintenu
 
 *Ancienne version abandonnée (seuils à 4 % / 10 % et PAY_1 = PAY_2 si PAY_2 >= 2) : elle créait des PAY_1 = 2 qui faisaient entrer des clients à tort dans la population contentieuse (CTX)*
@@ -128,12 +128,12 @@ Cette codification signifie très probablement que le client n'a pas utilisé sa
 Une poche de clients au taux de défaut très élevé plafonnait les performances du ML. Je l'isole par une règle métier : ces clients sont retirés du dataset ML et prédits en défaut.  
 Méthode : split train / test fait avant toute analyse, règles justifiées par la logique métier, `dpnm` utilisé uniquement pour valider sur le train, test utilisé une seule fois.  
 Définition retenue (définition 2) :
-- correction des faux 2 : un code 2 posé sur une facture nulle est conservé sur un compte endormi (flag surveillance récente) et neutralisé chez un client qui venait de payer (flag faux codage)
+- correction des faux 2 : un code 2 posé sur une facture nulle est neutralisé chez un client qui venait de payer (flag faux codage) et ne compte pas non plus pour le CTX sur un compte endormi (flag surveillance récente, cumulable avec un passage au CTX si d'autres 2 surviennent sur une vraie dette)
 - mois de transition (PAY_2 >= 2 puis PAY_1 <= 1) : PAY_1 est recodé selon le paiement de M-1, et remis à 2 seulement si deux factures exigibles sont restées impayées
 - dans l'historique, un passage au CTX nécessite deux codes >= 2 successifs ; un 2 isolé est un retard régularisé ; un 2 isolé en M-6 est considéré comme un passage au CTX (M-7 inconnu)
-- à M-1, tout code >= 2 place au CTX, sauf facture payée à 90 % ou plus en M-1 ou M-2 (retard payé)
+- à M-1, tout code >= 2 place au CTX, sauf facture payée à 90 % ou plus en M-1 ou M-2 (retard payé) : un retard isolé est codé comme une régularisation présumée ; un retard qui termine une série garde la trace du passage au CTX, avec une sortie présumée en M
 
-Les autres clients restent dans le ML avec des indicateurs de leur historique : antériorité et mois de sortie du CTX, retard régularisé et mois de régularisation (le retard payé à M-1 est codé comme une régularisation présumée au mois 0), surveillance récente, faux codage.  
+Les autres clients restent dans le ML avec des indicateurs de leur historique : antériorité et mois de sortie du CTX, retard régularisé et mois de régularisation (le retard payé à M-1 est codé avec un mois de sortie 0 : régularisation présumée s'il est isolé, sortie du CTX présumée s'il termine une série), surveillance récente, faux codage.  
 La codification des retards est très incohérente (un même code 2 recouvre un vrai retard, une surveillance de compte réactivé, un décalage de mise à jour...) : j'ai gardé les codes de la banque autant que possible et ne les corrige que lorsque les montants les contredisent.
 
 

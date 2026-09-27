@@ -489,11 +489,11 @@ Cela ne signifie pas que le taux de clients à jour est stable car un client peu
 
     # 1. Définition des paires de colonnes et des étiquettes de M-5 à M-1
     mapping_ratios = [
-        ('ratio_PAY_AMT5_to_BILL_AMT6', 'M-5'),
-        ('ratio_PAY_AMT4_to_BILL_AMT5', 'M-4'),
-        ('ratio_PAY_AMT3_to_BILL_AMT4', 'M-3'),
-        ('ratio_PAY_AMT2_to_BILL_AMT3', 'M-2'),
-        ('ratio_PAY_AMT1_to_BILL_AMT2', 'M-1'),
+        ('ratio_PAY_BILL5', 'M-5'),
+        ('ratio_PAY_BILL4', 'M-4'),
+        ('ratio_PAY_BILL3', 'M-3'),
+        ('ratio_PAY_BILL2', 'M-2'),
+        ('ratio_PAY_BILL1', 'M-1'),
     ]
 
     # Filtrage des colonnes présentes dans le DataFrame
@@ -641,7 +641,7 @@ Pour découvrir comment des détails logistiques de l'époque (comme les règlem
 
     
 
-    st.markdown("**🚀 Objectif ML Engineer :** Mon but est de dépasser le score de référence de 2009 (ratio de surface de 0.54, soit un AUC de 0.77) en optimisant le **Recall**. En banque, oublier un client à risque (Faux Négatif) coûte bien plus cher que de suspecter un client sûr (Faux Positif).")
+    st.markdown("**🚀 Objectif ML Engineer :** Mon but est de dépasser le score de référence de 2009 (ratio de surface de 0.54, soit un AUC de 0.77) avec un **score maître** qui combine le ROC AUC et le F2 score (le F2 privilégie le Recall). En banque, oublier un client à risque (Faux Négatif) coûte bien plus cher que de suspecter un client sûr (Faux Positif).")
 
     st.markdown("---")
     st.subheader("🛠️ Roadmap du Projet")

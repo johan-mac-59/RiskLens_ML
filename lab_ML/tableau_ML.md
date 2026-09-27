@@ -73,6 +73,7 @@ Afin d'évaluer les performances de telle ou telle modification du jeu de donné
 - ROC AUC indirectement utilisé par I-Cheng Yeh et Che-hui Lien pour évaluer les performances de leurs modèles
 - F2 score très adapté au milieu bancaire qui pénalise assez fortement la non détection de cas positifs
 J'applique la moyenne de ces 2 métriques pour chaque modèle pour obtenir un score moyen que j'uniformise à toutes mes expérimentations
+**Le seul critère de choix d'un scénario ou d'un modèle est ce score maître, mesuré en validation croisée sur le train.** Les résultats sur le jeu de test sont donnés à titre d'information (contrôle de la généralisation), jamais comme critère de choix.
 
 ### Résultats de ces expérimentations sur le dataset initial
 
@@ -482,6 +483,7 @@ $\text{ratio\_PAY\_BILLn} = \begin{cases} \min\left(\max\left(\frac{\text{PAY\_A
 🥇 CatBoost — Score Maître : 0.6878 | Recall  0.6180
 🥈 RandomForest — Score Maître : 0.6787
 🥉 LogisticRegression — Score Maître : 0.6593
+*Même définition que la colonne `ratio_PAY_BILLn` créée dans `02_01_nettoyage` (écrêtée entre 0 et 200 %, 100 % sans facture exigible), exprimée ici en fraction (0 à 2, 1 = 100 %).*  
 pas de gain, les informations étaient déjà présentes
 => scnéario écarté
 
@@ -493,7 +495,7 @@ pas de gain
 => scénario écarté
 
 `S12_5` : `S12_1` + classer les clients par leur type d'usage (paiement différé total, crédit, autres)
-pour ce faire, on va utiliser les colonnes ratio_PAY_AMTn_to_BILL_AMTn+1 pour regarder la médiane par client ratio_PAY_to_BILL_median et laisser les modèles faire leur propre découpage pour le lier au défaut de paiement
+pour ce faire, on va utiliser les colonnes ratio_PAY_BILLn (PAY_AMTn / BILL_AMT(n+1)) pour regarder la médiane par client ratio_PAY_to_BILL_median et laisser les modèles faire leur propre découpage pour le lier au défaut de paiement
 🥇 CatBoost — Score Maître : 0.6878 | Recall  0.6226
 🥈 RandomForest — Score Maître : 0.6793
 🥉 LogisticRegression — Score Maître : 0.6569
@@ -521,7 +523,7 @@ Cette variable a un impact légèrement positif sur les prédictions
 J'ai détecté dans mon EDA un phénomène avec PAY_n = 2, il ne s'agit pas toujours d'un retard de 2 mois constaté
 Créer une variable "flag" appelée 'CTX' qui est True si :
 - PAY_n == 2 sur les 6 mois
-- PAY_n == 2 et ((PAY_(n+1)>2) & (BILL_AMTn>0) & (PAY_AMTn == 0))
+- PAY_n == 2 et ((PAY_(n+1)>2) & (BILL_AMT(n+1)>0) & (PAY_AMTn == 0)) *(convention corrigée le 27/09/2026 : la facture exigible au mois n est BILL_AMT(n+1) ; les résultats ci-dessous ont été obtenus avec BILL_AMTn)*
 sinon False
 🥇 CatBoost — Score Maître : 0.6875 | Recall  0.6198
 🥈 RandomForest — Score Maître : 0.6772
@@ -554,13 +556,14 @@ Ces clients représentent 3.61% du jeu de données nettoyé. J'ai affaire à une
 La variable `CTX` de `S12_7` a mis en évidence une poche de clients au taux de défaut très élevé qui plafonnait les modèles. Elle est désormais isolée par une **règle métier** (`src/05_02_EDA_contentieux.ipynb`, définition 2) : les clients au CTX sont retirés du dataset ML et prédits en défaut par la règle. Le ML repart sur la population restante, avec des indicateurs d'historique à la place des anciens codes bruts.  
 Les résultats des sections 2 et 3 ne sont plus directement comparables : ils portaient sur la population complète du périmètre `S12`.
 
-**Référence de départ : la règle seule, évaluée sur la population qu'elle traite** (clients au CTX, tous prédits en défaut)
+**Référence de départ : la règle seule, évaluée sur la population qu'elle traite** (clients au CTX, tous prédits en défaut)  
+*Chiffres de la définition 2 révisée le 27/09/2026 (`05_02_EDA_contentieux`, section 9.1).*
 
 | Jeu | Clients CTX | Vrais positifs | Faux positifs | Précision | Recall | F2 | Part des défauts du dataset captés |
 |---|---|---|---|---|---|---|---|
-| Train (S12) | 2 435 | 1 708 | 727 | 70.14 % | 100 % | 0.9215 | 35.75 % |
-| Test (S12) | 614 | 439 | 175 | 71.50 % | 100 % | 0.9262 | 36.74 % |
-| Dataset initial (30 000) | 3 058 | 2 154 | 904 | 70.44 % | 100 % | 0.9226 | 32.46 % |
+| Train (S12) | 2 403 | 1 690 | 713 | 70.33 % | 100 % | 0.9222 | 35.38 % |
+| Test (S12) | 601 | 427 | 174 | 71.05 % | 100 % | 0.9246 | 35.73 % |
+| Dataset initial (30 000) | 3 013 | 2 124 | 889 | 70.49 % | 100 % | 0.9228 | 32.01 % |
 
 Sur ce périmètre, le recall vaut 100 % par construction et le ROC AUC n'est pas défini (une seule classe prédite) : la précision est la métrique qui compte. Les défauts non captés par la règle relèvent du ML.
 
@@ -570,13 +573,14 @@ Sur ce périmètre, le recall vaut 100 % par construction et le ROC AUC n'est pa
 * Pour le ROC AUC du système complet, les clients au CTX reçoivent une probabilité fixe (par exemple leur taux de défaut observé sur le train) afin de les intégrer à la courbe ROC.
 
 ### Features et pistes à tester (issues de `src/05_02_EDA_contentieux.ipynb`)
-*Liste de travail : rien n'est encore testé. Fonctions de calcul : `corriger_faux_codage`, `recodage_pay1` (section 3) et `statut_ctx_regle2` (section 6 du notebook contentieux).*
+*Liste de travail : rien n'est encore testé. Fonctions de calcul : `corriger_faux_codage`, `recodage_pay1` (section 3) et `statut_ctx_regle2` (section 6 du notebook contentieux), version révisée du 27/09/2026.*
 
 **Définition du CTX retenue : définition 2 (deux codes >= 2 successifs)**
 * Dans l'historique, un passage au CTX nécessite deux codifications >= 2 successives ; un 2 isolé est un **retard régularisé**. Un 2 isolé en M-6 est considéré comme un passage au CTX par défaut (M-7 non observé).
-* À M-1, tout code >= 2 place le client au CTX, sauf facture payée à 90 % ou plus en M-1 ou en M-2 (**retard payé**, traité comme une régularisation présumée au plus tard en M).
-* Règles communes avec la règle 1 (« un seul >= 2 suffit ») : correction des faux 2 (faux codage neutralisé, compte endormi sous surveillance) et recodage du mois de transition (remis à 2 seulement si deux factures exigibles sont impayées).
-* La population CTX est identique à celle de la règle 1 ; la définition 2 **affine le grain des retards** transmis au ML.
+* À M-1, tout code >= 2 place le client au CTX, sauf facture payée à 90 % ou plus en M-1 ou en M-2 (**retard payé**, traité comme une régularisation présumée au plus tard en M) : retard isolé (PAY_2 < 2) → `FLAG_RETARD` = 1, `MOIS_SORTIE_RETARD` = 0 ; retard qui termine une série (PAY_2 >= 2) → `FLAG_CTX` = 1, `MOIS_SORTIE_CTX` = 0.
+* Correction des faux 2 : faux codage neutralisé ; compte endormi : codes >= 2 posés sur une facture nulle neutralisés pour le CTX, flag `SURVEILLANCE_RECENTE` conservé (révision du 27/09/2026). Recodage du mois de transition commun avec la règle 1 (remis à 2 seulement si deux factures exigibles sont impayées).
+* La population CTX est très proche de celle de la règle 1 (les différences viennent des comptes endormis) ; la définition 2 **affine le grain des retards** transmis au ML.
+* Dans les règles du CTX, un ratio de paiement sans facture exigible vaut 0 (pas de preuve de paiement) ; la feature `ratio_PAY_BILLn` (100 % sans facture) ne sert pas à définir le CTX.
 
 **Changement de périmètre**
 * Les clients `CTX` à M (`FLAG_CTX` = 1 et `MOIS_SORTIE_CTX` = -1) sont **retirés du dataset ML** et prédits en défaut par une règle métier. Le ML traite les clients `Retard considéré régularisé M-1`, `Sorti`, `Retard régularisé` et `Jamais CTX`.
@@ -586,12 +590,12 @@ Sur ce périmètre, le recall vaut 100 % par construction et le ROC AUC n'est pa
 
 **Features candidates**
 * `PAY_1_recode` : PAY_1 recodé au mois de transition (PAY_2 >= 2 et PAY_1 <= 1) selon les paiements, en remplacement de `PAY_1`.
-* `FLAG_CTX` : marqueur intemporel, 1 si le client a eu deux codes >= 2 consécutifs sur les 6 mois ; un 2 isolé en M-6 ou en M-1 compte par défaut (suite ou antécédent inconnu), sauf retard payé à M-1. 0 sinon.
-* `MOIS_SORTIE_CTX` : mois de la dernière sortie du CTX (1 à 5), -1 s'il n'y a pas de sortie (client encore au CTX ou jamais au CTX). Variante à tester en 2 indicateurs (`FLAG_CTX` + `MOIS_SORTIE_CTX` à 0 si aucun passage) si le mélange perturbe la régression logistique.
-* `FLAG_RETARD` : 1 si le client a eu un retard isolé (un seul mois à >= 2) régularisé sur la période, ou un retard payé à M-1.
-* `MOIS_SORTIE_RETARD` : 0 = retard payé à M-1 (code >= 2 à M-1 mais facture payée à 90 % ou plus en M-1 ou M-2, régularisation présumée), 1 à 4 = mois du retour sous 2 après le dernier retard isolé, -1 = aucune régularisation. La valeur -1 mélange jamais CTX et sortis : à lire avec `FLAG_RETARD` et `FLAG_CTX`, et à traiter en catégoriel pour la régression logistique.
+* `FLAG_CTX` : marqueur intemporel, 1 si le client a eu deux codes >= 2 consécutifs sur les 6 mois (codes posés sur une facture nulle exclus) ; un 2 isolé en M-6 ou en M-1 compte par défaut (suite ou antécédent inconnu), sauf retard payé isolé à M-1. 0 sinon.
+* `MOIS_SORTIE_CTX` : mois de la dernière sortie du CTX (1 à 5), 0 = sortie présumée en M (retard payé qui termine une série), -1 s'il n'y a pas de sortie (client encore au CTX ou jamais au CTX). Variante à tester si le mélange perturbe la régression logistique : une valeur dédiée pour « aucun passage », distincte du 0.
+* `FLAG_RETARD` : 1 si le client a eu un retard isolé (un seul mois à >= 2) régularisé sur la période, ou un retard payé isolé à M-1.
+* `MOIS_SORTIE_RETARD` : 0 = retard payé isolé à M-1 (code >= 2 à M-1, PAY_2 < 2, mais facture payée à 90 % ou plus en M-1 ou M-2, régularisation présumée), 1 à 4 = mois du retour sous 2 après le dernier retard isolé, -1 = aucune régularisation. La valeur -1 mélange jamais CTX et sortis : à lire avec `FLAG_RETARD` et `FLAG_CTX`, et à traiter en catégoriel pour la régression logistique.
 * `NB_MOIS_CTX` : nombre de mois à >= 2 entre M-2 et M-6. À mois de sortie égal, un passage plus long au CTX reste associé à un risque plus élevé (non encore calculé dans le notebook).
-* `SURVEILLANCE_RECENTE` : 1 si le client est entré au CTX par un faux 2 sur compte endormi (code 2 posé sur une facture nulle, sans paiement ni encours avant).
+* `SURVEILLANCE_RECENTE` : 1 si le client a reçu un faux 2 sur compte endormi (code 2 posé sur une facture nulle, sans paiement ni encours avant) ; ces codes ne comptent pas pour le CTX.
 * `FAUX_CODAGE` : 1 si un faux 2 a été neutralisé (client qui venait de payer ou avait un encours).
 * Nombre de mois sans paiement sur la période (utilisé pour décrire les statuts, jamais testé comme feature).
 
@@ -605,6 +609,7 @@ Sur ce périmètre, le recall vaut 100 % par construction et le ROC AUC n'est pa
 **Points tranchés / ouverts**
 * **Tranché** : règle de transition, PAY_1 n'est remis à 2 que si deux factures exigibles consécutives (`BILL_AMT3` et `BILL_AMT2` > 0) sont impayées (section 3.3 du notebook contentieux).
 * **Tranché** : définition 2 retenue, avec 2 isolé en M-6 considéré comme passage au CTX et retard payé à M-1.
+* **Tranché (27/09/2026)** : retard payé qui termine une série → `FLAG_CTX` = 1 et `MOIS_SORTIE_CTX` = 0 ; faux 2 sur compte endormi → seul `SURVEILLANCE_RECENTE` (se cumule avec `FLAG_CTX` si d'autres codes >= 2 surviennent sur une vraie dette) ; ratio sans facture exigible = 0 dans les règles du CTX.
 * Code 2 posé le mois où la facture est payée en totalité (historique) : anomalie documentée, non corrigée.
 
 

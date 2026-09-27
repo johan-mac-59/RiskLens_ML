@@ -1,6 +1,6 @@
 # 🏦 RiskLens ML — Analyse & Prédiction du Défaut de Paiement 💳
 
-![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.14-blue.svg)
 ![SQL](https://img.shields.io/badge/SQL-SQLite3-blue.svg)
 ![FastAPI](https://img.shields.io/badge/API-FastAPI-green.svg)
 ![PowerBI](https://img.shields.io/badge/BI-PowerBI-yellow.svg)
@@ -21,7 +21,7 @@ Le projet suit un cycle de vie data complet : du diagnostic initial et la struct
 L'enjeu est de déterminer si les habitudes de paiement et l'utilisation du crédit ainsi que les informations de bases d'un client sont des indicateurs suffisamment robustes pour anticiper un défaut, sans avoir accès à des données macro-économiques ou des scores de crédit externes.
 
 Ce dataset est la base de données publique qui résulte de l'[étude scientifique de I-Cheng Yeh et Che-hui Lien (2009)](/docs/DefaultCreditCardClients_yeh_2009.pdf) (traduit en français [ici](/docs/traduction_DefaultCreditCardClients_yeh_2009.md)). Cette étude comparait plusieurs modèles pour repérer les clients à risque. Le meilleur, un réseau de neurones, obtenait un score de 0.54, ce qui correspond à un **AUC de 0.77**. L'AUC mesure la capacité d'un modèle à distinguer les bons payeurs des futurs défaillants. Mon but est de dépasser ce score.
-Ma démarche adopte un prisme résolument **orienté métier**. En combinant un nettoyage rigoureux des données et un pilotage par le F1-score et le Recall, je cherche à optimiser la détection réelle des risques de défaut, garantissant ainsi une performance robuste et réellement actionnable pour la gestion des risques bancaires.
+Ma démarche adopte un prisme résolument **orienté métier**. En combinant un nettoyage rigoureux des données et un pilotage par un score maître (moyenne du ROC AUC et du F2 score, qui privilégie le Recall), je cherche à optimiser la détection réelle des risques de défaut, garantissant ainsi une performance robuste et réellement actionnable pour la gestion des risques bancaires.
 
 
 #### 🕵️‍♂️ Pour aller plus loin : Les coulisses de la donnée
@@ -62,9 +62,9 @@ Pour découvrir comment des détails logistiques de l'époque (comme les règlem
 Pendant les premiers essais de ML, une poche de clients au taux de défaut très élevé plafonnait les performances des modèles. Plutôt que de laisser un modèle la redécouvrir, je l'isole par une **règle métier explicite** : [EDA contentieux](/src/05_02_EDA_contentieux.ipynb).
 
 *   **Méthode** : split train / test fait avant toute analyse, règles justifiées par la logique métier (jamais optimisées sur la cible), cible utilisée uniquement pour valider sur le train, test utilisé une seule fois.
-*   **Règle retenue** : un client est placé au contentieux (CTX) s'il a eu deux codes de retard >= 2 consécutifs et qu'il est toujours en retard au dernier mois observé. Les codifications incohérentes de la banque sont corrigées lorsque les montants les contredisent (code de retard posé sur une facture nulle, facture payée en totalité, absence de paiement alors que rien n'était dû).
-*   **Résultat sur le dataset complet (30 000 clients)** : la règle retire **10 % des clients**, qui concentrent **un tiers des défauts** avec un **taux de défaut d'environ 70 %** (contre 22 % en moyenne). Le dataset restant descend à environ 17 % de défaut.
-*   **Métriques de la règle sur la population qu'elle traite** (test) : précision 71,5 %, recall 100 % par construction, F2 0,93. Ses seules erreurs sont des clients sains prédits en défaut. Elle capte environ un tiers des défauts du dataset : les autres seront traités par le ML.
+*   **Règle retenue** : un client est placé au contentieux (CTX) s'il est toujours en retard (code >= 2) au dernier mois observé sans avoir réglé sa facture ; dans l'historique, un passage au CTX suppose deux codes de retard >= 2 consécutifs. Un client en retard qui a payé au moins 90 % de sa facture est considéré comme régularisé. Les codifications incohérentes de la banque sont corrigées lorsque les montants les contredisent (code de retard posé sur une facture nulle, facture payée en totalité, absence de paiement alors que rien n'était dû).
+*   **Résultat sur le dataset complet (30 000 clients)** : la règle retire **10 % des clients** (3 013), qui concentrent **un tiers des défauts** (32 %) avec un **taux de défaut de 70,5 %** (contre 22,1 % en moyenne). Le dataset restant descend à 16,7 % de défaut.
+*   **Métriques de la règle sur la population qu'elle traite** (test) : précision 71,0 %, recall 100 % par construction, F2 0,92. Ses seules erreurs sont des clients sains prédits en défaut. Elle capte environ un tiers des défauts du dataset : les autres seront traités par le ML.
 *   **Pour le ML** : les clients au CTX sont retirés du dataset et prédits en défaut par la règle ; les autres clients gardent des indicateurs de leur historique (passage au CTX, retard régularisé et mois de sortie, compte réactivé sous surveillance, faux codage corrigé).
 *   **Choix assumé** : un client déjà au contentieux relève du recouvrement, pas de la prévention. L'objectif du projet est d'anticiper le défaut chez des clients qui ne sont pas encore dans cette situation : la population contentieuse est donc écartée du ML, et non modélisée à part (voir les axes d'amélioration).
 
@@ -90,7 +90,7 @@ Le projet est entièrement déployé dans le cloud selon une architecture décou
 
 ### 🧪 Fonctionnalités à tester sur l'interface :
 * **Consultation (GET)** : Requêter les profils clients et leurs historiques de paiement issus de la BDD SQLite.
-* **Opérations CRUD (POST / PUT / DELETE)** : Simuler l'ajout, la modification ou la suppression de dossiers clients en direct.
+* **Opérations CRUD (POST / PATCH / DELETE)** : Simuler l'ajout, la modification ou la suppression de dossiers clients en direct.
 * **Validation des schémas JSON** : Inspecter la structure des requêtes et les modèles de données (Pydantic).
 
 > ℹ️ *L'API est hébergée sur l'offre gratuite de Render. Si le serveur est en veille, la première requête peut prendre jusque 1 minute à répondre.*
@@ -115,7 +115,7 @@ Le projet est entièrement déployé dans le cloud selon une architecture décou
 * **Déploiement Cloud :** Render (API Web Service), GitHub (Gestion de versions & Intégration continue)
 * **Gestionnaire de paquets :** `uv` (`pyproject.toml`)
 * **Business Intelligence :** Power BI (Dashboard décisionnel, Time Intelligence)
-* **Machine Learning :** Scikit-Learn, SHAP (Explicabilité & Interprétabilité)
+* **Machine Learning :** Scikit-Learn, CatBoost
 * **Front-end / UI :** Streamlit Cloud
 
 ## 🔭 Axes d'amélioration
