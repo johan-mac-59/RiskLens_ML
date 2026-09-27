@@ -556,17 +556,17 @@ Ces clients représentent 3.61% du jeu de données nettoyé. J'ai affaire à une
 * La population CTX est identique à celle de la règle 1 ; la définition 2 **affine le grain des retards** transmis au ML.
 
 **Changement de périmètre**
-* Les clients `CTX` à M (`FLAG_CTX` = 1 et `SORTIE_CTX` = -1) sont **retirés du dataset ML** et prédits en défaut par une règle métier. Le ML traite les clients `Retard payé`, `Sorti`, `Retard régularisé` et `Jamais CTX`.
+* Les clients `CTX` à M (`FLAG_CTX` = 1 et `MOIS_SORTIE_CTX` = -1) sont **retirés du dataset ML** et prédits en défaut par une règle métier. Le ML traite les clients `Retard payé`, `Sorti`, `Retard régularisé` et `Jamais CTX`.
 * Split commun avec le notebook contentieux : périmètre `S12`, 80/20, `stratify=dpnm`, `random_state=42`.
 * Évaluation du **système complet** (règle CTX + modèle) sur le même test, pour rester comparable à `S12_6` / `S12_7`, à la règle `PAY_n >= 2` et à l'AUC de Yeh (0.77).
 * La variable `CTX` de `S12_7` est remplacée par les features ci-dessous.
 
 **Features candidates**
 * `PAY_1_recode` : PAY_1 recodé au mois de transition (PAY_2 >= 2 et PAY_1 <= 1) selon les paiements, en remplacement de `PAY_1`.
-* `FLAG_CTX` : 1 si le client est au CTX à M ou a eu un passage au CTX (au moins deux mois à >= 2) sur la période, 0 sinon.
-* `SORTIE_CTX` : mois de la dernière sortie du CTX (1 à 5), -1 s'il n'y a pas de sortie (client encore au CTX ou jamais au CTX). Variante à tester en 2 indicateurs (`FLAG_CTX` + `SORTIE_CTX` à 0 si aucun passage) si le mélange perturbe la régression logistique.
+* `FLAG_CTX` : marqueur intemporel, 1 si le client a eu deux codes >= 2 consécutifs sur les 6 mois ; un 2 isolé en M-6 ou en M-1 compte par défaut (suite ou antécédent inconnu), sauf retard payé à M-1. 0 sinon.
+* `MOIS_SORTIE_CTX` : mois de la dernière sortie du CTX (1 à 5), -1 s'il n'y a pas de sortie (client encore au CTX ou jamais au CTX). Variante à tester en 2 indicateurs (`FLAG_CTX` + `MOIS_SORTIE_CTX` à 0 si aucun passage) si le mélange perturbe la régression logistique.
 * `FLAG_RETARD` : 1 si le client a eu un retard isolé (un seul mois à >= 2) régularisé sur la période, ou un retard payé à M-1.
-* `SORTIE_RETARD` : 0 = retard payé à M-1 (code >= 2 à M-1 mais facture payée à 90 % ou plus en M-1 ou M-2, régularisation présumée), 1 à 4 = mois du retour sous 2 après le dernier retard isolé, -1 = aucune régularisation. La valeur -1 mélange jamais CTX et sortis : à lire avec `FLAG_RETARD` et `FLAG_CTX`, et à traiter en catégoriel pour la régression logistique.
+* `MOIS_SORTIE_RETARD` : 0 = retard payé à M-1 (code >= 2 à M-1 mais facture payée à 90 % ou plus en M-1 ou M-2, régularisation présumée), 1 à 4 = mois du retour sous 2 après le dernier retard isolé, -1 = aucune régularisation. La valeur -1 mélange jamais CTX et sortis : à lire avec `FLAG_RETARD` et `FLAG_CTX`, et à traiter en catégoriel pour la régression logistique.
 * `NB_MOIS_CTX` : nombre de mois à >= 2 entre M-2 et M-6. À mois de sortie égal, un passage plus long au CTX reste associé à un risque plus élevé (non encore calculé dans le notebook).
 * `SURVEILLANCE_RECENTE` : 1 si le client est entré au CTX par un faux 2 sur compte endormi (code 2 posé sur une facture nulle, sans paiement ni encours avant).
 * `FAUX_CODAGE` : 1 si un faux 2 a été neutralisé (client qui venait de payer ou avait un encours).
