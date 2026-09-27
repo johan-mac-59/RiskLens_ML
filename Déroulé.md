@@ -36,7 +36,10 @@ D'après l'audit réalisé, les corrections suivantes sont appliquées :
 1. 'MARRIAGE' doit être compris dans [1, 2, 3], tout ce qui est en dehors de cette liste sera placé en '3' = 'autres'
 2. 'EDUCATION' doit être compris dans [1, 2, 3, 4], tout ce qui est en dehors de cette liste sera placé en '4' = 'autres'
 3. les colonnes 'PAY_n' nécessitent une investigation poussée pour bien comprendre le mécanisme de mise en défaut, les valeurs hors périmètre
-Aucun autre nettoyage n'est effectué à ce stade. 
+Aucun autre nettoyage n'est effectué à ce stade.  
+Après l'EDA, des corrections cumulatives (niveaux 1 à 3) sont ajoutées dans le notebook de nettoyage :
+- niveau 1 : suppression des 4 lignes avec un paiement supérieur à 1 000 000 NT$ et des 860 comptes inactifs (aucune facture positive ni aucun paiement sur les 6 mois), correction du client 6783
+- niveaux 2 et 3 : correction des PAY_n = 1 (voir « Correction finale des PAY_n = 1 » dans la partie EDA)
 
 ## Modélisation et ingestion des données dans la BDD
 modélisation du schéma relationnel en étoiles via la méthode MERISE
@@ -87,7 +90,7 @@ Ceci est à mettre dans le contexte suivant : une crise importante a eu lieu en 
 Dans le jeu de données, je constate des données incohérentes :
 - 24% de défaut de paiement futur sur des dossiers sans encours sur le dernier mois (2598 lignes)
 - 30% de défaut de paiement futur sur des dossiers avec encours négatifs sur les 6 mois (c'est à dire que la banque doit de l'argent au client)(88 lignes)
-- 37% de défaut de paiement futur sur des dossiers inactifs sur les 6 mois (866 comptes)
+- 37% de défaut de paiement futur sur des dossiers inactifs sur les 6 mois (860 comptes : aucune facture positive ni aucun paiement)
 Aucune information n'existe sur internet ni dans l'étude originelle de 2009 sur ces incidents de paiement qui ne semblent pas concerner un encours. Je ne sais pas s'il s'agit d'une erreur d'encodage, d'un autre problème de gestion interne du compte (clôture, saisie, faillite personnelle...). Chercher à nettoyer cette donnée fausserait tout le dataset car il n'y a pas de règle trouvée à ce stade sur l'apparition de ces impayés. Si on raisonne logique métier, nous cherchons à sécuriser un encours et à prévoir le défaut de paiement réel.  
 Il conviendra donc de ne pas inclure ces comptes inactifs dans les modèles d'apprentissage et de ne pas prédire le risque de défaut sur un crédit non utilisé.  
 Par contre, un compte qui a été actif doit être inclus dans le modèle car toute information sur le passé d'un client est de la matière enrichissante.  
