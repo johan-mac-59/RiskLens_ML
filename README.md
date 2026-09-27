@@ -58,9 +58,20 @@ Pour découvrir comment des détails logistiques de l'époque (comme les règlem
 *   Mise en place d'axes d'analyse et de KPI clés : [télécharger le rapport .pbix](/power_bi/rapport_pbi.pbix) *(fichier téléchargeable pour visionnage local)*
 *   Restitution visuelle via Streamlit : [fichier Streamlit](/src/04_02_streamlit_app.py)
 
+### ⚖️ Étape intermédiaire : Isoler la population contentieuse par une règle métier
+Pendant les premiers essais de ML, une poche de clients au taux de défaut très élevé plafonnait les performances des modèles. Plutôt que de laisser un modèle la redécouvrir, je l'isole par une **règle métier explicite** : [EDA contentieux](/src/05_02_EDA_contentieux.ipynb).
+
+*   **Méthode** : split train / test fait avant toute analyse, règles justifiées par la logique métier (jamais optimisées sur la cible), cible utilisée uniquement pour valider sur le train, test utilisé une seule fois.
+*   **Règle retenue** : un client est placé au contentieux (CTX) s'il a eu deux codes de retard >= 2 consécutifs et qu'il est toujours en retard au dernier mois observé. Les codifications incohérentes de la banque sont corrigées lorsque les montants les contredisent (code de retard posé sur une facture nulle, facture payée en totalité, absence de paiement alors que rien n'était dû).
+*   **Résultat sur le dataset complet (30 000 clients)** : la règle retire **10 % des clients**, qui concentrent **un tiers des défauts** avec un **taux de défaut d'environ 70 %** (contre 22 % en moyenne). Le dataset restant descend à environ 17 % de défaut.
+*   **Métriques de la règle sur la population qu'elle traite** (test) : précision 71,5 %, recall 100 % par construction, F2 0,93. Ses seules erreurs sont des clients sains prédits en défaut. Elle capte environ un tiers des défauts du dataset : les autres seront traités par le ML.
+*   **Pour le ML** : les clients au CTX sont retirés du dataset et prédits en défaut par la règle ; les autres clients gardent des indicateurs de leur historique (passage au CTX, retard régularisé et mois de sortie, compte réactivé sous surveillance, faux codage corrigé).
+*   **Choix assumé** : un client déjà au contentieux relève du recouvrement, pas de la prévention. L'objectif du projet est d'anticiper le défaut chez des clients qui ne sont pas encore dans cette situation : la population contentieuse est donc écartée du ML, et non modélisée à part (voir les axes d'amélioration).
+
 ### 🧠 Étape 6 : Machine Learning & Risques
-*   Entraînement et comparaison d'au moins 2 modèles via **GridSearch**.
-*   Sélection du modèle optimal basé sur le **Recall** (minimisation des faux négatifs).
+*   Entraînement et comparaison d'au moins 2 modèles via **GridSearch**, sur le dataset **nettoyé de sa population contentieuse** : [journal des expérimentations](/lab_ML/tableau_ML.md).
+*   Sélection du modèle optimal sur un **score maître** combinant ROC AUC et F2 score (le F2 privilégie le Recall : minimisation des faux négatifs).
+*   Évaluation du **système complet** (règle contentieux + modèle) sur le même jeu de test, comparée à la règle seule, aux premiers modèles et à l'étude de référence.
 *   **Évaluation des risques :** Analyse des biais, éthique et limites du modèle.
 
 ### 🎙️ Étape 7 : Storytelling & Restitution
@@ -106,3 +117,6 @@ Le projet est entièrement déployé dans le cloud selon une architecture décou
 * **Business Intelligence :** Power BI (Dashboard décisionnel, Time Intelligence)
 * **Machine Learning :** Scikit-Learn, SHAP (Explicabilité & Interprétabilité)
 * **Front-end / UI :** Streamlit Cloud
+
+## 🔭 Axes d'amélioration
+*   **Modéliser la population contentieuse comme une sous-population spécifique** : les clients au contentieux sont aujourd'hui écartés du ML et traités par une règle métier, car un client déjà au contentieux relève du recouvrement et non de la prévention du défaut. Un modèle dédié à cette sous-population serait techniquement possible (par exemple pour distinguer les clients qui régularisent de ceux qui restent en défaut), mais il répondrait à une autre question que celle du projet.

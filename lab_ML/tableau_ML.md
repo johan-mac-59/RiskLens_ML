@@ -546,6 +546,29 @@ Ces clients représentent 3.61% du jeu de données nettoyé. J'ai affaire à une
 
 `Remonter cv dans GridSearchCV quand on approfondit les modèles`
 
+---
+
+## 4. Redémarrage du ML : dataset nettoyé de sa population contentieuse
+
+**Pourquoi redémarrer**  
+La variable `CTX` de `S12_7` a mis en évidence une poche de clients au taux de défaut très élevé qui plafonnait les modèles. Elle est désormais isolée par une **règle métier** (`src/05_02_EDA_contentieux.ipynb`, définition 2) : les clients au CTX sont retirés du dataset ML et prédits en défaut par la règle. Le ML repart sur la population restante, avec des indicateurs d'historique à la place des anciens codes bruts.  
+Les résultats des sections 2 et 3 ne sont plus directement comparables : ils portaient sur la population complète du périmètre `S12`.
+
+**Référence de départ : la règle seule, évaluée sur la population qu'elle traite** (clients au CTX, tous prédits en défaut)
+
+| Jeu | Clients CTX | Vrais positifs | Faux positifs | Précision | Recall | F2 | Part des défauts du dataset captés |
+|---|---|---|---|---|---|---|---|
+| Train (S12) | 2 435 | 1 708 | 727 | 70.14 % | 100 % | 0.9215 | 35.75 % |
+| Test (S12) | 614 | 439 | 175 | 71.50 % | 100 % | 0.9262 | 36.74 % |
+| Dataset initial (30 000) | 3 058 | 2 154 | 904 | 70.44 % | 100 % | 0.9226 | 32.46 % |
+
+Sur ce périmètre, le recall vaut 100 % par construction et le ROC AUC n'est pas défini (une seule classe prédite) : la précision est la métrique qui compte. Les défauts non captés par la règle relèvent du ML.
+
+**Comment évaluer le nouveau ML**
+* Le modèle est entraîné et validé sur la population hors CTX (même split que le notebook contentieux).
+* Le **système complet** est évalué sur le test : prédiction de la règle pour les clients au CTX, prédiction du modèle pour les autres. C'est ce score qui se compare à la règle seule, à `S12_6` / `S12_7` et à l'étude de Yeh.
+* Pour le ROC AUC du système complet, les clients au CTX reçoivent une probabilité fixe (par exemple leur taux de défaut observé sur le train) afin de les intégrer à la courbe ROC.
+
 ### Features et pistes à tester (issues de `src/05_02_EDA_contentieux.ipynb`)
 *Liste de travail : rien n'est encore testé. Fonctions de calcul : `corriger_faux_codage`, `recodage_pay1` (section 3) et `statut_ctx_regle2` (section 6 du notebook contentieux).*
 
