@@ -573,12 +573,12 @@ Sur ce périmètre, le recall vaut 100 % par construction et le ROC AUC n'est pa
 * Pour le ROC AUC du système complet, les clients au CTX reçoivent une probabilité fixe (par exemple leur taux de défaut observé sur le train) afin de les intégrer à la courbe ROC.
 
 ### Features et pistes à tester (issues de `src/05_02_EDA_contentieux.ipynb`)
-*Liste de travail : rien n'est encore testé. Fonctions de calcul : `corriger_faux_codage`, `recodage_pay1` (section 3) et `statut_ctx_regle2` (section 6 du notebook contentieux), version révisée du 27/09/2026.*
+*Liste de travail : rien n'est encore testé. Fonctions de calcul : `corriger_faux_codage` (section 3), `recodage_pay1` (section 6.1) et `statut_ctx_regle2` (section 6 du notebook contentieux), version révisée du 27/09/2026, recodage du mois de transition révisé le 30/09/2026.*
 
 **Définition du CTX retenue : définition 2 (deux codes >= 2 successifs)**
 * Dans l'historique, un passage au CTX nécessite deux codifications >= 2 successives ; un 2 isolé est un **retard régularisé**. Un 2 isolé en M-6 est considéré comme un passage au CTX par défaut (M-7 non observé).
 * À M-1, tout code >= 2 place le client au CTX, sauf facture payée à 90 % ou plus en M-1 ou en M-2 (**retard payé**, traité comme une régularisation présumée au plus tard en M) : retard isolé (PAY_2 < 2) → `FLAG_RETARD` = 1, `MOIS_SORTIE_RETARD` = 0 ; retard qui termine une série (PAY_2 >= 2) → `FLAG_CTX` = 1, `MOIS_SORTIE_CTX` = 0.
-* Correction des faux 2 : faux codage neutralisé ; compte endormi : codes >= 2 posés sur une facture nulle neutralisés pour le CTX, flag `SURVEILLANCE_RECENTE` conservé (révision du 27/09/2026). Recodage du mois de transition commun avec la règle 1 (remis à 2 seulement si deux factures exigibles sont impayées).
+* Correction des faux 2 : faux codage neutralisé ; compte endormi : codes >= 2 posés sur une facture nulle neutralisés pour le CTX, flag `SURVEILLANCE_RECENTE` conservé (révision du 27/09/2026). Recodage du mois de transition (révisé le 30/09/2026) : remis à 2 si deux factures exigibles sont impayées ; facture de M-1 soldée (>= 90 %) : retour au code d'avant le retard ; sinon inchangé (ancien recodage en -1 dès 10 % supprimé).
 * La population CTX est très proche de celle de la règle 1 (les différences viennent des comptes endormis) ; la définition 2 **affine le grain des retards** transmis au ML.
 * Dans les règles du CTX, un ratio de paiement sans facture exigible vaut 0 (pas de preuve de paiement) ; la feature `ratio_PAY_BILLn` (100 % sans facture) ne sert pas à définir le CTX.
 

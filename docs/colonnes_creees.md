@@ -23,11 +23,11 @@ Rappel de la convention temporelle : mois 1 = M-1 (septembre 2005), 6 = M-6 (avr
 
 ## 2. Population contentieuse (définition 2 révisée le 27/09/2026)
 
-Calculées par `statut_ctx_regle2` dans `src/05_02_EDA_contentieux.ipynb` (section 6), à partir de `corriger_faux_codage` et `recodage_pay1` (section 3). Ces fonctions sont recopiées telles quelles dans le storytelling, et le seront dans les notebooks ML.
+Calculées par `statut_ctx_regle2` dans `src/05_02_EDA_contentieux.ipynb` (section 6), à partir de `corriger_faux_codage` (section 3) et `recodage_pay1` (section 6.1, recodage du mois de transition révisé le 30/09/2026). Ces fonctions sont recopiées telles quelles dans le storytelling, et le seront dans les notebooks ML.
 
 | Colonne | Définition |
 |---|---|
-| `PAY_1_recode` | PAY_1 après correction des faux 2 et recodage du mois de transition (PAY_2 >= 2 puis PAY_1 <= 1) : 2 si aucun paiement en M-1 ni en M-2 alors que deux factures étaient exigibles ; -2 si le ratio de M-1 est >= 90 % ; -1 s'il est >= 10 % ; inchangé sinon |
+| `PAY_1_recode` | PAY_1 après correction des faux 2 et recodage du mois de transition (PAY_2 >= 2 puis PAY_1 <= 1) : 2 si aucun paiement en M-1 ni en M-2 alors que deux factures étaient exigibles ; si la facture de M-1 est payée à 90 % ou plus, code d'avant le retard (premier code < 2 avant la série, -2 remplacé par -1, 0 si la série remonte à M-6) ; inchangé sinon |
 | `STATUT_CTX` | Statut à M : `CTX` (retiré du ML, prédit en défaut), `Retard considéré régularisé M-1`, `Sorti`, `Retard régularisé`, `Jamais CTX` |
 | `SOUS_STATUT_CTX` | Détail : `CTX 6 mois`, `CTX 2 à 5 mois`, `CTX entrée en M-1`, `Retard considéré régularisé M-1 (série)` ou `(isolé)` ; sinon identique au statut |
 | `FLAG_CTX` | Marqueur intemporel : 1 si deux codes >= 2 consécutifs sur les 6 mois (codes posés sur une facture nulle exclus), 2 isolé en M-6 ou en M-1 compté par défaut, sauf retard payé isolé à M-1 ; 1 aussi pour un retard payé qui termine une série |
