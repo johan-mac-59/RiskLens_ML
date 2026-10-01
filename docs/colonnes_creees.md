@@ -25,17 +25,21 @@ Rappel de la convention temporelle : mois 1 = M-1 (septembre 2005), 6 = M-6 (avr
 
 Calculées par `statut_ctx_regle2` dans `src/05_02_EDA_contentieux.ipynb` (section 6), à partir de `corriger_faux_codage` (section 3) et `recodage_pay1` (section 6.1, recodage du mois de transition révisé le 30/09/2026). Ces fonctions sont recopiées telles quelles dans le storytelling, et le seront dans les notebooks ML.
 
-| Colonne | Définition |
-|---|---|
-| `PAY_1_recode` | PAY_1 après correction des faux 2 et recodage du mois de transition (PAY_2 >= 2 puis PAY_1 <= 1) : 2 si aucun paiement en M-1 ni en M-2 alors que deux factures étaient exigibles ; si la facture de M-1 est payée à 90 % ou plus, code d'avant le retard (premier code < 2 avant la série, -2 remplacé par -1, 0 si la série remonte à M-6) ; inchangé sinon |
-| `STATUT_CTX` | Statut à M : `CTX` (retiré du ML, prédit en défaut), `Retard considéré régularisé M-1`, `Sorti`, `Retard régularisé`, `Jamais CTX` |
-| `SOUS_STATUT_CTX` | Détail : `CTX 6 mois`, `CTX 2 à 5 mois`, `CTX entrée en M-1`, `Retard considéré régularisé M-1 (série)` ou `(isolé)` ; sinon identique au statut |
-| `FLAG_CTX` | Marqueur intemporel : 1 si deux codes >= 2 consécutifs sur les 6 mois (codes posés sur une facture nulle exclus), 2 isolé en M-6 ou en M-1 compté par défaut, sauf retard payé isolé à M-1 ; 1 aussi pour un retard payé qui termine une série |
-| `MOIS_SORTIE_CTX` | Mois de la dernière sortie du CTX (1 à 5) ; **0** = sortie présumée en M (retard payé qui termine une série) ; -1 = pas de sortie (encore au CTX, ou jamais passé par le CTX) |
-| `FLAG_RETARD` | 1 si retard isolé (un seul mois >= 2) régularisé sur la période, ou retard payé isolé à M-1 |
-| `MOIS_SORTIE_RETARD` | Mois du retour sous 2 après le dernier retard isolé (1 à 4) ; **0** = retard payé isolé à M-1 ; -1 = aucune régularisation ; vide pour les clients au CTX |
-| `SURVEILLANCE_RECENTE` | 1 si faux 2 sur compte endormi (code 2 posé sur une facture nulle, sans paiement ni encours avant) : ces codes ne comptent pas pour le CTX |
-| `FAUX_CODAGE` | 1 si faux 2 neutralisé chez un client qui venait de payer ou avait un encours |
+Colonnes listées dans l'ordre logique de calcul : chaque étape travaille sur les codes produits par la précédente. Les comptages de codes >= 2 se font toujours en dernier, sur les codes définitifs, pour ne pas compter un 2 qui serait corrigé ensuite.
+
+| Étape | Colonne | Définition |
+|---|---|---|
+| 1. Correction des faux 2 (`corriger_faux_codage`) | `FAUX_CODAGE` | 1 si faux 2 neutralisé chez un client qui venait de payer ou avait un encours |
+| 1. Correction des faux 2 (`corriger_faux_codage`) | `SURVEILLANCE_RECENTE` | 1 si faux 2 sur compte endormi (code 2 posé sur une facture nulle, sans paiement ni encours avant) : ces codes ne comptent pas pour le CTX |
+| 2. Recodage du mois de transition (`recodage_pay1`, sur les codes corrigés) | `PAY_1_recode` | PAY_1 après correction des faux 2 et recodage du mois de transition (PAY_2 >= 2 puis PAY_1 <= 1) : 2 si aucun paiement en M-1 ni en M-2 alors que deux factures étaient exigibles ; si la facture de M-1 est payée à 90 % ou plus, code d'avant le retard (premier code < 2 avant la série, -2 remplacé par -1, 0 si la série remonte à M-6) ; inchangé sinon |
+| 3. Statuts (codes corrigés, `PAY_1_recode` en M-1) | `STATUT_CTX` | Statut à M : `CTX` (retiré du ML, prédit en défaut), `Retard considéré régularisé M-1`, `Sorti`, `Retard régularisé`, `Jamais CTX` |
+| 3. Statuts | `SOUS_STATUT_CTX` | Détail : `CTX 6 mois`, `CTX 2 à 5 mois`, `CTX entrée en M-1`, `Retard considéré régularisé M-1 (série)` ou `(isolé)` ; sinon identique au statut |
+| 3. Statuts | `FLAG_CTX` | Marqueur intemporel : 1 si deux codes >= 2 consécutifs sur les 6 mois (codes posés sur une facture nulle exclus), 2 isolé en M-6 ou en M-1 compté par défaut, sauf retard payé isolé à M-1 ; 1 aussi pour un retard payé qui termine une série |
+| 3. Statuts | `MOIS_SORTIE_CTX` | Mois de la dernière sortie du CTX (1 à 5) ; **0** = sortie présumée en M (retard payé qui termine une série) ; -1 = pas de sortie (encore au CTX, ou jamais passé par le CTX) |
+| 3. Statuts | `FLAG_RETARD` | 1 si retard isolé (un seul mois >= 2) régularisé sur la période, ou retard payé isolé à M-1 |
+| 3. Statuts | `MOIS_SORTIE_RETARD` | Mois du retour sous 2 après le dernier retard isolé (1 à 4) ; **0** = retard payé isolé à M-1 ; -1 = aucune régularisation ; vide pour les clients au CTX |
+| 4. Comptages, en dernier (codes définitifs de l'étape 3 : faux codages et comptes endormis neutralisés, `PAY_1_recode` en M-1) | `NB_MOIS_CTX` | *Définie, pas encore calculée.* Durée du dernier passage au CTX, au sens de `FLAG_CTX` : nombre de mois **consécutifs** à >= 2 de la dernière série qui compte comme passage au CTX (jusqu'à la sortie, ou jusqu'à M-1 pour un client encore au CTX). **0 si `FLAG_CTX` = 0** : un retard isolé régularisé (`FLAG_RETARD`) ou un retard payé isolé ne compte pas. 1 pour un 2 isolé en M-6 ou en M-1 compté au CTX par défaut. Non cumulée : un client avec deux passages séparés n'est compté que sur le dernier |
+| 4. Comptages | `CUMUL_INCIDENT` | *Définie, pas encore calculée.* Nombre total de mois avec un code >= 2 sur les 6 mois (M-1 à M-6), consécutifs ou non. Mesure la fréquence des incidents, quand `NB_MOIS_CTX` mesure la durée du dernier passage |
 
 **Retrait du dataset ML** : `FLAG_CTX = 1` et `MOIS_SORTIE_CTX = -1` (clients au CTX à M).
 **Retard payé** : PAY_1 >= 2 mais facture payée à 90 % ou plus en M-1 ou en M-2 (ratios du contentieux ci-dessus).

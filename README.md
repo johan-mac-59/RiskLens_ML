@@ -51,6 +51,7 @@ Pour découvrir comment des détails logistiques de l'époque (comme les règlem
 ### 🔍 Étape 4 : Analyse Exploratoire
 *   Analyse statistique approfondie (corrélations, tendances) avec Python : [EDA laboratoire](/src/05_01_EDA_lab.ipynb)
 *   Recherche du périmètre de la population contentieuse (CTX) à isoler : [EDA contentieux](/src/05_02_EDA_contentieux.ipynb)
+*   Étude dédiée de la codification PAY_n = 1 (statut provisoire du dernier mois, corrections retenues) : [EDA codification 1](/src/05_04_EDA_codification1.ipynb)
 *   Data Visualisation pour identifier les facteurs clés du défaut de paiement : [EDA DataViz](/src/05_03_EDA_storytelling.ipynb)
 
 ### 📊 Étape 5 : Restitution Décisionnelle (Power BI)
@@ -120,3 +121,4 @@ Le projet est entièrement déployé dans le cloud selon une architecture décou
 
 ## 🔭 Axes d'amélioration
 *   **Modéliser la population contentieuse comme une sous-population spécifique** : les clients au contentieux sont aujourd'hui écartés du ML et traités par une règle métier, car un client déjà au contentieux relève du recouvrement et non de la prévention du défaut. Un modèle dédié à cette sous-population serait techniquement possible (par exemple pour distinguer les clients qui régularisent de ceux qui restent en défaut), mais il répondrait à une autre question que celle du projet.
+*   **Départager les PAY_1 = 1 après un retard** : au dernier mois observé, la banque code 1 des clients dont on ne sait pas encore s'ils sortent du retard (statut d'attente). Hors dette soldée ou absence totale de paiement, aucune règle métier ne permet de trancher ; un modèle combinant la durée du retard, les paiements et l'évolution du solde pourrait en départager une partie.

@@ -588,15 +588,26 @@ Sur ce périmètre, le recall vaut 100 % par construction et le ROC AUC n'est pa
 * Évaluation du **système complet** (règle CTX + modèle) sur le même test, pour rester comparable à `S12_6` / `S12_7`, à la règle `PAY_n >= 2` et à l'AUC de Yeh (0.77).
 * La variable `CTX` de `S12_7` est remplacée par les features ci-dessous.
 
-**Features candidates**
+**Features candidates** (dans l'ordre logique de calcul : chaque étape travaille sur les codes produits par la précédente ; les comptages de codes >= 2 se font en dernier, sur les codes définitifs)
+
+*Étape 1 : correction des faux 2 (`corriger_faux_codage`)*
+* `SURVEILLANCE_RECENTE` : 1 si le client a reçu un faux 2 sur compte endormi (code 2 posé sur une facture nulle, sans paiement ni encours avant) ; ces codes ne comptent pas pour le CTX.
+* `FAUX_CODAGE` : 1 si un faux 2 a été neutralisé (client qui venait de payer ou avait un encours).
+
+*Étape 2 : recodage du mois de transition (`recodage_pay1`, sur les codes corrigés)*
 * `PAY_1_recode` : PAY_1 recodé au mois de transition (PAY_2 >= 2 et PAY_1 <= 1) selon les paiements, en remplacement de `PAY_1`.
+
+*Étape 3 : statuts (`statut_ctx_regle2`, codes corrigés et `PAY_1_recode` en M-1)*
 * `FLAG_CTX` : marqueur intemporel, 1 si le client a eu deux codes >= 2 consécutifs sur les 6 mois (codes posés sur une facture nulle exclus) ; un 2 isolé en M-6 ou en M-1 compte par défaut (suite ou antécédent inconnu), sauf retard payé isolé à M-1. 0 sinon.
 * `MOIS_SORTIE_CTX` : mois de la dernière sortie du CTX (1 à 5), 0 = sortie présumée en M (retard payé qui termine une série), -1 s'il n'y a pas de sortie (client encore au CTX ou jamais au CTX). Variante à tester si le mélange perturbe la régression logistique : une valeur dédiée pour « aucun passage », distincte du 0.
 * `FLAG_RETARD` : 1 si le client a eu un retard isolé (un seul mois à >= 2) régularisé sur la période, ou un retard payé isolé à M-1.
 * `MOIS_SORTIE_RETARD` : 0 = retard payé isolé à M-1 (code >= 2 à M-1, PAY_2 < 2, mais facture payée à 90 % ou plus en M-1 ou M-2, régularisation présumée), 1 à 4 = mois du retour sous 2 après le dernier retard isolé, -1 = aucune régularisation. La valeur -1 mélange jamais CTX et sortis : à lire avec `FLAG_RETARD` et `FLAG_CTX`, et à traiter en catégoriel pour la régression logistique.
-* `NB_MOIS_CTX` : nombre de mois à >= 2 entre M-2 et M-6. À mois de sortie égal, un passage plus long au CTX reste associé à un risque plus élevé (non encore calculé dans le notebook).
-* `SURVEILLANCE_RECENTE` : 1 si le client a reçu un faux 2 sur compte endormi (code 2 posé sur une facture nulle, sans paiement ni encours avant) ; ces codes ne comptent pas pour le CTX.
-* `FAUX_CODAGE` : 1 si un faux 2 a été neutralisé (client qui venait de payer ou avait un encours).
+
+*Étape 4 : comptages, en dernier, sur les codes définitifs (ceux utilisés par `statut_ctx_regle2` : faux codages et comptes endormis neutralisés, `PAY_1_recode` en M-1) ; colonnes pas encore créées*
+* `NB_MOIS_CTX` : durée du dernier passage au CTX au sens de `FLAG_CTX`, en mois consécutifs à >= 2 (non cumulée : un client avec deux passages séparés n'est compté que sur le dernier) ; 0 si `FLAG_CTX` = 0 (retard isolé ou retard payé isolé exclus). À mois de sortie égal, un passage plus long reste le plus souvent associé à un risque plus élevé (étude sur le train avec la définition retenue : `src/05_04_EDA_codification1.ipynb`, section 5.1).
+* `CUMUL_INCIDENT` : nombre total de mois avec un code >= 2 sur les 6 mois, consécutifs ou non. Complète `NB_MOIS_CTX` : mesure la fréquence des incidents sur la période, quand `NB_MOIS_CTX` mesure la durée du dernier passage.
+
+*Hors codes de retard (montants seuls, indépendant de l'ordre ci-dessus)*
 * Nombre de mois sans paiement sur la période (utilisé pour décrire les statuts, jamais testé comme feature).
 
 **Scénarios à comparer**

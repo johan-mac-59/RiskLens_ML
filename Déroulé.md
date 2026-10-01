@@ -39,7 +39,7 @@ D'après l'audit réalisé, les corrections suivantes sont appliquées :
 Aucun autre nettoyage n'est effectué à ce stade.  
 Après l'EDA, des corrections cumulatives (niveaux 1 à 3) sont ajoutées dans le notebook de nettoyage :
 - niveau 1 : suppression des 4 lignes avec un paiement supérieur à 1 000 000 NT$ et des 860 comptes inactifs (aucune facture positive ni aucun paiement sur les 6 mois), correction du client 6783
-- niveaux 2 et 3 : correction des PAY_n = 1 (voir « Correction finale des PAY_n = 1 » dans la partie EDA)
+- niveaux 2 et 3 : correction des PAY_n = 1 (voir « La codification PAY_n = 1 » dans la partie EDA)
 
 ## Modélisation et ingestion des données dans la BDD
 modélisation du schéma relationnel en étoiles via la méthode MERISE
@@ -72,75 +72,83 @@ chargement de l'API via la commande Bash 'uvicorn src.04_01_api:app --reload'
 - Télécharger la base de données après identification sécurisée : '@app.get("/admin/telecharger-db")'
 
 ## EDA
-Je constate une tendance de codification des colonnes 'PAY_n' légèrement différente de ce qui est décrit dans la documentation  
-Si on écarte les erreurs humaines, informatiques et autres, il se dégage une certaine tendance concernant les valeurs de PAY_n :
-- -2 correspond à des comptes majoritairement inactifs
-- -1 et 0 correspondent à des comptes ayant un fonctionnement sain ne présentant pas de retard
-- 1 correspond à une sorte d'alerte sur le compte (fin d'un retard, activation ou réactivation d'un compte), il ne semble pas forcemment correspondre à une échéance de retard
-- 2 et + correspondent à des comptes avec retards, en effet un incident fait basculer la note directement à 2
-Ces indications sont très importantes pour la représentation des ensembles et la créations des features pour les futurs modèles de prédiction
+Notebooks : [EDA laboratoire](/src/05_01_EDA_lab.ipynb) (exploration), [EDA codification 1](/src/05_04_EDA_codification1.ipynb) (étude dédiée des PAY_n = 1), [EDA contentieux](/src/05_02_EDA_contentieux.ipynb) (population contentieuse).
 
-Le taux d'incident de paiement est divisé par 2,5 en cas d'encours nul ou négatif [il devrait idéalement tomber à 0% alors qu'il est présent à hauteur de 4%]. Cela laisse supposer que des dossiers avec encours nul ou négatif sont gérés en dehors du circuit classique, par exemple en recouvrement ou contentieux,  cela expliquerait la présence d'incidents fluctuant. Il ne sera pas question de nettoyage pour ces données qui sont un bruit certes mais représentent un nombre de lignes restreints.  Pour l'apprentissage des modèles, il sera intéressant d'exclure les comptes dits inactifs pour 2 raisons :
-- écarter les comptes réellement inactifs sans activité car ils n'apportent pas d'informations intéressantes et n'ont pas besoin de prédiction de défaut
-- écarter les comptes gelés, gérés ailleurs qui affichent un comportement de défaut mais qui n'apportent aucune information d'apprentissage pour le modèle en l'absence d'encours et de montants payés
+### Lecture des codifications PAY_n
+Je constate une codification des colonnes 'PAY_n' différente de ce qui est décrit dans la documentation. Si on écarte les erreurs humaines, informatiques et autres, il se dégage une tendance claire, confirmée par les montants :
+- **-2** : le client n'a pas utilisé sa carte à crédit sur le mois. 95 % de cette codification s'explique par un paiement comptant ou un encours nul ou négatif ; elle concerne donc beaucoup de comptes peu ou pas actifs.
+- **-1** : la facture est payée en totalité. Les ratios de paiement se concentrent à 100 % ; quand rien n'est payé le mois même, la facture est presque toujours réglée le mois suivant (paiement enregistré avec un mois de décalage).
+- **0** : utilisation à crédit (crédit renouvelable) sans retard : le plus souvent, le client paie au moins le minimum, autour de 3 à 5 % de son solde (quelques vrais non-paiements restent codés 0).
+- **1** : pas une échéance de retard, mais un statut provisoire du dernier mois (voir plus bas).
+- **2 et plus** : comptes en retard ; un incident fait basculer la note directement à 2.
 
-Le défaut de paiement futur 'dpnm' est de 22% dans le dataset.  
+La frontière entre 0 et -1 est une marche nette à 100 % de la facture payée : c'est ce qui justifie le seuil de 90 % (facture soldée) utilisé dans le nettoyage et dans les règles du contentieux.  
+Ces indications sont très importantes pour la représentation des ensembles et la création des features pour les futurs modèles de prédiction.
+
+### Comptes sans encours et comptes inactifs
+Le taux d'incident sur la période (part des codifications PAY_n = 2) est divisé par 2,5 quand la facture exigible est nulle ou négative [il devrait idéalement tomber à 0 % alors qu'il reste de l'ordre de 4 %]. Cela laisse supposer que des dossiers avec encours nul ou négatif sont gérés en dehors du circuit classique, par exemple en recouvrement ou contentieux, ce qui expliquerait la présence d'incidents fluctuants.
+
+Le défaut de paiement à M ('dpnm') est de 22 % dans le dataset.  
 Une banque ne survivrait pas plusieurs mois avec un taux de défaillance aussi élevé, on peut s'interroger sur l'origine du dataset et de son éventuel biais, surtout mis en relation avec la forte proportion de PAY_1 = 1.  
-Ceci est à mettre dans le contexte suivant : une crise importante a eu lieu en 2005 à Taïwan sur le crédit avec un emballement soudain de son usage et du taux de défaut.
+Ceci est à mettre dans le contexte suivant : une crise importante a eu lieu en 2005 à Taïwan sur le crédit avec un emballement soudain de son usage et du taux de défaut.  
 Dans le jeu de données, je constate des données incohérentes :
-- 24% de défaut de paiement futur sur des dossiers sans encours sur le dernier mois (2598 lignes)
-- 30% de défaut de paiement futur sur des dossiers avec encours négatifs sur les 6 mois (c'est à dire que la banque doit de l'argent au client)(88 lignes)
-- 37% de défaut de paiement futur sur des dossiers inactifs sur les 6 mois (860 comptes : aucune facture positive ni aucun paiement)
-Aucune information n'existe sur internet ni dans l'étude originelle de 2009 sur ces incidents de paiement qui ne semblent pas concerner un encours. Je ne sais pas s'il s'agit d'une erreur d'encodage, d'un autre problème de gestion interne du compte (clôture, saisie, faillite personnelle...). Chercher à nettoyer cette donnée fausserait tout le dataset car il n'y a pas de règle trouvée à ce stade sur l'apparition de ces impayés. Si on raisonne logique métier, nous cherchons à sécuriser un encours et à prévoir le défaut de paiement réel.  
-Il conviendra donc de ne pas inclure ces comptes inactifs dans les modèles d'apprentissage et de ne pas prédire le risque de défaut sur un crédit non utilisé.  
-Par contre, un compte qui a été actif doit être inclus dans le modèle car toute information sur le passé d'un client est de la matière enrichissante.  
-Plusieurs scenarii seront à prévoir pour encadrer tous les cas métiers cohérents pour ne pas fausser le modèle ni les données
+- 24 % de défaut de paiement à M sur des dossiers sans encours sur le dernier mois (2598 lignes)
+- 30 % de défaut de paiement à M sur des dossiers avec encours négatifs sur les 6 mois (c'est-à-dire que la banque doit de l'argent au client) (88 lignes)
+- 37 % de défaut de paiement à M sur des dossiers inactifs sur les 6 mois (860 comptes : aucune facture positive ni aucun paiement)
 
-J'analyse le code '1' dans PAY_n, je commence par sa répartition dans le dataset : il représente 12% des valeurs de PAY_1, les autres colonnes n'en possèdent pas ou très peu (moins de 0.1%).  
-Ce code 1 n'est jamais suivi par autre chose que lui-même. De plus, il suit principalement un compte inactif, un compte activé/réactivé ou un compte en incidents.  
-Deux hypothèses apparaissent :
-- le code 1 est une alerte interne ou externe sur le compte
-- le code 1 vient d'autre chose ou est une codification temporaire (relance du client, incident administratif/financier en cours)
-Je n'envisage aucune correction de cette valeur, les indications que j'ai dans le dataset montre que le code 1 ne précède rien d'autres que 1.
-La brusque envolée perçue peut etre le but de l'étude originelle de ce dataset, un réel emballement des impayés au plus fort de la crise de 2005. Cela pourrait finalement correspondre à un impayé de 30 jours comme l'indique la nomenclature.  
-Le traitement de cette colonne avec cette donnée particulière sera à encoder de manière spécifique pour le ML.  
+Aucune information n'existe sur internet ni dans l'étude originelle de 2009 sur ces incidents de paiement qui ne semblent pas concerner un encours. Je ne sais pas s'il s'agit d'une erreur d'encodage ou d'un autre problème de gestion interne du compte (clôture, saisie, faillite personnelle...). Chercher à nettoyer cette donnée fausserait tout le dataset car il n'y a pas de règle trouvée à ce stade sur l'apparition de ces impayés. Si on raisonne logique métier, nous cherchons à sécuriser un encours et à prévoir le défaut de paiement réel. Pour l'apprentissage des modèles :
+- les comptes réellement inactifs sont écartés : ils n'apportent pas d'information et n'ont pas besoin de prédiction de défaut (supprimés au nettoyage, niveau 1) ;
+- les comptes gelés, gérés ailleurs, qui affichent un comportement de défaut sans encours ni montants payés n'apportent aucune information d'apprentissage : on ne prédit pas le risque de défaut sur un crédit non utilisé ;
+- un compte qui a été actif reste dans le modèle, car toute information sur le passé d'un client est de la matière enrichissante.
 
-J'ai détecté une règle de correction pour les encours négatifs présentant des codifications 1 : je corrige en récupérant la valeur PAY_ du mois précédent
-Il reste 15 lignes avec une codification 1 en PAY_2 ou PAY_3
-Il reste 2521 lignes avec une codification PAY_1=1 soit 8% du dataset
-Certains se demandent peut-être pourquoi je m'obstine à nettoyer la colonne PAY_1 de ses 1 . Les graphiques sont faussés sur ce mois, le machine learning ne semble pas impacté par mes corrections jusque maintenant mais le poids de cette colonne dans leur décision tend à diminuer ou augmenter selon les modèles à mesure que je la rectifie. De plus, d'autres features seront impactées par ce changement de codification et impacteront encore davantage le ML (ex de la colonne frequence des incidents ou du total de codification risque d'un client)
-**Correction finale des PAY_n = 1**  
-- Correction des PAY_n = 1 : PAY_n = PAY_(n+1) si BILL_AMT(n+1) <= 0 (de PAY_5 vers PAY_1, passes de vérification jusqu'à ce qu'aucune correction ne s'effectue)
-- correction des PAY_n = 1 restants : PAY_n = 0 si BILL-AMT(n+1) <= 0
-- le client 6783 a une codification PAY = 1 sur 4 mois alors qu'il paie chaque mois -> remettre sa codification en 0
-- si PAY_1 = 1, PAY_2 <= 0 et ratio_PAY_BILL1 >= 90 (en %, facture exigible BILL_AMT2 > 0) alors PAY_1 = PAY_2 : le client a soldé sa facture (payeur au comptant / à jour), il reprend sa codification antérieure
-- dans tous les autres cas (remboursement partiel ou nul), impossible de déterminer la vraie codification : PAY_1 = 1 est maintenu
+Plusieurs scénarios sont prévus pour encadrer tous les cas métiers cohérents sans fausser le modèle ni les données.
 
-*Ancienne version abandonnée (seuils à 4 % / 10 % et PAY_1 = PAY_2 si PAY_2 >= 2) : elle créait des PAY_1 = 2 qui faisaient entrer des clients à tort dans la population contentieuse (CTX)*
+### La codification PAY_n = 1
+**Premières observations (EDA lab)**  
+La codification 1 représente 12 % des valeurs de PAY_1 ; les autres colonnes n'en possèdent pas ou très peu (moins de 0,1 %). Elle suit principalement un compte inactif, un compte activé ou réactivé, ou un compte en incidents. Deux hypothèses sont apparues : une alerte interne ou externe sur le compte, ou une codification temporaire (relance du client, incident administratif ou financier en cours). J'avais aussi envisagé un vrai impayé de 30 jours, comme l'indique la nomenclature, qui traduirait l'emballement des impayés au plus fort de la crise de 2005 : l'étude dédiée a écarté cette lecture.
 
-**La codification 'PAY_n' = -2**
-95% de cette codification est expliqué par une utilisation de la carte en paiement comptant ou un encours nul ou négatif
-Cette codification signifie très probablement que le client n'a pas utilisé sa carte à crédit sur le mois
+Pourquoi nettoyer la colonne PAY_1 de ses 1 ? Les graphiques sont faussés sur ce mois, et le poids de cette colonne dans la décision des modèles varie à mesure que je la rectifie. D'autres features en dépendent (fréquence des incidents, cumul des codifications de retard d'un client).
 
-**Aberrations détectées :** éventuelles à traiter
-- 9 lignes présentant des montants payés et dus anormalement élevés par rapport à leur plafond, et par rapport au reste des valeurs présentes dans le datase
+**Étude dédiée** : [EDA codification 1](/src/05_04_EDA_codification1.ipynb)  
+J'ai repris toutes les analyses sur les PAY_n = 1 dans un notebook dédié pour trancher une fois pour toutes les corrections à garder.
+- PAY_1 = 1 est un **statut provisoire du dernier mois** : il n'existe presque qu'en M-1 et prend la place, en attendant, de sorties comme de retards maintenus que l'historique tranche ensuite. Ce n'est pas un retard d'un mois au sens de la documentation.
+- **Après une codification saine**, c'est une alerte ou un statut posé sur un compte sans dette ou dont la facture est soldée : le nettoyage les corrige, et ces clients se comportent ensuite comme des clients sains.
+- **Après un retard**, c'est un statut d'attente, avec une dette toujours due et des paiements partiels, dont l'issue n'est pas encore visible.
+
+**Corrections retenues (validées par l'étude dédiée)**, dans le notebook de nettoyage :
+- niveau 1 : le client 6783 a une codification PAY = 1 sur 4 mois alors qu'il paie chaque mois : sa codification est remise à 0 ;
+- niveau 2 : PAY_n = 1 sur une facture exigible nulle (BILL_AMT(n+1) <= 0) : PAY_n reprend la codification précédente PAY_(n+1), en cascade de PAY_5 vers PAY_1 (passes de vérification jusqu'à ce qu'aucune correction ne s'effectue) ; les PAY_n = 1 restants sur une facture nulle (quand la codification précédente est elle-même un 1) passent à 0. Pas de retard possible sans facture due ;
+- niveau 3 : si PAY_1 = 1, PAY_2 <= 0 et ratio_PAY_BILL1 >= 90 % (facture exigible BILL_AMT2 > 0), alors PAY_1 = PAY_2 : le client a soldé sa facture, il reprend sa codification antérieure ;
+- dans tous les autres cas (remboursement partiel ou nul), impossible de déterminer la vraie codification : PAY_1 = 1 est maintenu.
+
+Après le niveau 2, il reste 15 lignes avec une codification 1 en PAY_2 ou PAY_3 et 2512 lignes avec PAY_1 = 1 (8,6 % du dataset) ; après le niveau 3, il reste 1842 lignes avec PAY_1 = 1 (6,3 %), presque toutes après un retard (mois de transition, traité par le contentieux).
+
+*Ancienne version abandonnée (seuils à 4 % / 10 % et PAY_1 = PAY_2 si PAY_2 >= 2) : elle créait des PAY_1 = 2 qui faisaient entrer des clients à tort dans la population contentieuse (CTX).*
+
+**Les PAY_1 = 1 restants** : on ne peut pas les transformer davantage. Hors facture soldée (retour à la codification d'avant le retard) et absence de paiement sur deux factures dues (remise à 2), traitées au mois de transition par le contentieux, PAY_1 = 1 reste un statut d'attente. Cette codification est à encoder de manière spécifique pour le ML, et un modèle pourrait en départager une partie (piste d'amélioration). Deux features en découlent : la durée du dernier passage au CTX et le cumul des incidents sur 6 mois.
+
+### Décalage entre paiements et codification, sortie d'un retard
+- La codification est mise à jour avec **un mois de décalage** sur les paiements : un remboursement fait au mois n ne se voit dans la codification que le mois suivant. Il faut donc toujours regarder 2 mois avant de conclure à une absence de paiement ou à une sortie de retard.
+- J'ai cherché une règle de sortie de retard autre que le paiement (ratio de paiement sur un et deux mois, évolution du solde, niveau de la série de retards) : rien de probant. La sortie augmente progressivement avec ce que le client a payé, sans frontière nette ; seule la règle métier d'une dette réglée à 90 % ou plus tient. Seuls les retards profonds (codification à 4 ou plus) sortent nettement plus rarement, ce qui est attendu mais ne fait pas une règle.
+- Une partie des sorties se fait sans paiement visible (arrangement, plan de paiement, recouvrement...), et à l'inverse des clients qui ont remboursé restent codés en retard : payer n'est pas le seul facteur de sortie de la codification 2, et le dataset ne permet pas de voir le reste.
+- Des comptes en incidents voient ainsi leur note de risque fortement diminuer sans paiement effectif.
+
+### Aberrations détectées (éventuelles à traiter)
+- 9 lignes présentant des montants payés et dus anormalement élevés par rapport à leur plafond, et par rapport au reste des valeurs présentes dans le dataset
 - 692 lignes présentant des paiements sur des comptes à encours négatifs : expliqués majoritairement par des paiements supérieurs aux sommes dues
-- des comptes en incidents qui voient leur note de risque fortement diminuer sans paiement effectif
 
-**Population contentieuse (CTX)** : [EDA contentieux](/src/05_02_EDA_contentieux.ipynb)  
+### Population contentieuse (CTX)
+[EDA contentieux](/src/05_02_EDA_contentieux.ipynb)  
 Une poche de clients au taux de défaut très élevé plafonnait les performances du ML. Je l'isole par une règle métier : ces clients sont retirés du dataset ML et prédits en défaut.  
 Méthode : split train / test fait avant toute analyse, règles justifiées par la logique métier, `dpnm` utilisé uniquement pour valider sur le train, test utilisé une seule fois.  
 Définition retenue (définition 2) :
 - correction des faux 2 : un code 2 posé sur une facture nulle est neutralisé chez un client qui venait de payer (flag faux codage) et ne compte pas non plus pour le CTX sur un compte endormi (flag surveillance récente, cumulable avec un passage au CTX si d'autres 2 surviennent sur une vraie dette)
-- mois de transition (PAY_2 >= 2 puis PAY_1 <= 1) : PAY_1 est recodé selon le paiement de M-1, et remis à 2 seulement si deux factures exigibles sont restées impayées
+- mois de transition (PAY_2 >= 2 puis PAY_1 <= 1) : PAY_1 est remis à 2 si deux factures exigibles sont restées impayées (aucun paiement en M-1 ni en M-2), revient à la codification d'avant le retard si la facture de M-1 est soldée (90 % ou plus), et reste inchangé sinon
 - dans l'historique, un passage au CTX nécessite deux codes >= 2 successifs ; un 2 isolé est un retard régularisé ; un 2 isolé en M-6 est considéré comme un passage au CTX (M-7 inconnu)
 - à M-1, tout code >= 2 place au CTX, sauf facture payée à 90 % ou plus en M-1 ou M-2 (retard payé) : un retard isolé est codé comme une régularisation présumée ; un retard qui termine une série garde la trace du passage au CTX, avec une sortie présumée en M
 
 Les autres clients restent dans le ML avec des indicateurs de leur historique : antériorité et mois de sortie du CTX, retard régularisé et mois de régularisation (le retard payé à M-1 est codé avec un mois de sortie 0 : régularisation présumée s'il est isolé, sortie du CTX présumée s'il termine une série), surveillance récente, faux codage.  
 La codification des retards est très incohérente (un même code 2 recouvre un vrai retard, une surveillance de compte réactivé, un décalage de mise à jour...) : j'ai gardé les codes de la banque autant que possible et ne les corrige que lorsque les montants les contredisent.
-
-
-
 
 
 ## Restitution décisionnelle Power BI
