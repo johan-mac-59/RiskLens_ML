@@ -160,7 +160,7 @@ La codification des retards est très incohérente (un même code 2 recouvre un 
 
 ## Machine Learning
 Journal détaillé des expérimentations : [tableau ML](/lab_ML/tableau_ML.md)
-- Premiers essais sur les niveaux de nettoyage 0 à 3 et plusieurs scénarios de population, pilotés par un score maître (moyenne du ROC AUC et du F2 score)
+- Premiers essais sur les niveaux de nettoyage 0 à 3 et plusieurs scénarios de population, pilotés par un score de décision (moyenne du ROC AUC et du F2 score)
 - Feature engineering sur le niveau 3 et le périmètre `S12` (encours positif à M-1, plafond <= 500 000 NT$)
 - La variable `CTX` ajoutée en `S12_7` révèle une population contentieuse qui plafonne les modèles : étude dédiée (voir EDA, population contentieuse)
 - Redémarrage : le ML repart sur le dataset nettoyé de sa population contentieuse, les clients au CTX étant prédits en défaut par la règle métier. La règle seule sert de référence de départ ; le système complet (règle + modèle) sera évalué sur le même jeu de test

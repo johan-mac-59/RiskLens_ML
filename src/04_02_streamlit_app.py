@@ -658,7 +658,7 @@ L'enjeu est de déterminer si les habitudes de paiement et l'utilisation du cré
 
 ### 📚 Le dataset et l'étude de référence
 Ce dataset est la base de données publique qui résulte de [l'étude scientifique de I-Cheng Yeh et Che-hui Lien (2009)](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/DefaultCreditCardClients_yeh_2009.pdf) (traduit en français [ici](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/traduction_DefaultCreditCardClients_yeh_2009.md)). En pleine crise, une banque taïwanaise a confié aux chercheurs un échantillon anonymisé de 30 000 clients. Cette étude comparait plusieurs modèles pour repérer les clients à risque. Le meilleur, un réseau de neurones, obtenait un score de 0.54, ce qui correspond à un **AUC de 0.77**. L'AUC mesure la capacité d'un modèle à distinguer les bons payeurs des futurs défaillants. Mon but est de dépasser ce score.
-Ma démarche adopte un prisme résolument **orienté métier**. En combinant un nettoyage rigoureux des données et un pilotage par un score maître (moyenne du ROC AUC et du F2 score, qui privilégie le Recall), je cherche à optimiser la détection réelle des risques de défaut, garantissant ainsi une performance robuste et réellement actionnable pour la gestion des risques bancaires.
+Ma démarche adopte un prisme résolument **orienté métier**. En combinant un nettoyage rigoureux des données et un pilotage par un score de décision (moyenne du ROC AUC et du F2 score, qui privilégie le Recall), je cherche à optimiser la détection réelle des risques de défaut, garantissant ainsi une performance robuste et réellement actionnable pour la gestion des risques bancaires.
 
 ### 🔎 Ce que l'analyse va montrer
 1. Le portefeuille se dégrade mois après mois.
@@ -676,7 +676,7 @@ Pour découvrir comment des détails logistiques de l'époque (comme les règlem
 
     
 
-    st.markdown("**🚀 Objectif ML Engineer :** Mon but est de dépasser le score de référence de 2009 (ratio de surface de 0.54, soit un AUC de 0.77) avec un **score maître** qui combine le ROC AUC et le F2 score (le F2 privilégie le Recall). En banque, oublier un client à risque (Faux Négatif) coûte bien plus cher que de suspecter un client sûr (Faux Positif).")
+    st.markdown("**🚀 Objectif ML Engineer :** Mon but est de dépasser le score de référence de 2009 (ratio de surface de 0.54, soit un AUC de 0.77) avec un **score de décision** qui combine le ROC AUC et le F2 score (le F2 privilégie le Recall). En banque, oublier un client à risque (Faux Négatif) coûte bien plus cher que de suspecter un client sûr (Faux Positif).")
 
     st.markdown("---")
     st.subheader("🛠️ Roadmap du Projet")

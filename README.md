@@ -21,7 +21,7 @@ Le projet suit un cycle de vie data complet : du diagnostic initial et la struct
 L'enjeu est de déterminer si les habitudes de paiement et l'utilisation du crédit ainsi que les informations de bases d'un client sont des indicateurs suffisamment robustes pour anticiper un défaut, sans avoir accès à des données macro-économiques ou des scores de crédit externes.
 
 Ce dataset est la base de données publique qui résulte de l'[étude scientifique de I-Cheng Yeh et Che-hui Lien (2009)](/docs/DefaultCreditCardClients_yeh_2009.pdf) (traduit en français [ici](/docs/traduction_DefaultCreditCardClients_yeh_2009.md)). Cette étude comparait plusieurs modèles pour repérer les clients à risque. Le meilleur, un réseau de neurones, obtenait un score de 0.54, ce qui correspond à un **AUC de 0.77**. L'AUC mesure la capacité d'un modèle à distinguer les bons payeurs des futurs défaillants. Mon but est de dépasser ce score.
-Ma démarche adopte un prisme résolument **orienté métier**. En combinant un nettoyage rigoureux des données et un pilotage par un score maître (moyenne du ROC AUC et du F2 score, qui privilégie le Recall), je cherche à optimiser la détection réelle des risques de défaut, garantissant ainsi une performance robuste et réellement actionnable pour la gestion des risques bancaires.
+Ma démarche adopte un prisme résolument **orienté métier**. En combinant une compréhension approfondie du jeu de données (le fonctionnement de la banque, de ses codifications et des paiements de l'époque), un nettoyage rigoureux fondé sur des règles métier et un pilotage par un score de décision (moyenne du ROC AUC et du F2 score, qui privilégie le Recall), je cherche à optimiser la détection réelle des risques de défaut, garantissant ainsi une performance robuste et réellement actionnable pour la gestion des risques bancaires.
 
 
 #### 🕵️‍♂️ Pour aller plus loin : Les coulisses de la donnée
@@ -71,7 +71,7 @@ Pendant les premiers essais de ML, une poche de clients au taux de défaut très
 
 ### 🧠 Étape 6 : Machine Learning & Risques
 *   Entraînement et comparaison d'au moins 2 modèles via **GridSearch**, sur le dataset **nettoyé de sa population contentieuse** : [journal des expérimentations](/lab_ML/tableau_ML.md).
-*   Sélection du modèle optimal sur un **score maître** combinant ROC AUC et F2 score (le F2 privilégie le Recall : minimisation des faux négatifs).
+*   Sélection du modèle optimal sur un **score de décision** combinant ROC AUC et F2 score (le F2 privilégie le Recall : minimisation des faux négatifs).
 *   Évaluation du **système complet** (règle contentieux + modèle) sur le même jeu de test, comparée à la règle seule, aux premiers modèles et à l'étude de référence.
 *   **Évaluation des risques :** Analyse des biais, éthique et limites du modèle.
 

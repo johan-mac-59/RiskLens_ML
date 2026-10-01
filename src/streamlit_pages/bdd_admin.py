@@ -7,7 +7,8 @@ from streamlit_pages.commun import *
 # -------------------------------------------------------------
 # 2. ZONE PROTEGÉE (Authentification requise)
 # -------------------------------------------------------------
-st.subheader("🔐 Espace réservé à l'Administrateur")
+entete_partie_2()
+st.header("2.5 L'espace administrateur", anchor="admin")
 
 # CAS 1 : Non connecté -> Formulaire de connexion
 if "admin_auth" not in st.session_state:

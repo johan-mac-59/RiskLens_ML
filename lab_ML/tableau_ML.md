@@ -73,96 +73,96 @@ Afin d'évaluer les performances de telle ou telle modification du jeu de donné
 - ROC AUC indirectement utilisé par I-Cheng Yeh et Che-hui Lien pour évaluer les performances de leurs modèles
 - F2 score très adapté au milieu bancaire qui pénalise assez fortement la non détection de cas positifs
 J'applique la moyenne de ces 2 métriques pour chaque modèle pour obtenir un score moyen que j'uniformise à toutes mes expérimentations
-**Le seul critère de choix d'un scénario ou d'un modèle est ce score maître, mesuré en validation croisée sur le train.** Les résultats sur le jeu de test sont donnés à titre d'information (contrôle de la généralisation), jamais comme critère de choix.
+**Le seul critère de choix d'un scénario ou d'un modèle est ce score de décision, mesuré en validation croisée sur le train.** Les résultats sur le jeu de test sont donnés à titre d'information (contrôle de la généralisation), jamais comme critère de choix.
 
 ### Résultats de ces expérimentations sur le dataset initial
 
 S1 sert de base pour mesurer la progression éventuelle des scenarii suivants :
-🥇 CatBoost — Score Maître : 0.6881 | Recall  0.6310
-🥈 RandomForest — Score Maître : 0.6876
-🥉 LogisticRegression — Score Maître : 0.6492
+🥇 CatBoost — Score de décision : 0.6881 | Recall  0.6310
+🥈 RandomForest — Score de décision : 0.6876
+🥉 LogisticRegression — Score de décision : 0.6492
 
 **Résultats de `S2` :**  
-🥇 RandomForest — Score Maître : 0.688 | Recall  0.6350
-🥈 CatBoost — Score Maître : 0.6874
-🥉 LogisticRegression — Score Maître : 0.6494
+🥇 RandomForest — Score de décision : 0.688 | Recall  0.6350
+🥈 CatBoost — Score de décision : 0.6874
+🥉 LogisticRegression — Score de décision : 0.6494
 => neutre, à essayer en combinaison avec un autre scenario pour vérifier son impact
 
 **Résultats de `S3` :**  
-🥇 CatBoost — Score Maître : 0.6934 | Recall  0.6218
-🥈 RandomForest — Score Maître : 0.6915
-🥉 LogisticRegression — Score Maître : 0.6613
+🥇 CatBoost — Score de décision : 0.6934 | Recall  0.6218
+🥈 RandomForest — Score de décision : 0.6915
+🥉 LogisticRegression — Score de décision : 0.6613
 Hausse généralisée des performances de tous les modèles et généralisation des bonnes performances à tous les modèles, plus aucun n'est à la traîne mais légère baisse du recall  
 => scénario conservé  
 
 **Résultats de `S10` :** 
-🥇 CatBoost — Score Maître : 0.6924 | 0.6231
-🥈 RandomForest — Score Maître : 0.6918
-🥉 LogisticRegression — Score Maître : 0.6607
+🥇 CatBoost — Score de décision : 0.6924 | 0.6231
+🥈 RandomForest — Score de décision : 0.6918
+🥉 LogisticRegression — Score de décision : 0.6607
 Pas d'amélioration par rapport à `S3`
 => scénario écarté  
 
 **Résultats de `S7` :**  
-🥇 CatBoost — Score Maître : 0.6882 | Recall  0.6306
-🥈 RandomForest — Score Maître : 0.6876
-🥉 LogisticRegression — Score Maître : 0.6487
+🥇 CatBoost — Score de décision : 0.6882 | Recall  0.6306
+🥈 RandomForest — Score de décision : 0.6876
+🥉 LogisticRegression — Score de décision : 0.6487
 => scénario mis de côté
 
 **Résultats de `S8` :**  
-🥇 RandomForest — Score Maître : 0.6924 | Recall  0.6233
-🥈 CatBoost — Score Maître : 0.692
-🥉 LogisticRegression — Score Maître : 0.6607
+🥇 RandomForest — Score de décision : 0.6924 | Recall  0.6233
+🥈 CatBoost — Score de décision : 0.692
+🥉 LogisticRegression — Score de décision : 0.6607
 Aucune amélioration par rapport à `S3`  
 => scénario écarté
 
 **Résultats de `S4` :**  
-🥇 CatBoost — Score Maître : 0.6872 | Recall  0.6299
-🥈 RandomForest — Score Maître : 0.6864
-🥉 LogisticRegression — Score Maître : 0.6581
+🥇 CatBoost — Score de décision : 0.6872 | Recall  0.6299
+🥈 RandomForest — Score de décision : 0.6864
+🥉 LogisticRegression — Score de décision : 0.6581
 légère baisse des performances
 => scénario écarté
 
 **Résultats de `S9` :**  
-🥇 RandomForest — Score Maître : 0.6915 | Recall  0.621
-🥈 CatBoost — Score Maître : 0.6911
-🥉 LogisticRegression — Score Maître : 0.6669
+🥇 RandomForest — Score de décision : 0.6915 | Recall  0.621
+🥈 CatBoost — Score de décision : 0.6911
+🥉 LogisticRegression — Score de décision : 0.6669
 Pas d'amélioration par rapport à `S3`
 => scénario écarté
 
 **Résultats de `S11` :**  
-🥇 CatBoost — Score Maître : 0.6924 | Recall  0.6369
-🥈 RandomForest — Score Maître : 0.6899
-🥉 LogisticRegression — Score Maître : 0.6485
+🥇 CatBoost — Score de décision : 0.6924 | Recall  0.6369
+🥈 RandomForest — Score de décision : 0.6899
+🥉 LogisticRegression — Score de décision : 0.6485
 Très légère amélioration visible  
 perte de performance constaté sur le jeu de tests inhabituel mais pas anormal
 => scénario conservé 
 
 **Résultats de `S12` :**  
-🥇 CatBoost — Score Maître : 0.6889 | Recall  0.6136
-🥈 RandomForest — Score Maître : 0.687
-🥉 LogisticRegression — Score Maître : 0.6559
+🥇 CatBoost — Score de décision : 0.6889 | Recall  0.6136
+🥈 RandomForest — Score de décision : 0.687
+🥉 LogisticRegression — Score de décision : 0.6559
 Phénomène rare : meilleurs résultats sur le test que sur la validation  
 Performances moins bonnes que S3 seul ou S11 seul
 => scénario écarté
 
 **Résultats de `S13` :**  
-🥇 CatBoost — Score Maître : 0.6572 | Recall  0.6058
-🥈 RandomForest — Score Maître : 0.6543
-🥉 LogisticRegression — Score Maître : 0.6164
+🥇 CatBoost — Score de décision : 0.6572 | Recall  0.6058
+🥈 RandomForest — Score de décision : 0.6543
+🥉 LogisticRegression — Score de décision : 0.6164
 Performances dégradées de 0.0309 et recall abaissé de 0.0252
 => scécnario écarté pour la prédiction du risque à M
 
 **Résultats de `S14` :**  
-🥇 CatBoost — Score Maître : 0.683 | Recall  0.6238
-🥈 RandomForest — Score Maître : 0.6815
-🥉 LogisticRegression — Score Maître : 0.646
+🥇 CatBoost — Score de décision : 0.683 | Recall  0.6238
+🥈 RandomForest — Score de décision : 0.6815
+🥉 LogisticRegression — Score de décision : 0.646
 Performances dégradées
 => scénario écarté
 
 **Résultats de `S15` :**  
-🥇 CatBoost — Score Maître : 0.6576 | Recall  0.6073
-🥈 RandomForest — Score Maître : 0.6528
-🥉 LogisticRegression — Score Maître : 0.6199
+🥇 CatBoost — Score de décision : 0.6576 | Recall  0.6073
+🥈 RandomForest — Score de décision : 0.6528
+🥉 LogisticRegression — Score de décision : 0.6199
 Performances dégradées de plus de 3 points sur le score
 => scénario écarté
 
@@ -174,80 +174,80 @@ Seul les scénari `S3` et `S11` apportent une réelle valeur ajoutée et répond
 
 *Passage à cv=3 dans GridSearchCV pour gagner du temps sur les 2 premiers entrainements rapides.*
 `S1` sert de base pour mesurer la progression éventuelle des scenarii suivants :
-🥇 CatBoost — Score Maître : 0.6818 | Recall  0.6087
-🥈 RandomForest — Score Maître : 0.6807
-🥉 LogisticRegression — Score Maître : 0.652
+🥇 CatBoost — Score de décision : 0.6818 | Recall  0.6087
+🥈 RandomForest — Score de décision : 0.6807
+🥉 LogisticRegression — Score de décision : 0.652
 Légère baisse des performances par rapport au niveau de correction 0, notamment 2 points de recall
 
 **Résultats de `S2` :**  
-🥇 CatBoost — Score Maître : 0.6817 | Recall  0.6081
-🥈 RandomForest — Score Maître : 0.6805
-🥉 LogisticRegression — Score Maître : 0.6534
+🥇 CatBoost — Score de décision : 0.6817 | Recall  0.6081
+🥈 RandomForest — Score de décision : 0.6805
+🥉 LogisticRegression — Score de décision : 0.6534
 Performances stables
 => à combiner éventuellement avec d'autres scénarii
 
 **Résultats de `S3` :**  
-🥇 RandomForest — Score Maître : 0.692 | Recall  0.6191
-🥈 CatBoost — Score Maître : 0.6915
-🥉 LogisticRegression — Score Maître : 0.6621
+🥇 RandomForest — Score de décision : 0.692 | Recall  0.6191
+🥈 CatBoost — Score de décision : 0.6915
+🥉 LogisticRegression — Score de décision : 0.6621
 Améliorations de toutes les métriques
 => scénario conservé
 
 **Résultats de `S10` :**  
-🥇 RandomForest — Score Maître : 0.6913 | Recall  0.6174
-🥈 CatBoost — Score Maître : 0.6897
-🥉 LogisticRegression — Score Maître : 0.6602
+🥇 RandomForest — Score de décision : 0.6913 | Recall  0.6174
+🥈 CatBoost — Score de décision : 0.6897
+🥉 LogisticRegression — Score de décision : 0.6602
 Très légère régression par rapport à `S3` seul
 => scénario écarté
 
 **Résultats de `S7` :**  
-🥇 CatBoost — Score Maître : 0.681 | Recall  0.6109
-🥈 RandomForest — Score Maître : 0.6805
-🥉 LogisticRegression — Score Maître : 0.653
+🥇 CatBoost — Score de décision : 0.681 | Recall  0.6109
+🥈 RandomForest — Score de décision : 0.6805
+🥉 LogisticRegression — Score de décision : 0.653
 Performances équivalentes à `S1`
 => à combiner avec un autre scénario
 
 **Résultats de `S8` :** 
-🥇 RandomForest — Score Maître : 0.6908 | Recall  0.6191
-🥈 CatBoost — Score Maître : 0.6906
-🥉 LogisticRegression — Score Maître : 0.6601
+🥇 RandomForest — Score de décision : 0.6908 | Recall  0.6191
+🥈 CatBoost — Score de décision : 0.6906
+🥉 LogisticRegression — Score de décision : 0.6601
 Pas d'améliorations par rapport à `S3` seul
 => scénario écarté
 
 **Résultats de `S4` :**  
-🥇 RandomForest — Score Maître : 0.6789 | Recall  0.6040
-🥈 CatBoost — Score Maître : 0.6774
-🥉 LogisticRegression — Score Maître : 0.6573
+🥇 RandomForest — Score de décision : 0.6789 | Recall  0.6040
+🥈 CatBoost — Score de décision : 0.6774
+🥉 LogisticRegression — Score de décision : 0.6573
 Légère baisse des performances
 => scénario écarté
 
 **Résultats de `S11` :**  
-🥇 CatBoost — Score Maître : 0.6867 | Recall  0.6148
-🥈 RandomForest — Score Maître : 0.6841
-🥉 LogisticRegression — Score Maître : 0.6537
+🥇 CatBoost — Score de décision : 0.6867 | Recall  0.6148
+🥈 RandomForest — Score de décision : 0.6841
+🥉 LogisticRegression — Score de décision : 0.6537
 baisse des performances légères
 Phénomène notable : perte de recall sur le jeu de tests
 => scénario écarté
 
 **Résultats de `S13` :**  
-🥇 CatBoost — Score Maître : 0.6467 | Recall  0.5806
-🥈 RandomForest — Score Maître : 0.6455
-🥉 LogisticRegression — Score Maître : 0.6296
+🥇 CatBoost — Score de décision : 0.6467 | Recall  0.5806
+🥈 RandomForest — Score de décision : 0.6455
+🥉 LogisticRegression — Score de décision : 0.6296
 Performances dégradées de 0.0351 et recall abaissé de 0.0281
 => scécnario écarté pour la prédiction du risque à M
 
 **Résultats de `S14` :**  
-🥇 CatBoost — Score Maître : 0.6776 | Recall  0.6075
-🥈 RandomForest — Score Maître : 0.6761
-🥉 LogisticRegression — Score Maître : 0.6467
+🥇 CatBoost — Score de décision : 0.6776 | Recall  0.6075
+🥈 RandomForest — Score de décision : 0.6761
+🥉 LogisticRegression — Score de décision : 0.6467
 LR a un recall de 0.6516 !
 performances légèrement moins bonnes
 => scénario écarté
 
 **Résultats de `S15` :**  
-🥇 CatBoost — Score Maître : 0.6472 | Recall  0.5771
-🥈 RandomForest — Score Maître : 0.6373
-🥉 LogisticRegression — Score Maître : 0.6298
+🥇 CatBoost — Score de décision : 0.6472 | Recall  0.5771
+🥈 RandomForest — Score de décision : 0.6373
+🥉 LogisticRegression — Score de décision : 0.6298
 Perte de plus de 3 points de performances et recall
 => scénario écarté
 
@@ -258,84 +258,84 @@ Seul le `scénario 3` apporte une réelle valeur ajoutée et répond de surcroit
 ### Résultats de ces expérimentations sur le dataset avec niveau 2 de corrections
 
 `S1` sert de base pour mesurer la progression éventuelle des scenarii suivants :
-🥇 CatBoost — Score Maître : 0.6807 | Recall  0.6097
-🥈 RandomForest — Score Maître : 0.679
-🥉 LogisticRegression — Score Maître : 0.649
+🥇 CatBoost — Score de décision : 0.6807 | Recall  0.6097
+🥈 RandomForest — Score de décision : 0.679
+🥉 LogisticRegression — Score de décision : 0.649
 Légère baisse des performances par rapport au dataset initial
 Très légère baisse des performances et recall stable par rapport aux corrections de niveau 1
 
 **Résultats de `S2` :**  
-🥇 CatBoost — Score Maître : 0.6802 | Recall  0.6095
-🥈 RandomForest — Score Maître : 0.679
-🥉 LogisticRegression — Score Maître : 0.6485
+🥇 CatBoost — Score de décision : 0.6802 | Recall  0.6095
+🥈 RandomForest — Score de décision : 0.679
+🥉 LogisticRegression — Score de décision : 0.6485
 Perfomances stables
 => scénario écarté
 
 **Résultats de `S3` :**  
-🥇 RandomForest — Score Maître : 0.6917 | Recall  0.6181
-🥈 CatBoost — Score Maître : 0.6909 | 0.6195
-🥉 LogisticRegression — Score Maître : 0.6595
+🥇 RandomForest — Score de décision : 0.6917 | Recall  0.6181
+🥈 CatBoost — Score de décision : 0.6909 | 0.6195
+🥉 LogisticRegression — Score de décision : 0.6595
 Améliorations notables de toutes les performances
 => scénario conservé
 
 **Résultats de `S10` :**  
-🥇 CatBoost — Score Maître : 0.6913 | Recall  0.6210
-🥈 RandomForest — Score Maître : 0.6906 | 0.6185
-🥉 LogisticRegression — Score Maître : 0.6596
+🥇 CatBoost — Score de décision : 0.6913 | Recall  0.6210
+🥈 RandomForest — Score de décision : 0.6906 | 0.6185
+🥉 LogisticRegression — Score de décision : 0.6596
 pas d'améliorataion par rapport à `S3` seul
 => scénario écarté
 
 **Résultats de `S7` :**  
-🥇 CatBoost — Score Maître : 0.6808 | Recall  0.6091
-🥈 RandomForest — Score Maître : 0.679
-🥉 LogisticRegression — Score Maître : 0.6484
+🥇 CatBoost — Score de décision : 0.6808 | Recall  0.6091
+🥈 RandomForest — Score de décision : 0.679
+🥉 LogisticRegression — Score de décision : 0.6484
 Performances équivalentes à `S1`
 => scénario écarté
 
 **Résultats de `S8` :** 
-🥇 RandomForest — Score Maître : 0.6918 | Recall  0.6183
-🥈 CatBoost — Score Maître : 0.6905
-🥉 LogisticRegression — Score Maître : 0.6597
+🥇 RandomForest — Score de décision : 0.6918 | Recall  0.6183
+🥈 CatBoost — Score de décision : 0.6905
+🥉 LogisticRegression — Score de décision : 0.6597
 Pas d'amélioration par rapport à `S3` seul  
 => scénario écarté
 
 **Résultats de `S4` :**  
-🥇 CatBoost — Score Maître : 0.6787 | Recall  0.6063
-🥈 RandomForest — Score Maître : 0.6779
-🥉 LogisticRegression — Score Maître : 0.6533
+🥇 CatBoost — Score de décision : 0.6787 | Recall  0.6063
+🥈 RandomForest — Score de décision : 0.6779
+🥉 LogisticRegression — Score de décision : 0.6533
 Perte de performances
 => scénario écarté
 
 **Résultats de `S11` :**  
-🥇 CatBoost — Score Maître : 0.687 | Recall  0.6158
-🥈 RandomForest — Score Maître : 0.683
-🥉 LogisticRegression — Score Maître : 0.65
+🥇 CatBoost — Score de décision : 0.687 | Recall  0.6158
+🥈 RandomForest — Score de décision : 0.683
+🥉 LogisticRegression — Score de décision : 0.65
 Très légère amélioration des performances 
 => scénario conservé
 
 **Résultats de `S12` :**  
-🥇 CatBoost — Score Maître : 0.6875 | Recall  0.6169
-🥈 RandomForest — Score Maître : 0.6842
-🥉 LogisticRegression — Score Maître : 0.6528 
+🥇 CatBoost — Score de décision : 0.6875 | Recall  0.6169
+🥈 RandomForest — Score de décision : 0.6842
+🥉 LogisticRegression — Score de décision : 0.6528 
 Performances similaires à `S11` mais inférieures à `S3`  
 => scénario écarté
 
 **Résultats de `S13` :**  
-🥇 CatBoost — Score Maître : 0.6467 | Recall  0.5806
-🥈 RandomForest — Score Maître : 0.6451
-🥉 LogisticRegression — Score Maître : 0.6295
+🥇 CatBoost — Score de décision : 0.6467 | Recall  0.5806
+🥈 RandomForest — Score de décision : 0.6451
+🥉 LogisticRegression — Score de décision : 0.6295
 Performances dégradées de 0.0340 et recall abaissé de 0.0291
 => scécnario écarté pour la prédiction du risque à M
 
 **Résultats de `S14` :**  
-🥇 CatBoost — Score Maître : 0.677 | Recall  0.6055
-🥈 RandomForest — Score Maître : 0.675
-🥉 LogisticRegression — Score Maître : 0.6409
+🥇 CatBoost — Score de décision : 0.677 | Recall  0.6055
+🥈 RandomForest — Score de décision : 0.675
+🥉 LogisticRegression — Score de décision : 0.6409
 
 **Résultats de `S15` :**  
-🥇 CatBoost — Score Maître : 0.6472 | Recall  0.5814
-🥈 RandomForest — Score Maître : 0.6402
-🥉 LogisticRegression — Score Maître : 0.6295
+🥇 CatBoost — Score de décision : 0.6472 | Recall  0.5814
+🥈 RandomForest — Score de décision : 0.6402
+🥉 LogisticRegression — Score de décision : 0.6295
 Perte de plus de 3 points de performances et pres de 3 points de recall
 => scénario écarté
 
@@ -349,82 +349,82 @@ Performances légèrement moins bonnes
 *Résultats obtenus avec la v1 du niveau 3 (abandonnée, voir section 1).*
 
 `S1` sert de base pour mesurer la progression éventuelle des scenarii suivants :
-🥇 CatBoost — Score Maître : 0.6808 | Recall  0.611
-🥈 RandomForest — Score Maître : 0.6786
-🥉 LogisticRegression — Score Maître : 0.6431
+🥇 CatBoost — Score de décision : 0.6808 | Recall  0.611
+🥈 RandomForest — Score de décision : 0.6786
+🥉 LogisticRegression — Score de décision : 0.6431
 Un tout petit peu moins bon que le niveau de correction 0, équivalent aux niveau 1 et 2
 
 **Résultats de `S2` :**  
-🥇 CatBoost — Score Maître : 0.6789 | Recall  0.6093
-🥈 RandomForest — Score Maître : 0.678
-🥉 LogisticRegression — Score Maître : 0.6423
+🥇 CatBoost — Score de décision : 0.6789 | Recall  0.6093
+🥈 RandomForest — Score de décision : 0.678
+🥉 LogisticRegression — Score de décision : 0.6423
 pas d'amélioration des performances  
 => scénario écarté
 
 **Résultats de `S3` :**  
-🥇 CatBoost — Score Maître : 0.6907 | Recall  0.6214
-🥈 RandomForest — Score Maître : 0.6891
-🥉 LogisticRegression — Score Maître : 0.66
+🥇 CatBoost — Score de décision : 0.6907 | Recall  0.6214
+🥈 RandomForest — Score de décision : 0.6891
+🥉 LogisticRegression — Score de décision : 0.66
 Amélioration générales de toute les performances
 => scénario conservé
 
 **Résultats de `S7` :**  
-🥇 CatBoost — Score Maître : 0.6805 | Recall  0.6107
-🥈 RandomForest — Score Maître : 0.6786
-🥉 LogisticRegression — Score Maître : 0.6432
+🥇 CatBoost — Score de décision : 0.6805 | Recall  0.6107
+🥈 RandomForest — Score de décision : 0.6786
+🥉 LogisticRegression — Score de décision : 0.6432
 Pas d'amélioration par rapport à S1  
 => scénario écarté
 
 **Résultats de `S8` :**  
-🥇 CatBoost — Score Maître : 0.6908 | Recall  0.6212
-🥈 RandomForest — Score Maître : 0.6891
-🥉 LogisticRegression — Score Maître : 0.6599
+🥇 CatBoost — Score de décision : 0.6908 | Recall  0.6212
+🥈 RandomForest — Score de décision : 0.6891
+🥉 LogisticRegression — Score de décision : 0.6599
 Performances stables par rapport à `S3` seul
 => scénario à mettre de côté
 
 **Résultats de `S4` :**  
-🥇 CatBoost — Score Maître : 0.6793 | Recall  0.6093
-🥈 RandomForest — Score Maître : 0.6763
-🥉 LogisticRegression — Score Maître : 0.6516
+🥇 CatBoost — Score de décision : 0.6793 | Recall  0.6093
+🥈 RandomForest — Score de décision : 0.6763
+🥉 LogisticRegression — Score de décision : 0.6516
 pas d'amélioration des performances
 => scénario écarté
 
 **Résultats de `S11` :**  
-🥇 CatBoost — Score Maître : 0.6856 | Recall  0.6170
-🥈 RandomForest — Score Maître : 0.6824
-🥉 LogisticRegression — Score Maître : 0.6467
+🥇 CatBoost — Score de décision : 0.6856 | Recall  0.6170
+🥈 RandomForest — Score de décision : 0.6824
+🥉 LogisticRegression — Score de décision : 0.6467
 Amélioration des performances
 Phénomène notable : baisse du recall de 2 points du recall sur le test
 => scénario conservé
 
 **Résultats de `S12` :**  
-🥇 CatBoost — Score Maître : 0.686 | Recall  0.6209
-🥈 RandomForest — Score Maître : 0.6842
-🥉 LogisticRegression — Score Maître : 0.6519
+🥇 CatBoost — Score de décision : 0.686 | Recall  0.6209
+🥈 RandomForest — Score de décision : 0.6842
+🥉 LogisticRegression — Score de décision : 0.6519
 Phénomène notable : résultats meilleurs sur le jeu de tests
 Très légère amélioration des performances par rapport à `S11`
 Pas d'amélioration par rapport à `S3`
 => scénario conservé en lieu et place de `S11`
 
 **Résultats de `S13` :**  
-🥇 CatBoost — Score Maître : 0.6467 | Recall 0.5806
-🥈 RandomForest — Score Maître : 0.6417
-🥉 LogisticRegression — Score Maître : 0.6295 | Recall 0.6441
+🥇 CatBoost — Score de décision : 0.6467 | Recall 0.5806
+🥈 RandomForest — Score de décision : 0.6417
+🥉 LogisticRegression — Score de décision : 0.6295 | Recall 0.6441
 Performances dégradées de 0.0341 et recall abaissé de 0.0304
 A noter un recall élevé pour LR
 => scécnario écarté pour la prédiction du risque à M
 
 **Résultats de `S14` :**  
-🥇 CatBoost — Score Maître : 0.6768 | Recall  0.6099
-🥈 RandomForest — Score Maître : 0.6736
-🥉 LogisticRegression — Score Maître : 0.6337
+🥇 CatBoost — Score de décision : 0.6768 | Recall  0.6099
+🥈 RandomForest — Score de décision : 0.6736
+🥉 LogisticRegression — Score de décision : 0.6337
 Performances légèrement dégradées
 => scénario écarté
 
 **Résultats de `S15` :**  
-🥇 CatBoost — Score Maître : 0.6472 | Recall  0.5814
-🥈 RandomForest — Score Maître : 0.6405
-🥉 LogisticRegression — Score Maître : 0.6281
+🥇 CatBoost — Score de décision : 0.6472 | Recall  0.5814
+🥈 RandomForest — Score de décision : 0.6405
+🥉 LogisticRegression — Score de décision : 0.6281
 Dégradation de plus de 3 points du score et du recall
 => scénario écarté
 
@@ -457,48 +457,48 @@ Ne sont traités que les clients avec un encours positif strict en M-1, et un pl
 
 Je crée un pipeline simplifié
 `S12_0` référence
-🥇 CatBoost — Score Maître : 0.6865 | Recall  0.6196
-🥈 RandomForest — Score Maître : 0.6771
-🥉 LogisticRegression — Score Maître : 0.6515
+🥇 CatBoost — Score de décision : 0.6865 | Recall  0.6196
+🥈 RandomForest — Score de décision : 0.6771
+🥉 LogisticRegression — Score de décision : 0.6515
 
 `S12_1` : ajout des colonnes ratio_BILL_LIMITn = BILL_AMTn / LIMIT_BAL
 Limite à 200% pour limiter le bruit de certaines valeurs aberrantes
 Limite basse à 0% pour les encours non utilisés ou négatifs
-🥇 CatBoost — Score Maître : 0.6877 | Recall  0.6211
-🥈 RandomForest — Score Maître : 0.6791
-🥉 LogisticRegression — Score Maître : 0.6507
+🥇 CatBoost — Score de décision : 0.6877 | Recall  0.6211
+🥈 RandomForest — Score de décision : 0.6791
+🥉 LogisticRegression — Score de décision : 0.6507
 => nouveau scénario privilégié
 
 `S12_2` : `S12_1` + 'AGE' décomposé en bins pertinents
 L'âge n'est presque pas utilisé par les modèles pour prédire le défaut. Et pour cause, j'ai constaté que l'âge n'avait de sens que s'il est traité par tranches pour le mettre en corrélation avec le défaut de paiement.
 Nouvelle Feature : tranches d'âge 'AGE_BUCKET' en remplacement de 'AGE'.  
-🥇 CatBoost — Score Maître : 0.6866 | Recall  0.6175
-🥈 RandomForest — Score Maître : 0.6773
-🥉 LogisticRegression — Score Maître : 0.6505
+🥇 CatBoost — Score de décision : 0.6866 | Recall  0.6175
+🥈 RandomForest — Score de décision : 0.6773
+🥉 LogisticRegression — Score de décision : 0.6505
 => scénario écarté
 
 `S12_3` : `S12_1` + ajout des colonnes de ratio de paiement / encours utilisé
 Elles indiquent au modèle indirectement si le client paie sa dette ou non, et quelle proportion, en évitant les NaN (si un client n'a pas de dette à M-1, on considère qu'il a payé 100%)
 $\text{ratio\_PAY\_BILLn} = \begin{cases} \min\left(\max\left(\frac{\text{PAY\_AMTn}}{\text{BILL\_AMTn+1}}, \, 0.0\right), \, 2.0\right) & \text{si } \text{BILL\_AMTn+1} > 0 \\ 1.0 & \text{si } \text{BILL\_AMTn+1} \le 0 \end{cases}$
-🥇 CatBoost — Score Maître : 0.6878 | Recall  0.6180
-🥈 RandomForest — Score Maître : 0.6787
-🥉 LogisticRegression — Score Maître : 0.6593
+🥇 CatBoost — Score de décision : 0.6878 | Recall  0.6180
+🥈 RandomForest — Score de décision : 0.6787
+🥉 LogisticRegression — Score de décision : 0.6593
 *Même définition que la colonne `ratio_PAY_BILLn` créée dans `02_01_nettoyage` (écrêtée entre 0 et 200 %, 100 % sans facture exigible), exprimée ici en fraction (0 à 2, 1 = 100 %).*  
 pas de gain, les informations étaient déjà présentes
 => scnéario écarté
 
 `S12_4` : `S12_0` + substitution des colonnes PAY_AMTn et BILL_AMTn au profit des ratios de `S12_1` ration_BILL_LIMITn et `S12_3` ratio_PAY_BILLn
-🥇 CatBoost — Score Maître : 0.686 | Recall  0.6150
-🥈 RandomForest — Score Maître : 0.6773
-🥉 LogisticRegression — Score Maître : 0.6505
+🥇 CatBoost — Score de décision : 0.686 | Recall  0.6150
+🥈 RandomForest — Score de décision : 0.6773
+🥉 LogisticRegression — Score de décision : 0.6505
 pas de gain
 => scénario écarté
 
 `S12_5` : `S12_1` + classer les clients par leur type d'usage (paiement différé total, crédit, autres)
 pour ce faire, on va utiliser les colonnes ratio_PAY_BILLn (PAY_AMTn / BILL_AMT(n+1)) pour regarder la médiane par client ratio_PAY_to_BILL_median et laisser les modèles faire leur propre découpage pour le lier au défaut de paiement
-🥇 CatBoost — Score Maître : 0.6878 | Recall  0.6226
-🥈 RandomForest — Score Maître : 0.6793
-🥉 LogisticRegression — Score Maître : 0.6569
+🥇 CatBoost — Score de décision : 0.6878 | Recall  0.6226
+🥈 RandomForest — Score de décision : 0.6793
+🥉 LogisticRegression — Score de décision : 0.6569
 Très légère amélioration des performances par rapport à `S12_1`
 => nouveau scnéario privilégié
 
@@ -513,9 +513,9 @@ on va regarder l'activation des comptes sur la période et les taguer comme suit
 - actif depuis m-1 : 1
 intéret : Ajouter un flag pour les clients récents qui peuvent avoir un 'ratio_PAY_to_BILL_median' trompeur  
 De plus, cela ajoute un indicateur aux modèles : client récent, activation de compte, réactivation de compte, sortie de contentieux.  
-🥇 CatBoost — Score Maître : 0.6885 | Recall  0.6247
-🥈 RandomForest — Score Maître : 0.6789
-🥉 LogisticRegression — Score Maître : 0.6622
+🥇 CatBoost — Score de décision : 0.6885 | Recall  0.6247
+🥈 RandomForest — Score de décision : 0.6789
+🥉 LogisticRegression — Score de décision : 0.6622
 Cette variable a un impact légèrement positif sur les prédictions
 => nouveau scénario privilégié
 
@@ -525,18 +525,18 @@ Créer une variable "flag" appelée 'CTX' qui est True si :
 - PAY_n == 2 sur les 6 mois
 - PAY_n == 2 et ((PAY_(n+1)>2) & (BILL_AMT(n+1)>0) & (PAY_AMTn == 0)) *(convention corrigée le 27/09/2026 : la facture exigible au mois n est BILL_AMT(n+1) ; les résultats ci-dessous ont été obtenus avec BILL_AMTn)*
 sinon False
-🥇 CatBoost — Score Maître : 0.6875 | Recall  0.6198
-🥈 RandomForest — Score Maître : 0.6772
-🥉 LogisticRegression — Score Maître : 0.66
+🥇 CatBoost — Score de décision : 0.6875 | Recall  0.6198
+🥈 RandomForest — Score de décision : 0.6772
+🥉 LogisticRegression — Score de décision : 0.66
 Ce premier résultat (moins bon que `S12_6` et surtout moins bon qu'attendu malgré une variable ultra discriminante implémentée) sans besoin de brider les modèles qui sont d'habitude en surapprentissage est un message, d'autant plus que les arbres n'utilisent pas cette variable : il y a peut etre un sous apprentissage par manque de profondeur. Je décide d'augmenter les fenêtres de paramètres pour ce scénario :  
-🥇 CatBoost — Score Maître : 0.6875 | Recall  0.6198
-🥈 RandomForest — Score Maître : 0.6846
-🥉 LogisticRegression — Score Maître : 0.66
+🥇 CatBoost — Score de décision : 0.6875 | Recall  0.6198
+🥈 RandomForest — Score de décision : 0.6846
+🥉 LogisticRegression — Score de décision : 0.66
 Aucune évolution donc pas la cause du problème. Probable que les modèles avaient déjà compris par eux-mêmes cette anomalie
 Autre test pour vérifer un aspect étonnant (progression de 2 points de toutes les perf pour tous les modèles sur le jeu de test) : répartir équitablement les clients présumés 'CTX' :
-🥇 CatBoost — Score Maître : 0.6872 | Recall  0.6221
-🥈 RandomForest — Score Maître : 0.6848
-🥉 LogisticRegression — Score Maître : 0.6562
+🥇 CatBoost — Score de décision : 0.6872 | Recall  0.6221
+🥈 RandomForest — Score de décision : 0.6848
+🥉 LogisticRegression — Score de décision : 0.6562
 Même si les résultats ne progressent pas (CTX n'est pas uniformisé dans les boucles du cross_validation), les résultats sur le jeu de tests surperforment encore davantage que précédemment, atteignant des scores jamais atteints auparavant. C'est la preuve que la variable 'CTX' a un impact fort. Ici, je suis confronté à un dilemne : conserver cette variable et l'intégrer de manière uniforme partout et sortir cette clientèle du circuit des clients sains, en entreprise j'aurais pu avoir ma réponse sur cette classification, mais je ne peux que supposer ici.
 **71.27% des clients ayant un encours et étant taggé contentieux sont en défaut de paiement à M.**  
 **Dans le jeu de données initial, 77.55% de taux de défaut de paiement pour les clients avec PAY_n = 2 sur les 6 mois**

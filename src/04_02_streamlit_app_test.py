@@ -64,20 +64,22 @@ pages = {
     "": [
         st.Page("streamlit_pages/p0_accueil.py", title="Accueil & Présentation", icon=":material/home:", default=True),
     ],
-    "Les données": [
+    "1. Les données": [
         st.Page("streamlit_pages/p1_donnees.py", title="1. Les données : ce qu'on mesure", icon=":material/table_chart:"),
     ],
-    "La base de données et l'API": [
-        st.Page("streamlit_pages/bdd_architecture.py", title="Architecture et API", icon=":material/database:"),
-        st.Page("streamlit_pages/bdd_demo.py", title="Démo de l'API", icon=":material/terminal:"),
-        st.Page("streamlit_pages/bdd_admin.py", title="Espace administrateur", icon=":material/lock:"),
+    "2. La base de données et l'API REST": [
+        st.Page("streamlit_pages/bdd_chargement.py", title="2.1 Du fichier CSV à la base de données", icon=":material/upload_file:"),
+        st.Page("streamlit_pages/bdd_modelisation.py", title="2.2 La modélisation de la base", icon=":material/database:"),
+        st.Page("streamlit_pages/bdd_api.py", title="2.3 L'API REST", icon=":material/api:"),
+        st.Page("streamlit_pages/bdd_demo.py", title="2.4 Démo de l'API : les clients et leur historique", icon=":material/terminal:"),
+        st.Page("streamlit_pages/bdd_admin.py", title="2.5 L'espace administrateur", icon=":material/lock:"),
     ],
     "3. Comprendre le jeu de données : des anomalies aux règles métier": [
         st.Page("streamlit_pages/p3_1_audit.py", title="3.1 Audit : un fichier complet, mais des valeurs anormales", icon=":material/search:"),
         st.Page("streamlit_pages/p3_2_montants.py", title="3.2 Les montants : erreurs de saisie ou réalité de l'époque ?", icon=":material/payments:"),
         st.Page("streamlit_pages/p3_3_codifications.py", title="3.3 Les codifications : une étiquette de la banque, à lire avec les paiements", icon=":material/pin:"),
     ],
-    "Analyse exploratoire": [
+    "4. Analyse exploratoire": [
         st.Page("streamlit_pages/analyses_actuelles.py", title="Analyses (version actuelle)", icon=":material/bar_chart:"),
     ],
 }

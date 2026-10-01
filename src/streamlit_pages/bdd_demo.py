@@ -2,7 +2,8 @@ from streamlit_pages.commun import *
 
 mappings = load_mappings()
 
-st.title("🧪 Démo de l'API : les clients et leur historique")
+entete_partie_2()
+st.header("2.4 Démo de l'API : les clients et leur historique", anchor="demo")
 
 st.markdown("""
 **Ce que vous consultez** : la base de données SQLite du projet. Elle contient les 30 000 clients du jeu de données d'origine, après un nettoyage structurel (les valeurs du niveau d'études et du statut marital absentes de la nomenclature sont ramenées à « autres »). Les données y sont rangées comme dans une banque : une table des clients (profil, plafond, défaut du mois suivant) et une table de l'historique mensuel (facture, paiement et codification de paiement de chaque mois, d'avril à septembre 2005). Les codifications sont traduites en libellés grâce à des tables de correspondance.

@@ -89,6 +89,8 @@ Vingt-trois variables explicatives ($X_1$ à $X_{23}$) ont été retenues :
 Les données ont été divisées aléatoirement en deux groupes : l'un pour l'entraînement du modèle, l'autre pour la validation. 
 Le taux d'erreur s'avérant insuffisant et insensible dans un contexte déséquilibré (où 87,88 % des clients sont solvables), cette étude utilise **le ratio de surface dans le graphique de lift** (*Lift Chart*) comme critère d'évaluation de la précision de classification, défini par :
 
+*Note du traducteur : « 87,88 % » figure tel quel dans l'article original, mais ce chiffre est incompatible avec les 22,12 % de clients en défaut annoncés plus haut (5 529 sur 25 000) ; la valeur cohérente est 77,88 %. Il s'agit vraisemblablement d'une faute de frappe, sans effet sur le raisonnement : la classe des défauts reste minoritaire.*
+
 $$\text{Ratio de surface} = \frac{\text{Aire entre la courbe du modèle et la courbe de référence (baseline)}}{\text{Aire entre la courbe théoriquement optimale et la courbe de référence}}$$
 
 ### 3.2. Résultats de classification
