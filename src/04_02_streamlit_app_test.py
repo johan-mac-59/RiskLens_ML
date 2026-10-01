@@ -69,6 +69,9 @@ pages = {
         st.Page("streamlit_pages/bdd_demo.py", title="Démo de l'API", icon=":material/terminal:"),
         st.Page("streamlit_pages/bdd_admin.py", title="Espace administrateur", icon=":material/lock:"),
     ],
+    "Comprendre le jeu de données": [
+        st.Page("streamlit_pages/p3_comprendre.py", title="Des anomalies aux règles métier", icon=":material/search:"),
+    ],
     "Analyse exploratoire": [
         st.Page("streamlit_pages/analyses_actuelles.py", title="Analyses (version actuelle)", icon=":material/bar_chart:"),
     ],

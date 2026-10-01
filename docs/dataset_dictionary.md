@@ -1,3 +1,12 @@
+# Dictionnaire du dataset « Default of Credit Card Clients »
+
+*Note : les deux blocs ci-dessous sont repris tels quels, en anglais, de la page du dataset sur l'UCI Machine Learning Repository. Le premier bloc (« Variables Table ») décrit chaque variable ; le second (« Additional Variable Information ») détaille leur contenu, d'après l'étude de Yeh et Lien (2009). La page Kaggle du dataset ne fournit pas d'explication des données.*
+
+*Dans ce projet, `PAY_0` est renommée `PAY_1` (pour suivre la numérotation de `BILL_AMT1` et `PAY_AMT1`) et la cible « default payment next month » est renommée `dpnm`.*
+
+*Source : UCI Machine Learning Repository, « Default of Credit Card Clients » : https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients*
+
+---
 
 Variables Table
 
