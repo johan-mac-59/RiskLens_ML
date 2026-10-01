@@ -7,18 +7,13 @@ from streamlit_pages.commun import *
 # ==============================================================================
 GH = "https://github.com/johan-mac-59/RiskLens_ML/blob/main/src"
 
-st.title("🔎 Comprendre le jeu de données : des anomalies aux règles métier")
-st.markdown("""
-Les données ne se lisent pas telles quelles. Chaque incohérence repérée a soulevé une question, prolongé l'enquête et abouti à une **règle métier**. C'est ce qui a conduit à étudier une population définie par ces règles, en écartant le plus possible les incohérences.
-
-Chaque étape suit le même fil : **anomalie constatée → question posée → enquête → règle retenue**.
-""")
+entete_partie_3()
 
 # ------------------------------------------------------------------------------
 # 3.1 UN FICHIER COMPLET, MAIS DES VALEURS HORS NOMENCLATURE
 # ------------------------------------------------------------------------------
 st.markdown("---")
-st.header("3.1 Constat : un fichier complet, mais des valeurs anormales", anchor="constat")
+st.header("3.1 Audit : un fichier complet, mais des valeurs anormales", anchor="audit")
 
 st.markdown(f"""
 La première étape est l'**audit** du fichier d'origine ([01_01_audit.ipynb]({GH}/01_01_audit.ipynb)) : on le compare à sa documentation officielle ([dataset_dictionary.md](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/dataset_dictionary.md)), qui prévoit les valeurs suivantes.
@@ -50,7 +45,7 @@ st.dataframe(pd.DataFrame({
         "un paiement dépasse le plus haut plafond, à plusieurs centaines de fois la médiane",
     ],
 }), hide_index=True, width="stretch")
-st.caption("Montants en NT$. Pour les factures et les paiements, la médiane varie selon le mois : la plage indiquée va du mois le plus bas au plus haut.")
+st.caption("Montants en NT\\$. Pour les factures et les paiements, la médiane varie selon le mois : la plage indiquée va du mois le plus bas au plus haut.")
 
 st.subheader("Le niveau d'études et le statut marital : quelques valeurs inconnues")
 st.markdown("Répartition dans le fichier d'origine, avant nettoyage :")
@@ -118,15 +113,15 @@ st.markdown("Ces montants négatifs sont étudiés avec les autres montants (3.2
 
 st.subheader("Des paiements sans commune mesure avec les factures")
 st.markdown(f"""
-On compare chaque paiement à la facture qu'il règle : le paiement d'un mois (`PAY_AMTn`) rembourse la facture du mois précédent (`BILL_AMT(n+1)`). Le rapport paiement / facture, calculé quand une facture est due, atteint des valeurs démesurées (définitions du lab, [05_01_EDA_lab.ipynb]({GH}/05_01_EDA_lab.ipynb), cellules 52, 55 et 58 ; calcul refait sur les 30 000 clients, le lab ayant mis de côté les 4 clients aux paiements géants) :
+On compare chaque paiement à la facture qu'il règle : le paiement d'un mois (`PAY_AMTn`) rembourse la facture du mois précédent (`BILL_AMT(n+1)`). Ce **ratio de paiement** (montant payé divisé par la facture à régler, en %), calculé quand une facture est due, atteint des valeurs démesurées (définitions du lab, [05_01_EDA_lab.ipynb]({GH}/05_01_EDA_lab.ipynb), cellules 52, 55 et 58 ; calcul refait sur les 30 000 clients, le lab ayant mis de côté les 4 clients aux paiements géants) :
 """)
 st.dataframe(pd.DataFrame({
     "Mois du paiement": ["M-5 (mai)", "M-4 (juin)", "M-3 (juil.)", "M-2 (août)", "M-1 (sept.)"],
-    "Rapport médian": ["5,59 %", "5,17 %", "6,17 %", "7,75 %", "7,83 %"],
-    "Rapport maximum": ["69 066 %", "12 971 %", "444 433 %", "500 100 %", "444 433 %"],
+    "Ratio de paiement médian": ["5,59 %", "5,17 %", "6,17 %", "7,75 %", "7,83 %"],
+    "Ratio de paiement maximum": ["69 066 %", "12 971 %", "444 433 %", "500 100 %", "444 433 %"],
 }), hide_index=True, width="stretch")
 st.markdown("""
-Sur l'ensemble des mois, le rapport médian est de 6,57 %, mais **90 clients** ont au moins un rapport supérieur à 1 000 %, et le maximum atteint **500 100 %**.
+Sur l'ensemble des mois, le ratio de paiement médian est de 6,57 %, mais **90 clients** ont au moins un mois où ils paient plus de 10 fois leur facture (ratio supérieur à 1 000 %), et le maximum atteint **500 100 %**.
 
 Des paiements arrivent même **alors qu'aucune facture n'était due** (facture nulle ou négative) : **692 clients** sont concernés au moins une fois, soit 2,31 % des clients :
 """)
@@ -160,5 +155,5 @@ Corriger le niveau d'études et le statut marital était simple. Pour le reste, 
 
 J'ai donc quitté les mathématiques pour l'enquête. Je me suis renseigné sur l'époque, la crise et le fonctionnement des cartes à Taïwan, puis j'ai confronté chaque hypothèse aux données, en revenant à des cas concrets quand les chiffres seuls ne suffisaient pas.
 
-La suite raconte cette enquête : ce que les montants et les codifications révèlent quand on les lit en tenant compte de ce contexte (3.2), puis les règles qui en sont sorties (3.3).
+La suite raconte cette enquête : ce que révèlent les montants (3.2) et les codifications (3.3) quand on les lit en tenant compte de ce contexte, puis les règles qui en sont sorties (3.4).
 """)

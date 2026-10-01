@@ -69,8 +69,9 @@ pages = {
         st.Page("streamlit_pages/bdd_demo.py", title="Démo de l'API", icon=":material/terminal:"),
         st.Page("streamlit_pages/bdd_admin.py", title="Espace administrateur", icon=":material/lock:"),
     ],
-    "Comprendre le jeu de données": [
-        st.Page("streamlit_pages/p3_comprendre.py", title="Des anomalies aux règles métier", icon=":material/search:"),
+    "3. Comprendre le jeu de données : des anomalies aux règles métier": [
+        st.Page("streamlit_pages/p3_1_audit.py", title="3.1 Audit : un fichier complet, mais des valeurs anormales", icon=":material/search:"),
+        st.Page("streamlit_pages/p3_2_montants.py", title="3.2 Les montants : erreurs de saisie ou réalité de l'époque ?", icon=":material/payments:"),
     ],
     "Analyse exploratoire": [
         st.Page("streamlit_pages/analyses_actuelles.py", title="Analyses (version actuelle)", icon=":material/bar_chart:"),

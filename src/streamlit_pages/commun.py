@@ -119,3 +119,15 @@ def load_global_default_rate():
     except Exception:
         # Repli sur le dataset local si l'API ne répond pas
         return round(df["dpnm"].mean() * 100, 2)
+
+
+# ==============================================================================
+# EN-TÊTE COMMUN AUX PAGES DE LA PARTIE 3
+# ==============================================================================
+def entete_partie_3():
+    st.title("🔎 Comprendre le jeu de données : des anomalies aux règles métier")
+    st.markdown("""
+    Les données ne se lisent pas telles quelles. Chaque incohérence repérée a soulevé une question, prolongé l'enquête et abouti à une **règle métier**. C'est ce qui a conduit à étudier une population définie par ces règles, en écartant le plus possible les incohérences.
+
+    Chaque étape suit le même fil : **anomalie constatée → question posée → enquête → règle retenue**.
+    """)
