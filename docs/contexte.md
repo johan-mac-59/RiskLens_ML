@@ -88,7 +88,7 @@ C'est d'ailleurs pour éviter ce scénario que certaines autorités réglementai
 
 
 *sources*
-*« The comparisons of data mining techniques for the predictive accuracy of probability of default of credit card clients », publié en 2009 par I-Cheng Yeh et Che-hui Lien dans la revue Expert Systems with Applications*
-*Default of Credit Card Clients Dataset*
-*Rapports officiels de la Financial Supervisory Commission (FSC) de Taïwan et données historiques de la Banque centrale taïwanaise (2005)*
-*dictionnaire et des distributions du jeu de données*
+*« The comparisons of data mining techniques for the predictive accuracy of probability of default of credit card clients », publié en 2009 par I-Cheng Yeh et Che-hui Lien dans la revue Expert Systems with Applications*  
+*Default of Credit Card Clients Dataset*  
+*Rapports officiels de la Financial Supervisory Commission (FSC) de Taïwan et données historiques de la Banque centrale taïwanaise (2005)*  
+*dictionnaire et des distributions du jeu de données*  
