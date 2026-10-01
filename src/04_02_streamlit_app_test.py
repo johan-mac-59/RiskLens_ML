@@ -64,6 +64,9 @@ pages = {
     "": [
         st.Page("streamlit_pages/p0_accueil.py", title="Accueil & Présentation", icon=":material/home:", default=True),
     ],
+    "Les données": [
+        st.Page("streamlit_pages/p1_donnees.py", title="1. Les données : ce qu'on mesure", icon=":material/table_chart:"),
+    ],
     "La base de données et l'API": [
         st.Page("streamlit_pages/bdd_architecture.py", title="Architecture et API", icon=":material/database:"),
         st.Page("streamlit_pages/bdd_demo.py", title="Démo de l'API", icon=":material/terminal:"),
