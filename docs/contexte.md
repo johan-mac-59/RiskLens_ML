@@ -84,3 +84,11 @@ Un angle mort réglementaire : Une innovation financière (crédit revolving en 
 Un choc de fermeture du robinet : Un resserrement soudain de la distribution de crédit (intervention du régulateur, remontée des taux ou resserrement des liquidités par les investisseurs) qui empêche les emprunteurs de refinancer leurs dettes à court terme.
 
 C'est d'ailleurs pour éviter ce scénario que certaines autorités réglementaires de plusieurs pays encadrent désormais très strictement le crédit à la consommation et les solutions de paiement fractionné.
+
+
+
+*sources*
+*« The comparisons of data mining techniques for the predictive accuracy of probability of default of credit card clients », publié en 2009 par I-Cheng Yeh et Che-hui Lien dans la revue Expert Systems with Applications*
+*Default of Credit Card Clients Dataset*
+*Rapports officiels de la Financial Supervisory Commission (FSC) de Taïwan et données historiques de la Banque centrale taïwanaise (2005)*
+*dictionnaire et des distributions du jeu de données*
