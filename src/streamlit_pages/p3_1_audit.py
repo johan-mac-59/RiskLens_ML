@@ -87,7 +87,7 @@ familles = {
     "1": repartition[1],
     "2 et plus": 100 - repartition[[-2, -1, 0, 1]].sum(axis=1),
 }
-couleurs = ["#9e9e9e", "#c7c7c7", "#2ca02c", "#ff7f0e", "#d62728"]
+couleurs = [COULEURS_CODIF["-2"], COULEURS_CODIF["0"], COULEURS_CODIF["-1"], COULEURS_CODIF["1"], COULEURS_CODIF["2 et plus"]]
 
 fig_codif = go.Figure()
 for (nom, valeurs), couleur in zip(familles.items(), couleurs):
@@ -99,7 +99,7 @@ st.plotly_chart(fig_codif, width="stretch")
 
 st.markdown("""
 Autres constats de l'enquête :
-- **9 821 clients** sont codifiés **0 sur les 6 mois**, et **2 109 clients -2 sur les 6 mois** (lab, cellules 12 et 16 ; chiffres identiques sur les 30 000 clients du fichier d'origine) : ces valeurs non documentées ne sont pas des cas isolés.
+- **9 821 clients** sont codifiés **0 sur les 6 mois**, et **2 109 clients -2 sur les 6 mois** (EDA_lab, cellules 12 et 16 ; chiffres identiques sur les 30 000 clients du fichier d'origine) : ces valeurs non documentées ne sont pas des cas isolés.
 - **Le nom des colonnes diffère aussi** : le dictionnaire du dataset appelle `PAY_0` la codification de septembre. Elle est renommée `PAY_1` dans ce projet, pour suivre la numérotation des factures (`BILL_AMT1`) et des paiements (`PAY_AMT1`).
 """)
 
@@ -109,11 +109,11 @@ st.dataframe(pd.DataFrame(
     [["2,29 %", "2,18 %", "2,25 %", "2,18 %", "2,23 %", "1,97 %"]],
     columns=mois, index=["Factures négatives"]
 ), width="stretch")
-st.markdown("Ces montants négatifs sont étudiés avec les autres montants (3.2).")
+st.markdown("Ces montants négatifs sont étudiés avec les autres montants (page « 3.2 Les montants »).")
 
 st.subheader("Des paiements sans commune mesure avec les factures")
 st.markdown(f"""
-On compare chaque paiement à la facture qu'il règle : le paiement d'un mois (`PAY_AMTn`) rembourse la facture du mois précédent (`BILL_AMT(n+1)`). Ce **ratio de paiement** (montant payé divisé par la facture à régler, en %), calculé quand une facture est due, atteint des valeurs démesurées (définitions du lab, [05_01_EDA_lab.ipynb]({GH}/05_01_EDA_lab.ipynb), cellules 52, 55 et 58 ; calcul refait sur les 30 000 clients, le lab ayant mis de côté les 4 clients aux paiements géants) :
+On compare chaque paiement à la facture qu'il règle : le paiement d'un mois (`PAY_AMTn`) rembourse la facture du mois précédent (`BILL_AMT(n+1)`). Ce **ratio de paiement** (montant payé divisé par la facture à régler, en %), calculé quand une facture est due, atteint des valeurs démesurées (définitions de l'EDA_lab, [05_01_EDA_lab.ipynb]({GH}/05_01_EDA_lab.ipynb), cellules 52, 55 et 58 ; calcul refait sur les 30 000 clients, l'EDA_lab ayant mis de côté les 4 clients aux paiements géants) :
 """)
 st.dataframe(pd.DataFrame({
     "Mois du paiement": ["M-5 (mai)", "M-4 (juin)", "M-3 (juil.)", "M-2 (août)", "M-1 (sept.)"],
@@ -133,7 +133,7 @@ st.dataframe(pd.DataFrame(
 
 st.subheader("Des clients sans facture, pourtant notés en défaut")
 st.markdown(f"""
-La facture de fin septembre (`BILL_AMT1`) est celle à payer en octobre, le mois sur lequel porte le défaut de paiement à prédire. Pourtant, des clients qui n'ont rien à payer en octobre sont notés en défaut, plus souvent même que l'ensemble des clients ([05_01_EDA_lab.ipynb]({GH}/05_01_EDA_lab.ipynb), cellules 40, 42 et 43). Le lab calcule sur 29 996 clients, après le retrait de 4 clients aux paiements géants ; ces 4 clients ont tous des factures positives, les chiffres sont donc identiques sur les 30 000 clients du fichier d'origine :
+La facture de fin septembre (`BILL_AMT1`) est celle à payer en octobre, le mois sur lequel porte le défaut de paiement à prédire. Pourtant, des clients qui n'ont rien à payer en octobre sont notés en défaut, plus souvent même que l'ensemble des clients ([05_01_EDA_lab.ipynb]({GH}/05_01_EDA_lab.ipynb), cellules 40, 42 et 43). L'EDA_lab calcule sur 29 996 clients, après le retrait de 4 clients aux paiements géants ; ces 4 clients ont tous des factures positives, les chiffres sont donc identiques sur les 30 000 clients du fichier d'origine :
 """)
 st.dataframe(pd.DataFrame({
     "Situation": ["Facture de septembre nulle ou négative", "Factures négatives sur les 6 mois", "Factures nulles sur les 6 mois", "Ensemble des clients"],
@@ -155,5 +155,5 @@ Corriger le niveau d'études et le statut marital était simple. Pour le reste, 
 
 J'ai donc quitté les mathématiques pour l'enquête. Je me suis renseigné sur l'époque, la crise et le fonctionnement des cartes à Taïwan, puis j'ai confronté chaque hypothèse aux données, en revenant à des cas concrets quand les chiffres seuls ne suffisaient pas.
 
-La suite raconte cette enquête : ce que révèlent les montants (3.2) et les codifications (3.3) quand on les lit en tenant compte de ce contexte, puis les règles qui en sont sorties (3.4).
+La suite raconte cette enquête : ce que révèlent les montants (page « 3.2 Les montants ») et les codifications (page « 3.3 Les codifications ») quand on les lit en tenant compte de ce contexte, puis les règles qui en sont sorties (page « 3.4 Décisions »).
 """)

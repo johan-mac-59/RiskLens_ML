@@ -131,3 +131,35 @@ def entete_partie_3():
 
     Chaque étape suit le même fil : **anomalie constatée → question posée → enquête → règle retenue**.
     """)
+
+
+# ==============================================================================
+# PALETTE GÉNÉRALE DES GRAPHIQUES : « Safe » de Plotly (px.colors.qualitative.Safe), lisible par les daltoniens
+# Les teintes réservées aux codifications (COULEURS_CODIF) ne sont pas réutilisées ailleurs, pour garder leur sens
+# ==============================================================================
+COULEURS = {
+    "bleu_pale": "#88CCEE",
+    "rouge_pale": "#CC6677",
+    "jaune": "#DDCC77",
+    "vert_fonce": "#117733",
+    "mauve": "#332288",
+    "violet": "#AA4499",
+    "turquoise": "#44AA99",
+    "olive": "#999933",
+    "bordeaux": "#882255",
+    "gris": "#888888",
+}
+
+
+# ==============================================================================
+# COULEURS DES CODIFICATIONS DE PAIEMENT (palette « Safe » de Plotly, lisible par les daltoniens)
+# Du plus risqué au moins risqué : couleurs chaudes pour les retards, froides pour les codifications saines
+# ==============================================================================
+COULEURS_CODIF = {
+    "2 et plus": "#CC6677",  # rouge pâle
+    "1": "#DDCC77",          # jaune orangé
+    "0": "#88CCEE",          # bleu pâle
+    "-1": "#117733",         # vert foncé
+    "-2": "#332288",         # mauve foncé
+}
+

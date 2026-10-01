@@ -72,6 +72,7 @@ pages = {
     "3. Comprendre le jeu de données : des anomalies aux règles métier": [
         st.Page("streamlit_pages/p3_1_audit.py", title="3.1 Audit : un fichier complet, mais des valeurs anormales", icon=":material/search:"),
         st.Page("streamlit_pages/p3_2_montants.py", title="3.2 Les montants : erreurs de saisie ou réalité de l'époque ?", icon=":material/payments:"),
+        st.Page("streamlit_pages/p3_3_codifications.py", title="3.3 Les codifications : une étiquette de la banque, à lire avec les paiements", icon=":material/pin:"),
     ],
     "Analyse exploratoire": [
         st.Page("streamlit_pages/analyses_actuelles.py", title="Analyses (version actuelle)", icon=":material/bar_chart:"),

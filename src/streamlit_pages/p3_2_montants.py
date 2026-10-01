@@ -43,10 +43,10 @@ stats_box = {
 fig_box = make_subplots(rows=1, cols=2, subplot_titles=["Factures (NT$)", "Paiements (NT$)"])
 for col, (nom, s) in enumerate(stats_box.items(), start=1):
     fig_box.add_trace(go.Box(x=mois_box, q1=s["q1"], median=s["med"], q3=s["q3"], lowerfence=s["mini"], upperfence=s["maxi"],
-                             name=nom, boxpoints=False, marker_color="#1f77b4" if col == 1 else "#ff7f0e"), row=1, col=col)
+                             name=nom, boxpoints=False, marker_color=COULEURS["turquoise"] if col == 1 else COULEURS["violet"]), row=1, col=col)
     # Médiane mise en évidence : trait rouge par-dessus chaque boîte
     fig_box.add_trace(go.Scatter(x=mois_box, y=s["med"], mode="markers", name="Médiane",
-                                 marker=dict(symbol="line-ew", size=36, line=dict(width=4, color="#d62728")),
+                                 marker=dict(symbol="line-ew", size=36, line=dict(width=4, color=COULEURS["rouge_pale"])),
                                  hovertemplate="Médiane : %{y:,.0f}<extra></extra>"), row=1, col=col)
 fig_box.update_layout(height=520, showlegend=False, margin=dict(t=50))
 st.plotly_chart(fig_box, width="stretch")
@@ -64,26 +64,26 @@ st.dataframe(pd.DataFrame({
     "Soit, en fois le plafond": ["3,4", "12,8", "2,4", "3,6"],
 }), hide_index=True, width="stretch")
 st.markdown("""
-Dépasser son plafond de quelques dizaines de pourcents est possible avec une carte de crédit ; payer plusieurs fois le plafond autorisé, en un seul mois, ne l'est pas. Ces 4 lignes ressemblent fortement à des erreurs. Entre 500 000 et 1 000 000 NT\\$, en revanche, le constat est plus nuancé : 7 autres clients y ont un paiement, qui va de 0,7 à 1,7 fois leur plafond (lab, cellule 5). Ces dépassements restent modérés, loin des multiples observés chez les 4 clients précédents.
+Dépasser son plafond de quelques dizaines de pourcents est possible avec une carte de crédit ; payer plusieurs fois le plafond autorisé, en un seul mois, ne l'est pas. Ces 4 lignes ressemblent fortement à des erreurs. Entre 500 000 et 1 000 000 NT\\$, en revanche, le constat est plus nuancé : 7 autres clients y ont un paiement, qui va de 0,7 à 1,7 fois leur plafond (EDA_lab, cellule 5). Ces dépassements restent modérés, loin des multiples observés chez les 4 clients précédents.
 """)
 
 st.subheader("2. Des factures et des paiements au-delà du plafond")
 st.markdown("""
-Les autres dépassements restent rares (lab, cellules 8 et 9, sur 29 996 clients, les 4 paiements géants étant mis de côté) :
+Les autres dépassements restent rares (EDA_lab, cellules 8 et 9, sur 29 996 clients, les 4 paiements géants étant mis de côté) :
 """)
 st.dataframe(pd.DataFrame({
     "Dépassement": ["Une facture au-delà de 2,1 fois le plafond", "Un paiement d'au moins 1,2 fois le plafond", "Un paiement d'au moins 2,1 fois le plafond"],
     "Clients": [40, 78, 12],
 }), hide_index=True, width="stretch")
 st.markdown(f"""
-Dans le crédit renouvelable, dépasser son plafond est rare mais possible ; au-delà de 120 %, c'est difficile. Pourtant, ce seuil serait trop sévère ici : des clients paient en avance, d'autres remboursent toute leur carte chaque mois, et un paiement fait en fin de mois en supérette peut n'être enregistré que le mois suivant. Pour les plus gros écarts, deux explications restent possibles mais invérifiables : une **baisse du plafond** par la banque pendant la période, plausible en pleine crise, quand le régulateur resserre l'endettement ; ou une **erreur de saisie** au guichet (un montant multiplié par 100, ou saisi deux fois). La lecture des lignes concernées ne montre pas d'aberration flagrante : ces dépassements traduisent plutôt un usage intensif de la carte (lab, cellules 10, 160 et 162).
+Dans le crédit renouvelable, dépasser son plafond est rare mais possible ; au-delà de 120 %, c'est difficile. Pourtant, ce seuil serait trop sévère ici : des clients paient en avance, d'autres remboursent toute leur carte chaque mois, et un paiement fait en fin de mois en supérette peut n'être enregistré que le mois suivant. Pour les plus gros écarts, deux explications restent possibles mais invérifiables : une **baisse du plafond** par la banque pendant la période, plausible en pleine crise, quand le régulateur resserre l'endettement ; ou une **erreur de saisie** au guichet (un montant multiplié par 100, ou saisi deux fois). La lecture des lignes concernées ne montre pas d'aberration flagrante : ces dépassements traduisent plutôt un usage intensif de la carte (EDA_lab, cellules 10, 160 et 162).
 
-**Une hypothèse de fond : le plafond n'est pas une vérité intemporelle.** Le dataset ne donne qu'**un seul plafond par client**, sans date. Il s'agit vraisemblablement du plafond en vigueur au mois M, quand les données ont été extraites, mais rien ne dit qu'il était le même d'avril à septembre. En pleine crise, une banque pouvait réduire le plafond d'un client en difficulté, ou l'ajuster après une revue de ses revenus. Une facture d'avril qui dépasse le plafond de septembre n'est donc pas forcément une anomalie : le plafond d'avril était peut-être plus élevé. Se fier à ce plafond comme référence pour les 6 mois est une erreur à éviter ; c'est aussi une précaution pour toute mesure de l'utilisation du plafond dans le temps (lab, cellule 10).
+**Une hypothèse de fond : le plafond n'est pas une vérité intemporelle.** Le dataset ne donne qu'**un seul plafond par client**, sans date. Il s'agit vraisemblablement du plafond en vigueur au mois M, quand les données ont été extraites, mais rien ne dit qu'il était le même d'avril à septembre. En pleine crise, une banque pouvait réduire le plafond d'un client en difficulté, ou l'ajuster après une revue de ses revenus. Une facture d'avril qui dépasse le plafond de septembre n'est donc pas forcément une anomalie : le plafond d'avril était peut-être plus élevé. Se fier à ce plafond comme référence pour les 6 mois est une erreur à éviter ; c'est aussi une précaution pour toute mesure de l'utilisation du plafond dans le temps (EDA_lab, cellule 10).
 """)
 
 st.subheader("3. Des ratios de paiement démesurés")
 st.markdown("""
-Le ratio de paiement compare le montant payé à la facture qu'il règle. 486 clients ont au moins un mois où ils paient plus de 2,1 fois leur facture (ratio supérieur à 210 %) (lab, cellule 61). Certaines lignes révèlent une erreur de saisie probable, comme le client 344 :
+Le ratio de paiement compare le montant payé à la facture qu'il règle. 486 clients ont au moins un mois où ils paient plus de 2,1 fois leur facture (ratio supérieur à 210 %) (EDA_lab, cellule 61). Certaines lignes révèlent une erreur de saisie probable, comme le client 344 :
 """)
 st.dataframe(pd.DataFrame({
     "Mois": ["Avril", "Mai"],
@@ -91,25 +91,25 @@ st.dataframe(pd.DataFrame({
     "Paiement (NT$)": [1898, 101005],
 }), hide_index=True, width="stretch")
 st.markdown(f"""
-En mai, ce client paie 101 005 NT\\$ pour une facture de 1 005 NT\\$ : un « 100 » s'est probablement glissé devant le montant, et sa facture devient négative. Mais ces cas restent isolés. La plupart des ratios extrêmes viennent de **très petites factures** : payer 1 000 NT\\$ pour une facture de 5 NT\\$ donne déjà un ratio de 20 000 %. Quand on ne garde que les factures d'au moins 100 NT\\$, il ne reste que 48 cas où le client paie plus de 10 fois sa facture (ratio supérieur à 1 000 %) sur toute la période (lab, cellule 65), et ils ne présentent pas d'anomalie visible.
+En mai, ce client paie 101 005 NT\\$ pour une facture de 1 005 NT\\$ : un « 100 » s'est probablement glissé devant le montant, et sa facture devient négative. Mais ces cas restent isolés. La plupart des ratios extrêmes viennent de **très petites factures** : payer 1 000 NT\\$ pour une facture de 5 NT\\$ donne déjà un ratio de 20 000 %. Quand on ne garde que les factures d'au moins 100 NT\\$, il ne reste que 48 cas où le client paie plus de 10 fois sa facture (ratio supérieur à 1 000 %) sur toute la période (EDA_lab, cellule 65), et ils ne présentent pas d'anomalie visible.
 
-Le décalage d'enregistrement des paiements explique une bonne part de ces écarts : un paiement réglé en espèces en fin de mois et enregistré le mois suivant fait apparaître un mois de paiement trop élevé, et un mois sans paiement. Corriger ces lignes une à une est impossible ; il faut plutôt limiter le poids des valeurs extrêmes (lab, cellules 60, 62 et 66).
+Le décalage d'enregistrement des paiements explique une bonne part de ces écarts : un paiement réglé en espèces en fin de mois et enregistré le mois suivant fait apparaître un mois de paiement trop élevé, et un mois sans paiement. Ces écarts traduisent donc le plus souvent un paiement réel, mal placé dans le temps, plutôt qu'une erreur (EDA_lab, cellules 60, 62 et 66).
 
 **Les erreurs de saisie plus discrètes sont indétectables.** Un « 100 » ajouté devant un montant saute aux yeux ; un chiffre inversé ou un montant faussé de quelques centaines de NT\\$ se fond au contraire dans les montants ordinaires. Rien ne permet de distinguer une telle erreur d'un paiement réel : ce type d'erreur ne peut pas être repéré, et donc pas être nettoyé. Il fait partie du bruit que les données gardent quoi qu'on fasse.
 """)
 
 st.subheader("4. Des valeurs négatives")
 st.markdown(f"""
-Aucun paiement n'est négatif (le minimum est 0), mais environ 2 % des factures le sont chaque mois (3.1). Une facture négative est un **solde créditeur** : la banque doit de l'argent au client. Trois situations se distinguent :
-- **un remboursement supérieur au dû** : les 692 clients qui paient alors qu'aucune facture n'était due ont, pour la plupart, simplement trop remboursé, et leur facture suivante devient négative (lab, cellules 51 et 53). C'est cohérent avec un paiement en espèces au comptoir, souvent d'un montant arrondi, ou avec un paiement fait avant l'enregistrement du précédent ;
-- **un solde créditeur qui dort** : 63 clients ont une facture négative et identique sur les 6 mois, dont 48 sans aucun paiement (lab, cellules 190 et 191). C'est un avoir resté sur un compte inactif, sans aucune dette envers la banque (lab, cellule 194) ;
-- **un solde créditeur qui varie** : le client continue d'utiliser sa carte, son solde repasse ensuite au-dessus de zéro ; ce sont des clients actifs (lab, cellule 196).
+Aucun paiement n'est négatif (le minimum est 0), mais environ 2 % des factures le sont chaque mois (page « 3.1 Audit »). Une facture négative est un **solde créditeur** : la banque doit de l'argent au client. Trois situations se distinguent :
+- **un remboursement supérieur au dû** : les 692 clients qui paient alors qu'aucune facture n'était due ont, pour la plupart, simplement trop remboursé, et leur facture suivante devient négative (EDA_lab, cellules 51 et 53). C'est cohérent avec un paiement en espèces au comptoir, souvent d'un montant arrondi, ou avec un paiement fait avant l'enregistrement du précédent ;
+- **un solde créditeur qui dort** : 63 clients ont une facture négative et identique sur les 6 mois, dont 48 sans aucun paiement (EDA_lab, cellules 190 et 191). C'est un avoir resté sur un compte inactif, sans aucune dette envers la banque (EDA_lab, cellule 194) ;
+- **un solde créditeur qui varie** : le client continue d'utiliser sa carte, son solde repasse ensuite au-dessus de zéro ; ce sont des clients actifs (EDA_lab, cellule 196).
 
-Ces situations sont plausibles : les factures négatives sont conservées. Elles n'entrent simplement pas dans le ratio de paiement, calculé seulement quand une facture est due.
+Ces situations sont plausibles : une facture négative traduit un comportement réel, pas une erreur. Elle n'entre simplement pas dans le ratio de paiement, calculé seulement quand une facture est due.
 """)
 
 st.info("""
-**Ce que révèlent les montants** : très peu d'erreurs franches (4 paiements géants, quelques montants probablement mal saisis, les erreurs plus discrètes restant indétectables), et surtout des comportements réels de l'époque : paiements en avance ou en retard, remboursements supérieurs au dû, soldes créditeurs, usage intensif de la carte. Plutôt que de supprimer ces clients, il faut limiter l'influence des valeurs extrêmes. Les règles retenues sont détaillées en 3.3.
+**Ce que révèlent les montants** : très peu d'erreurs franches (4 paiements géants, quelques montants probablement mal saisis, les erreurs plus discrètes restant indétectables), et surtout des comportements réels de l'époque : paiements en avance ou en retard, remboursements supérieurs au dû, soldes créditeurs, usage intensif de la carte. La plupart de ces montants atypiques décrivent donc des clients réels, et non des anomalies. Les règles qui en découlent sont détaillées sur la page « 3.4 Décisions ».
 """)
 
 
