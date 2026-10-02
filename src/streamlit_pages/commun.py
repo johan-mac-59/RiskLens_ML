@@ -142,6 +142,25 @@ def entete_partie_3():
     Les données ne se lisent pas telles quelles. Chaque incohérence repérée a soulevé une question, prolongé l'enquête et abouti à une **règle métier**. C'est ce qui a conduit à étudier une population définie par ces règles, en écartant le plus possible les incohérences.
 
     Chaque étape suit le même fil : **anomalie constatée → question posée → enquête → règle retenue**.
+
+    Le **taux de défaut** cité dans cette partie est la part des clients en défaut de paiement en octobre 2005, le mois qui suit les six mois de données. Il sert à décrire, jamais à fixer une règle.
+    """)
+
+
+# ==============================================================================
+# EN-TÊTE COMMUN AUX PAGES DE LA PARTIE 4
+# ==============================================================================
+def nombre_fr(n, decimales=0):
+    """Nombre au format français : espace pour les milliers, virgule pour les décimales."""
+    return f"{n:,.{decimales}f}".replace(",", " ").replace(".", ",")
+
+
+def entete_partie_4(df):
+    st.title("📊 4. Explorer le portefeuille : profils, usage de la carte, paiements et défauts")
+    st.markdown(f"""
+    Les données sont désormais fiables. Cette partie les explore sous tous les angles : le profil des clients, l'usage qu'ils font de leur carte (paiement comptant ou crédit), leur comportement de paiement, la vie de leurs comptes, puis les retards et le défaut de paiement. Chaque étape éclaire le risque de défaut. C'est au fil de cette exploration qu'est apparue une population à part, celle des clients en gestion contentieuse : une réalité métier qu'il a fallu constater, nommer, puis définir pour ce dataset (partie 5).
+
+    Les analyses portent sur les **{nombre_fr(len(df))} clients** retenus par le nettoyage (page « 3.5 Décisions ») et sont calculées en direct sur ces données. Le **taux de défaut**, c'est-à-dire la part des clients en défaut de paiement en octobre 2005, le mois qui suit les six mois de données, y est en moyenne de **{nombre_fr(df['dpnm'].mean() * 100, 1)} %**. Les taux affichés décrivent des tendances et ne servent à fixer aucune règle.
     """)
 
 
@@ -160,6 +179,7 @@ COULEURS = {
     "olive": "#999933",
     "bordeaux": "#882255",
     "gris": "#888888",
+    "orange": "#EE7733",  # repère (ex. ligne de moyenne), absent de la palette des barres
 }
 
 

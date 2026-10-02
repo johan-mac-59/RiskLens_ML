@@ -118,5 +118,5 @@ col_b.metric("Défaut de paiement en octobre", "22,12 %")
 col_c.metric("Âge médian", "34 ans", help="De 21 à 79 ans")
 col_d.metric("Plafond médian", "140 000 NT$", help="De 10 000 à 1 000 000 NT$")
 st.markdown("""
-Un peu plus d'un client sur cinq (6 636 clients) fait défaut de paiement en octobre. La répartition détaillée des variables, et leurs valeurs anormales, sont présentées dans l'audit (page « 3.1 Audit »).
+Un peu plus d'un client sur cinq (6 636 clients) fait défaut de paiement en octobre. Dans la suite, cette part de clients en défaut de paiement en octobre 2005 est appelée le **taux de défaut**. La répartition détaillée des variables, et leurs valeurs anormales, sont présentées dans l'audit (page « 3.1 Audit »).
 """)

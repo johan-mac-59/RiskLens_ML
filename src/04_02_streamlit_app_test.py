@@ -81,7 +81,8 @@ pages = {
         st.Page("streamlit_pages/p3_4_plafonds.py", title="3.4 Les plafonds : une poignée de clients hors de la clientèle standard", icon=":material/credit_card:"),
         st.Page("streamlit_pages/p3_5_decisions.py", title="3.5 Décisions : une règle argumentée pour chaque anomalie", icon=":material/gavel:"),
     ],
-    "4. Analyse exploratoire": [
+    "4. Explorer le portefeuille : profils, usage de la carte, paiements et défauts": [
+        st.Page("streamlit_pages/p4_1_population.py", title="4.1 Le profil des clients : des écarts de risque réels, mais modérés", icon=":material/groups:"),
         st.Page("streamlit_pages/analyses_actuelles.py", title="Analyses (version actuelle)", icon=":material/bar_chart:"),
     ],
 }
