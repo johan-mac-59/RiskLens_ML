@@ -38,7 +38,7 @@ D'après l'audit réalisé, les corrections suivantes sont appliquées :
 3. les colonnes 'PAY_n' nécessitent une investigation poussée pour bien comprendre le mécanisme de mise en défaut, les valeurs hors périmètre
 Aucun autre nettoyage n'est effectué à ce stade.  
 Après l'EDA, des corrections cumulatives (niveaux 1 à 3) sont ajoutées dans le notebook de nettoyage :
-- niveau 1 : suppression des 4 lignes avec un paiement supérieur à 1 000 000 NT$ et des 860 comptes inactifs (aucune facture positive ni aucun paiement sur les 6 mois), correction du client 6783
+- niveau 1 : suppression des 4 lignes avec un paiement supérieur à 1 000 000 NT$ et des comptes inactifs (aucune facture positive sur les 6 mois et aucun paiement de mai à septembre : le paiement d'avril, `PAY_AMT6`, rembourse une facture antérieure à la période et ne compte pas), correction du client 6783
 - niveaux 2 et 3 : correction des PAY_n = 1 (voir « La codification PAY_n = 1 » dans la partie EDA)
 
 ## Modélisation et ingestion des données dans la BDD
@@ -94,7 +94,7 @@ Ceci est à mettre dans le contexte suivant : une crise importante a eu lieu en 
 Dans le jeu de données, je constate des données incohérentes :
 - 24 % de défaut de paiement à M sur des dossiers sans encours sur le dernier mois (2598 lignes)
 - 30 % de défaut de paiement à M sur des dossiers avec encours négatifs sur les 6 mois (c'est-à-dire que la banque doit de l'argent au client) (88 lignes)
-- 37 % de défaut de paiement à M sur des dossiers inactifs sur les 6 mois (860 comptes : aucune facture positive ni aucun paiement)
+- 36 % de défaut de paiement à M sur des dossiers inactifs sur les 6 mois (941 comptes : aucune facture positive, et aucun paiement en dehors du règlement d'une facture antérieure à la période)
 
 Aucune information n'existe sur internet ni dans l'étude originelle de 2009 sur ces incidents de paiement qui ne semblent pas concerner un encours. Je ne sais pas s'il s'agit d'une erreur d'encodage ou d'un autre problème de gestion interne du compte (clôture, saisie, faillite personnelle...). Chercher à nettoyer cette donnée fausserait tout le dataset car il n'y a pas de règle trouvée à ce stade sur l'apparition de ces impayés. Si on raisonne logique métier, nous cherchons à sécuriser un encours et à prévoir le défaut de paiement réel. Pour l'apprentissage des modèles :
 - les comptes réellement inactifs sont écartés : ils n'apportent pas d'information et n'ont pas besoin de prédiction de défaut (supprimés au nettoyage, niveau 1) ;

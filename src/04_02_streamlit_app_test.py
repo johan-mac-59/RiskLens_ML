@@ -83,7 +83,7 @@ pages = {
     ],
     "4. Explorer le portefeuille : profils, usage de la carte, paiements et défauts": [
         st.Page("streamlit_pages/p4_1_population.py", title="4.1 Le profil des clients : des écarts de risque réels, mais modérés", icon=":material/groups:"),
-        st.Page("streamlit_pages/analyses_actuelles.py", title="Analyses (version actuelle)", icon=":material/bar_chart:"),
+        st.Page("streamlit_pages/p4_2_credit.py", title="4.2 L'usage du crédit : les clients qui utilisent le plus leur plafond sont les plus risqués", icon=":material/credit_score:"),
     ],
 }
 # Menu automatique masqué : il se placerait au-dessus du logo et du titre.

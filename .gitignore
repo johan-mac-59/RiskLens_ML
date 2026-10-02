@@ -30,3 +30,4 @@ ecole/
 
 #dataset synchronisé de mon EDA pour Streamlit
 !dataset_streamlit.csv
+!entonnoir_nettoyage.csv

@@ -28,11 +28,23 @@ BASE_DIR = next(
 )
 DATA_PATH = BASE_DIR / "data" / "csv_streamlit" / "dataset_streamlit.csv"
 MAPPING_PATH = BASE_DIR / "data" / "correspondances.json"
+# Effectifs de chaque étape du nettoyage, enregistrés par 02_01_nettoyage (page 3.5)
+ENTONNOIR_PATH = BASE_DIR / "data" / "csv_streamlit" / "entonnoir_nettoyage.csv"
 
 # --- 2. FONCTIONS DE CHARGEMENT AVEC CACHE ---
 @st.cache_data
+def _lire_csv(chemin, date_modification):
+    """Lecture mise en cache ; la date de modification fait partie de la clé : un CSV régénéré est relu automatiquement."""
+    return pd.read_csv(chemin)
+
+
 def load_data():
-    return pd.read_csv(DATA_PATH)
+    return _lire_csv(DATA_PATH, DATA_PATH.stat().st_mtime).copy()
+
+
+def load_entonnoir():
+    """Effectifs du nettoyage, indexés par étape (colonnes : retires, clients, plafonds_atypiques_origine)."""
+    return _lire_csv(ENTONNOIR_PATH, ENTONNOIR_PATH.stat().st_mtime).set_index("etape")
 
 @st.cache_data
 def load_mappings():

@@ -19,7 +19,7 @@ $$\text{Niveau 0} \subset \text{Niveau 1} \subset \text{Niveau 2} \subset \text{
 *Inclut l'intégralité du niveau 0.*
 
 * **Outliers montants** : Exclusion des $4$ observations présentant $\text{PAY\_AMT}_n > 1\,000\,000$.
-* **Comptes inactifs** : Suppression des $860$ comptes sans activité ($\text{PAY\_AMT}_n = 0$ et $\text{BILL\_AMT}_n \le 0$ sur l'ensemble des $6$ mois).
+* **Comptes inactifs** : Suppression des comptes sans activité visible : $\text{BILL\_AMT}_n \le 0$ sur l'ensemble des $6$ mois et $\text{PAY\_AMT}_n = 0$ pour $n = 1$ à $5$. $\text{PAY\_AMT}_6$ n'entre pas dans la règle : il rembourse la facture de mars ($\text{BILL\_AMT}_7$), antérieure à la période et non visible ; un paiement sur une dette antérieure, sans aucune utilisation sur les $6$ mois, est considéré comme inactif (règle affinée le 02/10/2026, $860$ comptes auparavant).
 * **Anomalie isolée** : Correction manuelle du client `6783` ($\text{PAY} = 1$ sur $4$ mois alors que les paiements sont effectifs chaque mois $\implies$ rebinning à `0`).
 
 ---

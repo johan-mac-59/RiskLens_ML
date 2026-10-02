@@ -10,6 +10,15 @@ GH = "https://github.com/johan-mac-59/RiskLens_ML/blob/main/src"
 
 entete_partie_3()
 
+# Effectifs de chaque étape, enregistrés par 02_01_nettoyage : aucun dénombrement écrit à la main
+ent = load_entonnoir()
+NB_GEANTS = nombre_fr(ent.loc['sans_paiements_geants', 'retires'])
+NB_INACTIFS = nombre_fr(ent.loc['sans_comptes_inactifs', 'retires'])
+NB_PLAFONDS = nombre_fr(ent.loc['sans_plafonds_atypiques', 'retires'])
+NB_PLAFONDS_ORIGINE = ent['plafonds_atypiques_origine'].iloc[0]
+NB_ETUDIES = nombre_fr(ent.loc['sans_plafonds_atypiques', 'clients'])
+NB_ORIGINE = nombre_fr(ent.loc['origine', 'clients'])
+
 st.markdown("---")
 st.header("3.5 Décisions : une règle argumentée pour chaque anomalie", anchor="decisions")
 st.markdown("""
@@ -61,13 +70,13 @@ tableau_decisions([
 # ------------------------------------------------------------------------------
 st.subheader("Le nettoyage métier")
 tableau_decisions([
-    ("4 paiements de plus de 1 000 000 NT$, de 2,4 à 12,8 fois le plafond",
-     "Les 4 clients sont supprimés",
+    (f"{NB_GEANTS} paiements de plus de 1 000 000 NT$, de 2,4 à 12,8 fois le plafond",
+     f"Les {NB_GEANTS} clients sont supprimés",
      "Payer plusieurs fois son plafond en un seul mois n'est pas possible avec une carte de crédit : ce sont des erreurs.",
      voir("p3_2_montants", "paiements-geants", "3.2, point 1")),
-    ("Des clients sans aucune facture ni aucun paiement sur 6 mois, parfois notés en défaut",
-     "Les 860 comptes inactifs sont supprimés",
-     "Règle métier et de bon sens. Un défaut de paiement suppose une somme due : un compte sans aucun encours ni paiement sur 6 mois n'a rien à rembourser, et son défaut est improbable au sens même de la cible. Il n'y a rien à en apprendre, pas même pour un modèle de machine learning, qui apprendrait du bruit. Enfin, le projet cherche à prédire le défaut à partir du comportement de paiement : un compte inactif n'a pas de comportement à observer, il ne répond donc pas à la problématique.",
+    ("Des clients sans aucune facture positive sur 6 mois et sans paiement pendant la période, parfois notés en défaut",
+     f"Les {NB_INACTIFS} comptes inactifs sont supprimés",
+     "Règle métier et de bon sens. Un défaut de paiement suppose une somme due : un compte sans aucun encours ni paiement sur 6 mois n'a rien à rembourser, et son défaut est improbable au sens même de la cible. Il n'y a rien à en apprendre, pas même pour un modèle de machine learning, qui apprendrait du bruit. Enfin, le projet cherche à prédire le défaut à partir du comportement de paiement : un compte inactif n'a pas de comportement à observer, il ne répond donc pas à la problématique. Un paiement en avril ne compte pas : il règle la facture de mars, antérieure à la période, dont on ne voit pas le montant. Un client qui solde une dette ancienne, puis n'utilise plus sa carte pendant les 6 mois, est donc lui aussi inactif.",
      voir("p3_1_audit", "sans-facture", "3.1")),
     ("Le client 6783 paie chaque mois mais reste codifié 1 sur 4 mois",
      "Codifications remises à 0",
@@ -86,7 +95,7 @@ tableau_decisions([
      "Les ratios extrêmes viennent surtout de très petites factures (payer 1 000 NT$ pour une facture de 5 NT$ donne 20 000 %) : ils déforment les moyennes et les graphiques sans rien dire de plus sur le client, qui a de toute façon largement remboursé. Sans facture due, il n'y avait rien à payer : le client est à jour. Dans les graphiques, le ratio n'est affiché que si une facture était due.",
      voir("p3_2_montants", "ratios", "3.2, point 3")),
     ("Une poignée de clients aux plafonds de plus de 500 000 NT$, au-delà d'une cassure brutale de la répartition des plafonds",
-     "Les 204 clients concernés sont supprimés (206 dans les données d'origine, dont 2 déjà retirés plus haut : un paiement géant et un compte inactif)",
+     f"Les {NB_PLAFONDS} clients concernés sont supprimés ({nombre_fr(NB_PLAFONDS_ORIGINE)} dans les données d'origine, dont {nombre_fr(NB_PLAFONDS_ORIGINE - ent.loc['sans_plafonds_atypiques', 'retires'])} déjà retirés par les règles précédentes)",
      "Une clientèle haut de gamme : un plafond de plus d'une année de salaire moyen, un crédit peu utilisé, et trop peu de clients pour qu'un modèle apprenne leur comportement propre. Un modèle prédictif doit se concentrer sur la clientèle standard. Le seuil vient de la cassure de la répartition et de la logique métier, pas d'un calcul de performance.",
      voir("p3_4_plafonds", "cassure", "3.4")),
 ])
@@ -101,10 +110,10 @@ st.markdown("""
 Ce nettoyage n'a pas été fixé d'un seul coup. Plusieurs règles ont été revues, certaines à plusieurs reprises, parce qu'une découverte faite plus tard dans le projet contredisait une hypothèse de départ : des seuils ont été abandonnés, des calculs unifiés, des corrections remplacées. Les règles présentées ici sont leur version finale ; les découvertes qui les ont fait évoluer seront racontées au fil des parties suivantes.
 """)
 
-# Entonnoir des populations, à côté de « Ce qu'il faut retenir » : effectifs repris des sorties de 02_01_nettoyage
-# (4 paiements géants, 860 comptes inactifs, 204 plafonds de plus de 500 000 NT$ ; 29 136 lignes dans cleaned3, 28 932 dans cleaned4)
-etapes = ["Données d'origine", "Sans les 4 paiements géants", "Sans les 860 comptes inactifs", "Sans les 204 plafonds atypiques"]
-effectifs = [30000, 29996, 29136, 28932]
+# Entonnoir des populations, à côté de « Ce qu'il faut retenir » : effectifs lus dans le fichier du nettoyage
+etapes = ["Données d'origine", f"Sans les {NB_GEANTS} paiements géants", f"Sans les {NB_INACTIFS} comptes inactifs",
+          f"Sans les {NB_PLAFONDS} plafonds atypiques"]
+effectifs = ent["clients"].tolist()
 # Forme d'entonnoir stylisée (tranches de même hauteur) : les effectifs réels sont écrits dans chaque tranche
 fig_entonnoir = go.Figure(go.Funnelarea(
     values=[1] * len(etapes),
@@ -122,7 +131,7 @@ col_retenir, col_entonnoir = st.columns([2, 3], vertical_alignment="center")
 with col_entonnoir:
     st.plotly_chart(fig_entonnoir, width="stretch")
 with col_retenir:
-    st.info("""
-**Ce qu'il faut retenir** : très peu de lignes sont supprimées (4 paiements géants, 860 comptes sans aucune activité et 204 clients aux plafonds atypiques), quelques codifications sont corrigées quand la logique métier ne laisse aucun doute, et tout le reste est conservé, parce qu'il décrit des comportements réels de l'époque. La population étudiée dans l'analyse exploratoire compte ainsi 28 932 clients sur 30 000.
+    st.info(f"""
+**Ce qu'il faut retenir** : très peu de lignes sont supprimées ({NB_GEANTS} paiements géants, {NB_INACTIFS} comptes sans aucune activité et {NB_PLAFONDS} clients aux plafonds atypiques), quelques codifications sont corrigées quand la logique métier ne laisse aucun doute, et tout le reste est conservé, parce qu'il décrit des comportements réels de l'époque. La population étudiée dans l'analyse exploratoire compte ainsi {NB_ETUDIES} clients sur {NB_ORIGINE}.
 """)
 st.markdown(f"Le code de toutes ces corrections est consultable dans le notebook de nettoyage : [02_01_nettoyage.ipynb]({GH}/02_01_nettoyage.ipynb).")

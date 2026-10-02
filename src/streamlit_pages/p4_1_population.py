@@ -89,7 +89,7 @@ def grille(valeur):
                 # Valeurs dans de petites étiquettes : les annotations s'affichent devant la ligne de moyenne
                 for categorie, taux in zip(rates[x], rates["Taux"]):
                     fig.add_annotation(x=categorie, y=taux, text=f"{nombre_fr(taux, 1)} %", showarrow=False, yshift=12,
-                                       bgcolor="rgba(128, 128, 128, 0.25)", borderpad=2)
+                                       bgcolor="rgba(128, 128, 128, 0.25)", borderpad=2, font_size=13)
                 fig.update_layout(
                     showlegend=False,
                     coloraxis_showscale=False,
