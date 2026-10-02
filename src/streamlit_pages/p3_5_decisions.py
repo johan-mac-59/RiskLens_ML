@@ -1,7 +1,7 @@
 from streamlit_pages.commun import *
 
 # ==============================================================================
-# PARTIE 3.4 : DÉCISIONS
+# PARTIE 3.5 : DÉCISIONS
 # Uniquement les nettoyages effectués dans 02_01_nettoyage (structurel et métier),
 # chacun relié à l'anomalie des pages 3.1 à 3.3 qui le justifie.
 # Les règles du contentieux et du périmètre du ML sont présentées en parties 5 et 6.
@@ -11,7 +11,7 @@ GH = "https://github.com/johan-mac-59/RiskLens_ML/blob/main/src"
 entete_partie_3()
 
 st.markdown("---")
-st.header("3.4 Décisions : une règle argumentée pour chaque anomalie", anchor="decisions")
+st.header("3.5 Décisions : une règle argumentée pour chaque anomalie", anchor="decisions")
 st.markdown("""
 Les pages précédentes ont relevé les anomalies et cherché à les comprendre. Cette page présente le nettoyage qui en découle : chaque correction, l'anomalie qui l'a motivée, et ce qui la justifie.
 
@@ -19,7 +19,7 @@ Deux points sont à garder en tête :
 - **aucune décision n'est née de l'observation d'une seule variable.** C'est en croisant les codifications avec les montants, puis avec l'historique des clients, que chaque anomalie a trouvé son explication, et donc sa règle ;
 - **le nettoyage se fait en deux temps.** Le **nettoyage structurel**, déjà présenté avec le chargement de la base (page « 2.1 Du fichier CSV à la base de données »), ne fait que ramener les valeurs hors nomenclature à « autres ». Le **nettoyage métier** applique ensuite les décisions issues de l'enquête.
 
-Supprimer n'a été retenu qu'en dernier recours : une anomalie qui s'explique par un comportement réel est conservée.
+Supprimer n'a été retenu qu'en dernier recours : une anomalie qui s'explique par un comportement réel est conservée. Seule exception : les clients aux plafonds atypiques, bien réels, mais hors de la clientèle standard sur laquelle porte l'étude (page « 3.4 Les plafonds »).
 """)
 
 
@@ -85,6 +85,10 @@ tableau_decisions([
      "Un ratio de paiement unique (<code>ratio_PAY_BILLn</code>), écrêté entre 0 et 200 %, et fixé à 100 % quand aucune facture n'était due",
      "Les ratios extrêmes viennent surtout de très petites factures (payer 1 000 NT$ pour une facture de 5 NT$ donne 20 000 %) : ils déforment les moyennes et les graphiques sans rien dire de plus sur le client, qui a de toute façon largement remboursé. Sans facture due, il n'y avait rien à payer : le client est à jour. Dans les graphiques, le ratio n'est affiché que si une facture était due.",
      voir("p3_2_montants", "ratios", "3.2, point 3")),
+    ("Une poignée de clients aux plafonds de plus de 500 000 NT$, au-delà d'une cassure brutale de la répartition des plafonds",
+     "Les 204 clients concernés sont supprimés (206 dans les données d'origine, dont 2 déjà retirés plus haut : un paiement géant et un compte inactif)",
+     "Une clientèle haut de gamme : un plafond de plus d'une année de salaire moyen, un crédit peu utilisé, et trop peu de clients pour qu'un modèle apprenne leur comportement propre. Un modèle prédictif doit se concentrer sur la clientèle standard. Le seuil vient de la cassure de la répartition et de la logique métier, pas d'un calcul de performance.",
+     voir("p3_4_plafonds", "cassure", "3.4")),
 ])
 
 st.markdown("""
@@ -98,6 +102,6 @@ Ce nettoyage n'a pas été fixé d'un seul coup. Plusieurs règles ont été rev
 """)
 
 st.info("""
-**Ce qu'il faut retenir** : très peu de lignes sont supprimées (4 paiements géants et 860 comptes sans aucune activité), quelques codifications sont corrigées quand la logique métier ne laisse aucun doute, et tout le reste est conservé, parce qu'il décrit des comportements réels de l'époque. La population étudiée dans l'analyse exploratoire compte ainsi 29 136 clients sur 30 000.
+**Ce qu'il faut retenir** : très peu de lignes sont supprimées (4 paiements géants, 860 comptes sans aucune activité et 204 clients aux plafonds atypiques), quelques codifications sont corrigées quand la logique métier ne laisse aucun doute, et tout le reste est conservé, parce qu'il décrit des comportements réels de l'époque. La population étudiée dans l'analyse exploratoire compte ainsi 28 932 clients sur 30 000.
 """)
 st.markdown(f"Le code de toutes ces corrections est consultable dans le notebook de nettoyage : [02_01_nettoyage.ipynb]({GH}/02_01_nettoyage.ipynb).")

@@ -155,5 +155,5 @@ Corriger le niveau d'études et le statut marital était simple. Pour le reste, 
 
 J'ai donc quitté les mathématiques pour l'enquête. Je me suis renseigné sur l'époque, la crise et le fonctionnement des cartes à Taïwan, puis j'ai confronté chaque hypothèse aux données, en revenant à des cas concrets quand les chiffres seuls ne suffisaient pas.
 
-La suite raconte cette enquête : ce que révèlent les montants (page « 3.2 Les montants ») et les codifications (page « 3.3 Les codifications ») quand on les lit en tenant compte de ce contexte, puis les règles qui en sont sorties (page « 3.4 Décisions »).
+La suite raconte cette enquête : ce que révèlent les montants (page « 3.2 Les montants ») et les codifications (page « 3.3 Les codifications ») quand on les lit en tenant compte de ce contexte, qui sont les clients aux plafonds les plus élevés (page « 3.4 Les plafonds »), puis les règles qui en sont sorties (page « 3.5 Décisions »).
 """)

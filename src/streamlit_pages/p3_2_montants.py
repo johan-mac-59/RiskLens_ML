@@ -109,7 +109,7 @@ Ces situations sont plausibles : une facture négative traduit un comportement r
 """)
 
 st.info("""
-**Ce que révèlent les montants** : très peu d'erreurs franches (4 paiements géants, quelques montants probablement mal saisis, les erreurs plus discrètes restant indétectables), et surtout des comportements réels de l'époque : paiements en avance ou en retard, remboursements supérieurs au dû, soldes créditeurs, usage intensif de la carte. La plupart de ces montants atypiques décrivent donc des clients réels, et non des anomalies. Les règles qui en découlent sont détaillées sur la page « 3.4 Décisions ».
+**Ce que révèlent les montants** : très peu d'erreurs franches (4 paiements géants, quelques montants probablement mal saisis, les erreurs plus discrètes restant indétectables), et surtout des comportements réels de l'époque : paiements en avance ou en retard, remboursements supérieurs au dû, soldes créditeurs, usage intensif de la carte. La plupart de ces montants atypiques décrivent donc des clients réels, et non des anomalies. Les règles qui en découlent sont détaillées sur la page « 3.5 Décisions ».
 """)
 
 

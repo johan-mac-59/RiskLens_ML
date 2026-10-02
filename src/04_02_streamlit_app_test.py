@@ -78,7 +78,8 @@ pages = {
         st.Page("streamlit_pages/p3_1_audit.py", title="3.1 Audit : un fichier complet, mais des valeurs anormales", icon=":material/search:"),
         st.Page("streamlit_pages/p3_2_montants.py", title="3.2 Les montants : erreurs de saisie ou réalité de l'époque ?", icon=":material/payments:"),
         st.Page("streamlit_pages/p3_3_codifications.py", title="3.3 Les codifications : une étiquette de la banque, à lire avec les paiements", icon=":material/pin:"),
-        st.Page("streamlit_pages/p3_4_decisions.py", title="3.4 Décisions : une règle argumentée pour chaque anomalie", icon=":material/gavel:"),
+        st.Page("streamlit_pages/p3_4_plafonds.py", title="3.4 Les plafonds : une poignée de clients hors de la clientèle standard", icon=":material/credit_card:"),
+        st.Page("streamlit_pages/p3_5_decisions.py", title="3.5 Décisions : une règle argumentée pour chaque anomalie", icon=":material/gavel:"),
     ],
     "4. Analyse exploratoire": [
         st.Page("streamlit_pages/analyses_actuelles.py", title="Analyses (version actuelle)", icon=":material/bar_chart:"),

@@ -3,7 +3,7 @@
 ## 1. Niveaux de corrections cumulatifs
 
 Les traitements sont structurés de manière strictement cumulative :
-$$\text{Niveau 0} \subset \text{Niveau 1} \subset \text{Niveau 2} \subset \text{Niveau 3}$$
+$$\text{Niveau 0} \subset \text{Niveau 1} \subset \text{Niveau 2} \subset \text{Niveau 3} \subset \text{Niveau 4}$$
 
 ---
 
@@ -41,6 +41,14 @@ Analyse du ratio de remboursement en pourcentage $R = \frac{\text{PAY\_AMT1}}{\t
 
 > ⚠️ **Version actuelle (v2).** L'ancienne version (v1) utilisait des seuils à $R > 4$ % et $R > 10$ % et recopiait $\text{PAY}_2$ dans $\text{PAY}_1$ si $\text{PAY}_2 \ge 2$ : elle créait des `PAY_1 = 2` qui faisaient entrer des clients à tort dans la population contentieuse (CTX). Elle est abandonnée.
 > **Les résultats ML du niveau 3 présentés ci-dessous ont été obtenus avec la v1.**
+
+---
+
+### 🟣 Niveau 4 (`corrections_niveau4`) — Exclusion des plafonds atypiques
+*Inclut l'intégralité des niveaux précédents.*
+
+* **Plafonds de plus de 500 000 NT$** : suppression des clients avec $\text{LIMIT\_BAL} > 500\,000$. Clientèle haut de gamme, minoritaire (moins de 1 % des clients), au-delà d'une cassure brutale de la répartition des plafonds, et qui utilise peu son crédit. Le seuil repose sur la répartition des plafonds et la logique métier, pas sur `dpnm`.
+* Ce filtre était jusqu'ici appliqué par le scénario `S12` ; il fait désormais partie du nettoyage.
 
 ---
 
