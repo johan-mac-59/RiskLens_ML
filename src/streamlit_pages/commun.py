@@ -162,6 +162,35 @@ def entete_partie_3():
 # ==============================================================================
 # EN-TÊTE COMMUN AUX PAGES DE LA PARTIE 4
 # ==============================================================================
+# ==============================================================================
+# RÈGLE COMMUNE DES TAILLES DE POLICE DES GRAPHIQUES (valeurs brutes, en pixels)
+# ==============================================================================
+TAILLE_ETIQUETTE = 14     # étiquettes de données (valeurs écrites sur les graphiques)
+TAILLE_GRADUATIONS = 14   # libellés des axes x et y (12 par défaut dans Plotly, + 2)
+TAILLE_TITRES_AXES = 15   # titres des axes x et y (environ 14 par défaut dans Plotly, + 1)
+
+_plotly_chart_streamlit = st.plotly_chart
+
+
+def _plotly_chart_style_commun(figure, *args, **kwargs):
+    """Applique les tailles communes aux axes de tout graphique Plotly avant son affichage."""
+    if isinstance(figure, go.Figure):
+        figure.update_xaxes(tickfont_size=TAILLE_GRADUATIONS, title_font_size=TAILLE_TITRES_AXES)
+        figure.update_yaxes(tickfont_size=TAILLE_GRADUATIONS, title_font_size=TAILLE_TITRES_AXES)
+    return _plotly_chart_streamlit(figure, *args, **kwargs)
+
+
+# Toutes les pages importent commun.py : st.plotly_chart applique ainsi la règle commune partout
+if getattr(st.plotly_chart, "__name__", "") != "_plotly_chart_style_commun":
+    st.plotly_chart = _plotly_chart_style_commun
+
+
+def codif(valeur):
+    """Valeur de PAY_n affichée comme une étiquette grisée dans les textes, pour ne pas la confondre avec un chiffre.
+    Syntaxe Markdown de Streamlit : fonctionne aussi dans st.info, st.caption, etc."""
+    return f":gray-background[{valeur}]"
+
+
 def nombre_fr(n, decimales=0):
     """Nombre au format français : espace pour les milliers, virgule pour les décimales."""
     return f"{n:,.{decimales}f}".replace(",", " ").replace(".", ",")

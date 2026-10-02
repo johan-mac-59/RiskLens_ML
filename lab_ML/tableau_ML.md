@@ -632,6 +632,13 @@ Sur ce périmètre, le recall vaut 100 % par construction et le ROC AUC n'est pa
 * Code 2 posé le mois où la facture est payée en totalité (historique) : anomalie documentée, non corrigée.
 
 
+### Features de comportement de paiement (issues de la page Streamlit 4.3, définies le 02/10/2026)
+*Liste de travail : rien n'est encore testé. Définitions uniques dans `docs/colonnes_creees.md`, colonnes créées dans `05_03_EDA_storytelling`.*
+* `ratio_PAY_BILL_global` : remboursements cumulés sur 5 mois / dette cumulée sans doublon ; absorbe le décalage d'un mois des paiements.
+* `ratio_PAY_BILL_median` : comportement habituel de paiement (médiane départagée par `ratio_PAY_BILL_global`) ; remplace `ratio_PAY_to_BILL_median` ; -1 pour les comptes qui n'ont qu'une facture en septembre.
+* `ratio_PAY_BILL_regularite` : part des mois dans le même type d'usage que la médiane ; un payeur au comptant qui s'écarte de son habitude est un signal à tester.
+* `PAY_habituel` : codification la plus fréquente de `PAY_1` à `PAY_6`, sans condition de facture.
+
 ## Problèmes rencontrés
 
 ### Redémarrage suite à un début d'encodage sur certaines colonnes  

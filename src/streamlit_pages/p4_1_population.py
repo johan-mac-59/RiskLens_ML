@@ -13,11 +13,9 @@ sex_map = mappings.get("genre", {})
 marriage_map = mappings.get("statut_marital", {})
 education_map = {k: v.replace("License", "Licence") for k, v in mappings.get("niveau_scolaire", {}).items()}
 
-# Tranches d'âge : mêmes buckets que dans 05_03_EDA_storytelling (intervalles fermés à droite : 21-25, 26-30, ...),
-# utilisées par les graphiques et par le simulateur
-age_bins = [20, 25, 30, 35, 40, 50, 80]
+# Tranches d'âge : colonne AGE_BUCKET lue dans le CSV (créée par 05_03_EDA_storytelling avant l'export,
+# définition dans docs/colonnes_creees.md) ; utilisées par les graphiques et par le simulateur
 age_labels = ['21-25', '26-30', '31-35', '36-40', '41-50', '51+']
-df["AGE_BUCKET"] = pd.cut(df["AGE"], bins=age_bins, labels=age_labels, include_lowest=True)
 
 taux_moyen = df["dpnm"].mean() * 100
 
@@ -71,7 +69,7 @@ def grille(valeur):
                 )
                 fig.update_traces(
                     sort=False, direction="clockwise", textinfo="label+percent", textposition="outside",
-                    texttemplate="%{label}<br>%{percent:.1%}", textfont_size=14,  # 2 px de plus que la taille par défaut (12)
+                    texttemplate="%{label}<br>%{percent:.1%}", textfont_size=TAILLE_ETIQUETTE,
                     hovertemplate="%{label} : %{value} clients (%{percent:.1%})<extra></extra>",
                 )
                 fig.update_layout(showlegend=False, height=380, separators=", ", margin=dict(t=40, b=40, l=60, r=60))
@@ -89,7 +87,7 @@ def grille(valeur):
                 # Valeurs dans de petites étiquettes : les annotations s'affichent devant la ligne de moyenne
                 for categorie, taux in zip(rates[x], rates["Taux"]):
                     fig.add_annotation(x=categorie, y=taux, text=f"{nombre_fr(taux, 1)} %", showarrow=False, yshift=12,
-                                       bgcolor="rgba(128, 128, 128, 0.25)", borderpad=2, font_size=13)
+                                       bgcolor="rgba(128, 128, 128, 0.25)", borderpad=2, font_size=TAILLE_ETIQUETTE)
                 fig.update_layout(
                     showlegend=False,
                     coloraxis_showscale=False,

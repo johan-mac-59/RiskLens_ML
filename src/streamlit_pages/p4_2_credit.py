@@ -194,7 +194,7 @@ fig5.add_trace(go.Scatter(
     marker=dict(size=8),
     text=[f'{nombre_fr(val, 1)} %' for val in medianes_ratio_BILL_LIMIT],
     textposition="top center",
-    textfont=dict(size=15, weight='bold')
+    textfont=dict(size=TAILLE_ETIQUETTE, weight='bold')
 ))
 
 # Configuration de l'axe Y pour avoir une échelle adaptée
@@ -313,7 +313,7 @@ for _, row in stats_defaut.iterrows():
     fig_defaut_ratio_plafond.add_annotation(
         x=row["ratio_mean_bin"], y=row["taux_defaut"], yshift=20, showarrow=False,
         text=f"<b>{nombre_fr(row['taux_defaut'], 1)} %<br>({nombre_fr(row['nb_clients'])} clients)</b>",
-        bgcolor="rgba(128, 128, 128, 0.25)", borderpad=2, font_size=13,
+        bgcolor="rgba(128, 128, 128, 0.25)", borderpad=2, font_size=TAILLE_ETIQUETTE,
     )
 
 fig_defaut_ratio_plafond.update_layout(
