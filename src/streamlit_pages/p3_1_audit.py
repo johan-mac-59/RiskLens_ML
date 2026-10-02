@@ -47,7 +47,7 @@ st.dataframe(pd.DataFrame({
 }), hide_index=True, width="stretch")
 st.caption("Montants en NT\\$. Pour les factures et les paiements, la médiane varie selon le mois : la plage indiquée va du mois le plus bas au plus haut.")
 
-st.subheader("Le niveau d'études et le statut marital : quelques valeurs inconnues")
+st.subheader("Le niveau d'études et le statut marital : quelques valeurs inconnues", anchor="etudes-statut")
 st.markdown("Répartition dans le fichier d'origine, avant nettoyage :")
 
 col_edu, col_mar = st.columns(2)
@@ -64,7 +64,7 @@ with col_mar:
         "Part": ["0,18 %", "45,53 %", "53,21 %", "1,08 %"],
     }), hide_index=True, width="stretch")
 
-st.subheader("Les codifications de paiement : -2 et 0, absentes de la documentation, dominent")
+st.subheader("Les codifications de paiement : -2 et 0, absentes de la documentation, dominent", anchor="codifications-hors-documentation")
 st.markdown(f"""
 La documentation ne prévoit ni **-2** ni **0** pour la codification de paiement. Pourtant, **0 est de loin la codification la plus fréquente**, et **-2 est loin d'être marginale**.
 Répartition par mois dans le fichier d'origine ([05_04_EDA_codification1.ipynb]({GH}/05_04_EDA_codification1.ipynb), section 1) :
@@ -100,7 +100,7 @@ st.plotly_chart(fig_codif, width="stretch")
 st.markdown("""
 Autres constats de l'enquête :
 - **9 821 clients** sont codifiés **0 sur les 6 mois**, et **2 109 clients -2 sur les 6 mois** (EDA_lab, cellules 12 et 16 ; chiffres identiques sur les 30 000 clients du fichier d'origine) : ces valeurs non documentées ne sont pas des cas isolés.
-- **Le nom des colonnes diffère aussi** : le dictionnaire du dataset appelle `PAY_0` la codification de septembre. Elle est renommée `PAY_1` dans ce projet, pour suivre la numérotation des factures (`BILL_AMT1`) et des paiements (`PAY_AMT1`).
+- **Le nom des colonnes diffère aussi** : le dictionnaire du dataset appelle `PAY_0` la codification de septembre, alors que le fichier Kaggle utilisé la nomme déjà `PAY_1`, ce qui suit la numérotation des factures (`BILL_AMT1`) et des paiements (`PAY_AMT1`).
 """)
 
 st.subheader("Des factures négatives")
@@ -131,7 +131,7 @@ st.dataframe(pd.DataFrame(
     index=["Paiements sur une facture nulle ou négative"]
 ), width="stretch")
 
-st.subheader("Des clients sans facture, pourtant notés en défaut")
+st.subheader("Des clients sans facture, pourtant notés en défaut", anchor="sans-facture")
 st.markdown(f"""
 La facture de fin septembre (`BILL_AMT1`) est celle à payer en octobre, le mois sur lequel porte le défaut de paiement à prédire. Pourtant, des clients qui n'ont rien à payer en octobre sont notés en défaut, plus souvent même que l'ensemble des clients ([05_01_EDA_lab.ipynb]({GH}/05_01_EDA_lab.ipynb), cellules 40, 42 et 43). L'EDA_lab calcule sur 29 996 clients, après le retrait de 4 clients aux paiements géants ; ces 4 clients ont tous des factures positives, les chiffres sont donc identiques sur les 30 000 clients du fichier d'origine :
 """)

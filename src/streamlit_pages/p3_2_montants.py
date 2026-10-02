@@ -53,7 +53,7 @@ st.plotly_chart(fig_box, width="stretch")
 st.caption("Boîte : du premier au troisième quartile ; trait rouge : la médiane. Moustaches : du minimum au maximum du mois.")
 st.markdown("Ces deux graphiques sont peu lisibles, et c'est précisément ce qu'ils montrent : pour les factures comme pour les paiements, les boîtes, qui contiennent la moitié des montants, sont écrasées au ras de l'axe, tandis que les moustaches montent jusqu'à des valeurs des centaines de fois plus élevées. **L'immense majorité des flux est faite de petits montants, et quelques valeurs se détachent très loin au-dessus.** À défaut d'être des anomalies, ces montants extrêmes sont au moins des **valeurs atypiques** : la suite cherche à savoir lesquelles sont des erreurs et lesquelles reflètent une réalité.")
 
-st.subheader("1. Quatre paiements géants")
+st.subheader("1. Quatre paiements géants", anchor="paiements-geants")
 st.markdown(f"""
 Seuls 4 clients ont un paiement de plus de 1 000 000 NT\\$, tous enregistrés le même mois (août), et chacun plusieurs fois supérieur au plafond de la carte ([05_01_EDA_lab.ipynb]({GH}/05_01_EDA_lab.ipynb), cellule 3) :
 """)
@@ -67,7 +67,7 @@ st.markdown("""
 Dépasser son plafond de quelques dizaines de pourcents est possible avec une carte de crédit ; payer plusieurs fois le plafond autorisé, en un seul mois, ne l'est pas. Ces 4 lignes ressemblent fortement à des erreurs. Entre 500 000 et 1 000 000 NT\\$, en revanche, le constat est plus nuancé : 7 autres clients y ont un paiement, qui va de 0,7 à 1,7 fois leur plafond (EDA_lab, cellule 5). Ces dépassements restent modérés, loin des multiples observés chez les 4 clients précédents.
 """)
 
-st.subheader("2. Des factures et des paiements au-delà du plafond")
+st.subheader("2. Des factures et des paiements au-delà du plafond", anchor="plafond")
 st.markdown("""
 Les autres dépassements restent rares (EDA_lab, cellules 8 et 9, sur 29 996 clients, les 4 paiements géants étant mis de côté) :
 """)
@@ -81,7 +81,7 @@ Dans le crédit renouvelable, dépasser son plafond est rare mais possible ; au-
 **Une hypothèse de fond : le plafond n'est pas une vérité intemporelle.** Le dataset ne donne qu'**un seul plafond par client**, sans date. Il s'agit vraisemblablement du plafond en vigueur au mois M, quand les données ont été extraites, mais rien ne dit qu'il était le même d'avril à septembre. En pleine crise, une banque pouvait réduire le plafond d'un client en difficulté, ou l'ajuster après une revue de ses revenus. Une facture d'avril qui dépasse le plafond de septembre n'est donc pas forcément une anomalie : le plafond d'avril était peut-être plus élevé. Se fier à ce plafond comme référence pour les 6 mois est une erreur à éviter ; c'est aussi une précaution pour toute mesure de l'utilisation du plafond dans le temps (EDA_lab, cellule 10).
 """)
 
-st.subheader("3. Des ratios de paiement démesurés")
+st.subheader("3. Des ratios de paiement démesurés", anchor="ratios")
 st.markdown("""
 Le ratio de paiement compare le montant payé à la facture qu'il règle. 486 clients ont au moins un mois où ils paient plus de 2,1 fois leur facture (ratio supérieur à 210 %) (EDA_lab, cellule 61). Certaines lignes révèlent une erreur de saisie probable, comme le client 344 :
 """)
@@ -98,7 +98,7 @@ Le décalage d'enregistrement des paiements explique une bonne part de ces écar
 **Les erreurs de saisie plus discrètes sont indétectables.** Un « 100 » ajouté devant un montant saute aux yeux ; un chiffre inversé ou un montant faussé de quelques centaines de NT\\$ se fond au contraire dans les montants ordinaires. Rien ne permet de distinguer une telle erreur d'un paiement réel : ce type d'erreur ne peut pas être repéré, et donc pas être nettoyé. Il fait partie du bruit que les données gardent quoi qu'on fasse.
 """)
 
-st.subheader("4. Des valeurs négatives")
+st.subheader("4. Des valeurs négatives", anchor="negatives")
 st.markdown(f"""
 Aucun paiement n'est négatif (le minimum est 0), mais environ 2 % des factures le sont chaque mois (page « 3.1 Audit »). Une facture négative est un **solde créditeur** : la banque doit de l'argent au client. Trois situations se distinguent :
 - **un remboursement supérieur au dû** : les 692 clients qui paient alors qu'aucune facture n'était due ont, pour la plupart, simplement trop remboursé, et leur facture suivante devient négative (EDA_lab, cellules 51 et 53). C'est cohérent avec un paiement en espèces au comptoir, souvent d'un montant arrondi, ou avec un paiement fait avant l'enregistrement du précédent ;

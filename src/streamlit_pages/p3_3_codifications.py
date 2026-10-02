@@ -86,7 +86,7 @@ st.dataframe(pd.DataFrame({
     "Mois observés": [6114, 17993, 59085],
     "Facture payée à 90 % ou plus": ["94,1 %", "77,7 %", "4,2 %"],
     "Facture payée au centime près": ["45,5 %", "39,6 %", "1,9 %"],
-}), hide_index=True, width="stretch")
+}), hide_index=True, width="stretch", column_config={"Mois observés": st.column_config.Column(alignment="left")})
 st.markdown("Le montant de la facture va dans le même sens : en septembre, la facture moyenne due est de 8 620 NT\\$ pour un client codifié -2, 10 927 NT\\$ pour -1, et 74 243 NT\\$ pour 0 (EDA_lab, cellule 19).")
 st.markdown("""
 Les profils se séparent nettement :
@@ -98,8 +98,10 @@ Les profils se séparent nettement :
 """)
 
 # ------------------------------------------------------------------------------
-st.subheader("2. La codification 1, un statut provisoire du dernier mois")
-st.markdown("""
+st.subheader("2. La codification 1, un statut provisoire du dernier mois", anchor="codification-1")
+st.markdown(f"""
+Cette codification a fait l'objet d'une étude à part entière, l'EDA_codification1 ([05_04_EDA_codification1.ipynb]({GH}/05_04_EDA_codification1.ipynb)), dont les résultats sont repris ci-dessous.
+
 La documentation présente la codification 1 comme un retard d'un mois. Pourtant, elle n'existe presque qu'en septembre, le dernier mois (EDA_codification1, section 1) :
 """)
 st.dataframe(pd.DataFrame(
@@ -132,7 +134,7 @@ L'hypothèse d'un paiement fait en supérette mais pas encore comptabilisé a é
 """)
 
 # ------------------------------------------------------------------------------
-st.subheader("3. Un mois de décalage entre paiement et mise à jour")
+st.subheader("3. Un mois de décalage entre paiement et mise à jour", anchor="decalage")
 st.markdown("""
 Quand un client en retard paie, sa codification change-t-elle le mois même, ou le mois suivant ? On part des clients en retard le mois précédent, et on regarde leur codification le mois du paiement, puis le mois d'après, selon la part de la facture payée (EDA_lab, cellule 93 ; 12 420 mois étudiés, codifications 1 exclues) :
 """)
@@ -187,7 +189,7 @@ Conclusion pratique : pour juger si un client a payé, **il faut regarder 2 mois
 """)
 
 # ------------------------------------------------------------------------------
-st.subheader("4. Des codifications qui ne suivent pas toujours la dette")
+st.subheader("4. Des codifications qui ne suivent pas toujours la dette", anchor="dette")
 st.markdown("""
 Une codification de retard devrait accompagner une dette. Ce n'est pas toujours le cas. **Des retards sont posés alors qu'aucune facture n'était due** (EDA_lab, cellule 115) :
 """)
@@ -204,7 +206,7 @@ La codification reflète donc ce que la banque a enregistré, au moment où elle
 """)
 
 # ------------------------------------------------------------------------------
-st.subheader("5. Des retards qui se figent ou redescendent sans paiement")
+st.subheader("5. Des retards qui se figent ou redescendent sans paiement", anchor="retards-figes")
 st.markdown("""
 Logiquement, un client qui ne paie pas voit son retard s'aggraver d'un cran chaque mois ; c'est ce qu'on observe chez une partie des clients. Mais deux comportements ne suivent pas cette logique (EDA_lab, cellules 136 à 154) :
 - **393 clients voient leur codification de retard redescendre à 2 sans aucun paiement**, alors qu'une facture était due : le retard diminue sans que la dette ait été réglée ;

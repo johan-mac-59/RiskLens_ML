@@ -59,7 +59,7 @@ st.markdown('<div class="defilement">' + extrait.to_html(index=False, border=0, 
 st.caption("25 colonnes : l'identifiant, 5 colonnes de profil et de plafond, 18 colonnes d'historique (6 mois × codification, facture et paiement) et la cible. Faire défiler le tableau vers la droite, avec la barre sous le tableau, pour voir toutes les colonnes.")
 
 st.markdown("""
-Les mois sont numérotés **du plus récent au plus ancien** : 1 = septembre, 2 = août… 6 = avril. La documentation appelle `PAY_0` la codification de septembre ; elle est renommée `PAY_1` dans ce projet, pour suivre la numérotation des factures et des paiements. La cible, appelée « default payment next month » dans la documentation, est renommée `dpnm`.
+Les mois sont numérotés **du plus récent au plus ancien** : 1 = septembre, 2 = août… 6 = avril. La documentation appelle `PAY_0` la codification de septembre et « default payment next month » la cible ; le fichier Kaggle utilisé les nomme déjà `PAY_1`, ce qui suit la numérotation des factures et des paiements, et `dpnm`.
 
 Les montants sont en **dollars taïwanais (NT\\$)**.
 """)
