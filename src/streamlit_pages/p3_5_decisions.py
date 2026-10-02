@@ -101,7 +101,28 @@ st.markdown("""
 Ce nettoyage n'a pas été fixé d'un seul coup. Plusieurs règles ont été revues, certaines à plusieurs reprises, parce qu'une découverte faite plus tard dans le projet contredisait une hypothèse de départ : des seuils ont été abandonnés, des calculs unifiés, des corrections remplacées. Les règles présentées ici sont leur version finale ; les découvertes qui les ont fait évoluer seront racontées au fil des parties suivantes.
 """)
 
-st.info("""
+# Entonnoir des populations, à côté de « Ce qu'il faut retenir » : effectifs repris des sorties de 02_01_nettoyage
+# (4 paiements géants, 860 comptes inactifs, 204 plafonds de plus de 500 000 NT$ ; 29 136 lignes dans cleaned3, 28 932 dans cleaned4)
+etapes = ["Données d'origine", "Sans les 4 paiements géants", "Sans les 860 comptes inactifs", "Sans les 204 plafonds atypiques"]
+effectifs = [30000, 29996, 29136, 28932]
+# Forme d'entonnoir stylisée (tranches de même hauteur) : les effectifs réels sont écrits dans chaque tranche
+fig_entonnoir = go.Figure(go.Funnelarea(
+    values=[1] * len(etapes),
+    # Dernière tranche : la population étudiée dans l'analyse exploratoire
+    text=[f"{etape}<br><b>{n:,}</b> clients".replace(",", " ") for etape, n in zip(etapes[:-1], effectifs[:-1])]
+         + [f"{etapes[-1]}<br>Population étudiée : <b>{effectifs[-1]:,}</b> clients".replace(",", " ")],
+    textinfo="text", textfont=dict(size=16, color=["white", "black", "white", "white"]),
+    marker=dict(colors=[COULEURS["gris"], COULEURS["bleu_pale"], COULEURS["turquoise"], COULEURS["vert_fonce"]]),
+    baseratio=0.5, aspectratio=0.8, hoverinfo="skip", showlegend=False,
+))
+fig_entonnoir.update_layout(height=430, margin=dict(t=10, b=10, l=10, r=10))
+
+st.write("")  # espace pour séparer la conclusion de la section précédente
+col_retenir, col_entonnoir = st.columns([2, 3], vertical_alignment="center")
+with col_entonnoir:
+    st.plotly_chart(fig_entonnoir, width="stretch")
+with col_retenir:
+    st.info("""
 **Ce qu'il faut retenir** : très peu de lignes sont supprimées (4 paiements géants, 860 comptes sans aucune activité et 204 clients aux plafonds atypiques), quelques codifications sont corrigées quand la logique métier ne laisse aucun doute, et tout le reste est conservé, parce qu'il décrit des comportements réels de l'époque. La population étudiée dans l'analyse exploratoire compte ainsi 28 932 clients sur 30 000.
 """)
 st.markdown(f"Le code de toutes ces corrections est consultable dans le notebook de nettoyage : [02_01_nettoyage.ipynb]({GH}/02_01_nettoyage.ipynb).")
