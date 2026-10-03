@@ -125,6 +125,19 @@ st.markdown(f"""
 L'écart entre moyenne et médiane rappelle les deux façons d'utiliser la carte : une minorité qui solde tout, et une majorité qui ne rembourse qu'une petite part de sa facture.
 """)
 
+
+def progression(colonne):
+    """Progression de mai à septembre, en %."""
+    return (dernier[colonne] / premier[colonne] - 1) * 100
+
+
+st.markdown(f"""
+##### Pourquoi le ratio progresse-t-il alors que l'écart en NT\\$ se creuse ?
+Les deux lignes de graphiques ne mesurent pas la même chose : **un ratio est un pourcentage**, il compare le paiement à la facture ; **les factures et les paiements sont des montants en NT\\$**.
+- **Les courbes de paiement paraissent plates à cause de l'échelle** : les paiements sont environ dix fois plus petits que les factures. En pourcentage, le paiement médian progresse de **{nombre_fr(progression('paiement_med'))} %** de mai à septembre, la facture médiane de **{nombre_fr(progression('facture_med'))} %** : la part payée peut augmenter, alors que les {nombre_fr(dernier['paiement_med'] - premier['paiement_med'])} NT\\$ de paiement en plus pèsent peu face aux {nombre_fr(dernier['facture_med'] - premier['facture_med'])} NT\\$ de facture en plus. L'écart en NT\\$ grandit quand même.
+- **Le ratio moyen n'est pas le paiement moyen divisé par la facture moyenne.** Le ratio est calculé client par client, puis on fait la moyenne : chaque client compte pour un, quel que soit le montant de sa facture. Les montants moyens, eux, sont tirés par les grosses factures, qui sont remboursées en plus petite part. Rapporté aux montants moyens, le paiement ne couvre que {nombre_fr(premier['paiement_moy'] / premier['facture_moy'] * 100)} % de la facture en mai, contre {nombre_fr(premier['moyenne'], 1)} % pour le ratio moyen. De même, le ratio médian n'est pas le paiement médian divisé par la facture médiane.
+""")
+
 st.info("""
 **Ce que révèlent les paiements** : vu d'ensemble, le comportement de paiement ne change presque pas en six mois. Les clients paient aussi souvent, et à peu près la même part de leur facture. Mais les factures, elles, grandissent, comme l'utilisation du plafond (page « 4.2 L'usage du crédit ») : les clients paient de la même façon une dette qui grandit. La dégradation ne se lit donc pas dans les paiements eux-mêmes, mais dans l'écart qui se creuse entre ce qui est dû et ce qui est remboursé.
 """)

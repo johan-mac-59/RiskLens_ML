@@ -3,7 +3,7 @@
 ## 1. Niveaux de corrections cumulatifs
 
 Les traitements sont structurés de manière strictement cumulative :
-$$\text{Niveau 0} \subset \text{Niveau 1} \subset \text{Niveau 2} \subset \text{Niveau 3} \subset \text{Niveau 4}$$
+$$\text{Niveau 0} \subset \text{Niveau 1} \subset \text{Niveau 2} \subset \text{Niveau 3} \subset \text{Niveau 4} \subset \text{Niveau 5}$$
 
 ---
 
@@ -49,6 +49,15 @@ Analyse du ratio de remboursement en pourcentage $R = \frac{\text{PAY\_AMT1}}{\t
 
 * **Plafonds de plus de 500 000 NT$** : suppression des clients avec $\text{LIMIT\_BAL} > 500\,000$. Clientèle haut de gamme, minoritaire (moins de 1 % des clients), au-delà d'une cassure brutale de la répartition des plafonds, et qui utilise peu son crédit. Le seuil repose sur la répartition des plafonds et la logique métier, pas sur `dpnm`.
 * Ce filtre était jusqu'ici appliqué par le scénario `S12` ; il fait désormais partie du nettoyage.
+
+---
+
+### ⚫ Niveau 5 (`corrections_niveau5`) — Corrections de codification issues du contentieux
+*Inclut l'intégralité des niveaux précédents. Aucun client retiré.*
+
+* **Faux retards neutralisés** dans les `PAY_n` : séries de codifications $\ge 2$ posées sur une facture nulle (faux codage ou compte endormi), remplacées par la codification saine d'avant.
+* **Mois de transition recodé** dans `PAY_1` : 2 si aucun paiement sur 2 mois avec deux factures exigibles, codification d'avant le retard si facture de M-1 payée à 90 % ou plus.
+* **Colonnes ajoutées** (définitions dans `docs/colonnes_creees.md`) : `FAUX_CODAGE`, `SURVEILLANCE_RECENTE`, `FLAG_CTX`, `MOIS_SORTIE_CTX`, `FLAG_RETARD`, `MOIS_SORTIE_RETARD`, `NB_MOIS_CTX`. Le retrait des clients au contentieux à M (`FLAG_CTX` = 1 et `MOIS_SORTIE_CTX` = -1) reste propre au ML.
 
 ---
 
@@ -613,7 +622,7 @@ Sur ce périmètre, le recall vaut 100 % par construction et le ROC AUC n'est pa
 
 *Étape 4 : comptages, en dernier, sur les codes définitifs (ceux utilisés par `statut_ctx_regle2` : faux codages et comptes endormis neutralisés, `PAY_1_recode` en M-1) ; colonnes pas encore créées*
 * `NB_MOIS_CTX` : durée du dernier passage au CTX au sens de `FLAG_CTX`, en mois consécutifs à >= 2 (non cumulée : un client avec deux passages séparés n'est compté que sur le dernier) ; 0 si `FLAG_CTX` = 0 (retard isolé ou retard payé isolé exclus). À mois de sortie égal, un passage plus long reste le plus souvent associé à un risque plus élevé (étude sur le train avec la définition retenue : `src/05_04_EDA_codification1.ipynb`, section 5.1).
-* `CUMUL_INCIDENT` : nombre total de mois avec un code >= 2 sur les 6 mois, consécutifs ou non. Complète `NB_MOIS_CTX` : mesure la fréquence des incidents sur la période, quand `NB_MOIS_CTX` mesure la durée du dernier passage.
+* `CUMUL_INCIDENT` (simple colonne de comptage, sans règle du contentieux, créée dans `05_03_EDA_storytelling` ; elle suit le niveau de nettoyage du dataset sur lequel elle est calculée) : nombre total de mois avec un code >= 2 sur les 6 mois, consécutifs ou non. Complète `NB_MOIS_CTX` : mesure la fréquence des incidents sur la période, quand `NB_MOIS_CTX` mesure la durée du dernier passage.
 
 *Hors codes de retard (montants seuls, indépendant de l'ordre ci-dessus)*
 * Nombre de mois sans paiement sur la période (utilisé pour décrire les statuts, jamais testé comme feature).

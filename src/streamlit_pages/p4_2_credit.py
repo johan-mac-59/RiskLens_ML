@@ -153,34 +153,30 @@ df['mean_ratio'] = df[ratio_plafond].mean(axis=1)
 nb_clients_zero = df[df['mean_ratio'] == 0]['mean_ratio'].count()
 nb_clients_sup_120 = df[df['mean_ratio'] > 120]['mean_ratio'].count()
 
-# Création de l'histogramme avec Plotly
-fig_repartition_ratio_plafond = px.histogram(
-    df['mean_ratio'].clip(upper=120),
-    nbins=120,
-    labels={
-        'value': "Taux d'utilisation moyen du plafond (%)",
-        'count': 'Nombre de clients',
-    },
-)
-
-# Personnalisation du graphique
+# Histogramme horizontal (3/4 de la largeur), interprétation à droite (1/4), centrée sur la hauteur
+fig_repartition_ratio_plafond = px.histogram(y=df['mean_ratio'].clip(upper=120), nbins=120)
 fig_repartition_ratio_plafond.update_layout(
-    xaxis_title="Taux d'utilisation moyen du plafond sur 6 mois (%)",
-    yaxis_title='Nombre de clients',
-    height=500,
-    showlegend=False,  # Masque la légende
+    yaxis_title="Taux d'utilisation moyen du plafond sur 6 mois (%)",
+    xaxis_title='Nombre de clients',
+    height=650,
+    showlegend=False,
+    bargap=0,
+    separators=", ",
 )
-
 fig_repartition_ratio_plafond.update_traces(
-    marker_color=COULEURS["turquoise"], marker_line_color='white', marker_line_width=0.5
+    marker_color=COULEURS["turquoise"], marker_line_color='white', marker_line_width=0.5,
+    hovertemplate="Utilisation de %{y} % : %{x} clients<extra></extra>",
 )
 
-# Affichage du graphique
-st.plotly_chart(fig_repartition_ratio_plafond, width='stretch')
-st.caption("Utilisation du plafond : facture du mois divisée par le plafond, écrêtée entre 0 et 200 %, puis moyenne des 6 mois. Les utilisations moyennes de plus de 120 % sont regroupées dans la dernière barre.")
+col_graphique, col_lecture = st.columns([3, 1], vertical_alignment="center")
+with col_graphique:
+    st.plotly_chart(fig_repartition_ratio_plafond, width='stretch')
+    st.caption("Utilisation du plafond : facture du mois divisée par le plafond, écrêtée entre 0 et 200 %, puis moyenne des 6 mois. Les utilisations moyennes de plus de 120 % sont regroupées dans la dernière barre.")
+with col_lecture:
+    st.markdown(f"""
+Une grande partie des clients utilise très peu son crédit, les autres s'étalent sur toute l'échelle, jusqu'au plafond et au-delà.
 
-st.markdown(f"""
-Une grande partie des clients utilise très peu son crédit, les autres s'étalent sur toute l'échelle, jusqu'au plafond et au-delà. Aux deux extrémités : {nombre_fr(nb_clients_zero)} clients ont une utilisation moyenne de 0 %, et {nombre_fr(nb_clients_sup_120)} dépassent en moyenne 120 % de leur plafond.
+Aux deux extrémités : **{nombre_fr(nb_clients_zero)} clients** ont une utilisation moyenne de 0 %, et **{nombre_fr(nb_clients_sup_120)}** dépassent en moyenne 120 % de leur plafond.
 """)
 
 # ------------------------------------------------------------------------------

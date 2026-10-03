@@ -212,7 +212,7 @@ Logiquement, un client qui ne paie pas voit son retard s'aggraver d'un cran chaq
 - **393 clients voient leur codification de retard redescendre à 2 sans aucun paiement**, alors qu'une facture était due : le retard diminue sans que la dette ait été réglée ;
 - **530 clients restent codifiés 2 pendant les 6 mois**, que le client paie un peu ou rien du tout, alors que leur dette augmente dans la plupart des mois sans paiement.
 
-Dans les deux cas, la codification semble **décrochée du comportement de paiement**, comme si ces clients étaient gérés en dehors du circuit normal, par exemple par un service de recouvrement. Le dataset ne permet pas de le vérifier directement. Ces clients sont étudiés plus en détail dans l'analyse exploratoire (page « 4.6 Les clients figés en retard »), puis dans la définition de la population contentieuse (partie 5).
+Dans les deux cas, la codification semble **décrochée du comportement de paiement**, comme si ces clients étaient gérés en dehors du circuit normal, par exemple par un service de recouvrement. Le dataset ne permet pas de le vérifier directement. Ces clients sont étudiés plus en détail dans l'analyse exploratoire (page « 4.6 Les retards »), puis dans la définition de la population contentieuse (partie 5).
 """)
 
 st.info("""

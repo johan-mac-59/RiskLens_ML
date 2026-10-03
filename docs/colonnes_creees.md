@@ -24,28 +24,42 @@ Rappel de la convention temporelle : mois 1 = M-1 (septembre 2005), 6 = M-6 (avr
 
 ---
 
-## 2. Population contentieuse (définition 2 révisée le 27/09/2026)
+## 2. Corrections issues du contentieux et population contentieuse (niveau 5, `cleaned5`)
 
-Calculées par `statut_ctx_regle2` dans `src/05_02_EDA_contentieux.ipynb` (section 6), à partir de `corriger_faux_codage` (section 3) et `recodage_pay1` (section 6.1, recodage du mois de transition révisé le 30/09/2026). Ces fonctions sont recopiées telles quelles dans le storytelling, et le seront dans les notebooks ML.
+Le niveau 5 du nettoyage (`src/02_01_nettoyage.ipynb`) applique les corrections de codification issues de l'étude du contentieux (`05_02_EDA_contentieux`, définition 2) et ajoute les colonnes ci-dessous. **Aucun client n'est retiré.** Les fonctions (`corriger_faux_codage`, `recodage_pay1`, calcul des indicateurs) vivent dans `02_01_nettoyage`, leur source unique ; les autres notebooks lisent `cleaned5`.
 
-Colonnes listées dans l'ordre logique de calcul : chaque étape travaille sur les codes produits par la précédente. Les comptages de codes >= 2 se font toujours en dernier, sur les codes définitifs, pour ne pas compter un 2 qui serait corrigé ensuite.
+**Corrections écrites directement dans les `PAY_n`** (les codifications d'origine restent dans `cleaned4`) :
+1. **Faux retards neutralisés** : une série de codifications de retard (2 et plus) posée alors qu'aucune facture n'était due est remplacée par la codification saine qui la précède, que le client vienne de payer (faux codage) ou que son compte soit endormi (surveillance).
+2. **Mois de transition recodé** (`PAY_1`) : chez un client en retard en août (`PAY_2 >= 2`) qui paraît sortir du retard en septembre (`PAY_1 <= 1`), `PAY_1` passe à **2** s'il n'a rien payé en août ni en septembre alors que deux factures étaient dues ; il reprend sa **codification d'avant le retard** (-2 remplacé par -1, 0 si le retard remonte à avril) s'il a payé au moins 90 % de sa facture de septembre ; il reste inchangé sinon.
 
-| Étape | Colonne | Définition |
+Colonnes listées dans l'ordre de calcul ; les comptages se font en dernier, sur les `PAY_n` corrigés. Les colonnes de mois valent **-1 par défaut** : c'est la détection d'une sortie ou d'une régularisation qui modifie cette valeur ; aucune colonne du niveau 5 n'est vide. **L'indicateur se lit toujours en premier** : si `FLAG_CTX` (ou `FLAG_RETARD`) vaut 0, la valeur de `MOIS_SORTIE_CTX` (ou `MOIS_SORTIE_RETARD`) n'a aucune importance.
+
+| Étape | Colonne | En clair |
 |---|---|---|
-| 1. Correction des faux 2 (`corriger_faux_codage`) | `FAUX_CODAGE` | 1 si faux 2 neutralisé chez un client qui venait de payer ou avait un encours |
-| 1. Correction des faux 2 (`corriger_faux_codage`) | `SURVEILLANCE_RECENTE` | 1 si faux 2 sur compte endormi (code 2 posé sur une facture nulle, sans paiement ni encours avant) : ces codes ne comptent pas pour le CTX |
-| 2. Recodage du mois de transition (`recodage_pay1`, sur les codes corrigés) | `PAY_1_recode` | PAY_1 après correction des faux 2 et recodage du mois de transition (PAY_2 >= 2 puis PAY_1 <= 1) : 2 si aucun paiement en M-1 ni en M-2 alors que deux factures étaient exigibles ; si la facture de M-1 est payée à 90 % ou plus, code d'avant le retard (premier code < 2 avant la série, -2 remplacé par -1, 0 si la série remonte à M-6) ; inchangé sinon |
-| 3. Statuts (codes corrigés, `PAY_1_recode` en M-1) | `STATUT_CTX` | Statut à M : `CTX` (retiré du ML, prédit en défaut), `Retard considéré régularisé M-1`, `Sorti`, `Retard régularisé`, `Jamais CTX` |
-| 3. Statuts | `SOUS_STATUT_CTX` | Détail : `CTX 6 mois`, `CTX 2 à 5 mois`, `CTX entrée en M-1`, `Retard considéré régularisé M-1 (série)` ou `(isolé)` ; sinon identique au statut |
-| 3. Statuts | `FLAG_CTX` | Marqueur intemporel : 1 si deux codes >= 2 consécutifs sur les 6 mois (codes posés sur une facture nulle exclus), 2 isolé en M-6 ou en M-1 compté par défaut, sauf retard payé isolé à M-1 ; 1 aussi pour un retard payé qui termine une série |
-| 3. Statuts | `MOIS_SORTIE_CTX` | Mois de la dernière sortie du CTX (1 à 5) ; **0** = sortie présumée en M (retard payé qui termine une série) ; -1 = pas de sortie (encore au CTX, ou jamais passé par le CTX) |
-| 3. Statuts | `FLAG_RETARD` | 1 si retard isolé (un seul mois >= 2) régularisé sur la période, ou retard payé isolé à M-1 |
-| 3. Statuts | `MOIS_SORTIE_RETARD` | Mois du retour sous 2 après le dernier retard isolé (1 à 4) ; **0** = retard payé isolé à M-1 ; -1 = aucune régularisation ; vide pour les clients au CTX |
-| 4. Comptages, en dernier (codes définitifs de l'étape 3 : faux codages et comptes endormis neutralisés, `PAY_1_recode` en M-1) | `NB_MOIS_CTX` | *Définie, pas encore calculée.* Durée du dernier passage au CTX, au sens de `FLAG_CTX` : nombre de mois **consécutifs** à >= 2 de la dernière série qui compte comme passage au CTX (jusqu'à la sortie, ou jusqu'à M-1 pour un client encore au CTX). **0 si `FLAG_CTX` = 0** : un retard isolé régularisé (`FLAG_RETARD`) ou un retard payé isolé ne compte pas. 1 pour un 2 isolé en M-6 ou en M-1 compté au CTX par défaut. Non cumulée : un client avec deux passages séparés n'est compté que sur le dernier |
-| 4. Comptages | `CUMUL_INCIDENT` | *Définie, pas encore calculée.* Nombre total de mois avec un code >= 2 sur les 6 mois (M-1 à M-6), consécutifs ou non. Mesure la fréquence des incidents, quand `NB_MOIS_CTX` mesure la durée du dernier passage |
+| 1. Traces des corrections | `FAUX_CODAGE` | 1 si le client avait un faux retard, posé sur une facture nulle alors qu'il venait de payer ou avait un encours ; ce retard a été neutralisé dans les `PAY_n`. Peu utile pour l'analyse, la colonne est conservée par sécurité, comme feature à tester en ML |
+| 1. Traces des corrections | `SURVEILLANCE_RECENTE` | 1 si le client avait un retard posé sur une facture nulle d'un compte endormi (ni paiement ni encours avant) : plutôt une mise sous surveillance qu'une dette ; ce retard a été neutralisé dans les `PAY_n` |
+| 2. Contentieux | `FLAG_CTX` | 1 si le client est passé par le contentieux pendant la période : au moins deux mois de retard (2 et plus) d'affilée ; un retard isolé en avril ou en septembre compte aussi, sauf s'il est payé (voir `FLAG_RETARD`) |
+| 2. Contentieux | `MOIS_SORTIE_CTX` | Pour un client passé par le contentieux : mois de sa dernière sortie, de **1** (septembre) à **5** (mai) ; **0** si sa sortie est présumée en octobre (retard payé à au moins 90 % qui termine une série) ; **-1** par défaut : pas de sortie détectée, qu'il soit encore au contentieux ou qu'il n'y soit jamais passé (à lire avec `FLAG_CTX` ; jamais vide) |
+| 2. Contentieux | `FLAG_RETARD` | 1 si le client a eu un retard isolé (un seul mois à 2 ou plus) régularisé ensuite, ou un retard isolé en septembre payé à au moins 90 % |
+| 2. Contentieux | `MOIS_SORTIE_RETARD` | Pour un retard isolé régularisé : mois du retour à la normale, de **1** à **4** ; **0** pour un retard isolé de septembre payé à au moins 90 % (régularisation présumée en octobre) ; **-1** par défaut : aucune régularisation détectée, y compris pour un client au contentieux à M (jamais vide) |
+| 3. Comptage (en dernier) | `NB_MOIS_CTX` | Durée du dernier passage au contentieux : nombre de mois de retard (2 et plus) **consécutifs** de la dernière série qui compte comme passage au contentieux ; 0 si `FLAG_CTX = 0` ; un client avec deux passages séparés n'est compté que sur le dernier |
 
-**Retrait du dataset ML** : `FLAG_CTX = 1` et `MOIS_SORTIE_CTX = -1` (clients au CTX à M).
-**Retard payé** : PAY_1 >= 2 mais facture payée à 90 % ou plus en M-1 ou en M-2 (ratios du contentieux ci-dessus).
+**Lire la situation d'un client avec les indicateurs** (aucune colonne de statut n'est nécessaire) :
+
+| Situation du client | Indicateurs |
+|---|---|
+| **Au contentieux à M** (retiré du dataset ML en partie 6, prédit en défaut par la règle) | `FLAG_CTX = 1` et `MOIS_SORTIE_CTX = -1` |
+| Sorti du contentieux pendant la période | `FLAG_CTX = 1` et `MOIS_SORTIE_CTX` de 1 à 5 |
+| Retard payé qui termine une série (sortie présumée en octobre) | `FLAG_CTX = 1` et `MOIS_SORTIE_CTX = 0` |
+| Retard isolé régularisé | `FLAG_RETARD = 1` et `MOIS_SORTIE_RETARD` de 1 à 4 |
+| Retard isolé de septembre payé (régularisation présumée en octobre) | `FLAG_RETARD = 1` et `MOIS_SORTIE_RETARD = 0` |
+| **Client sain** : jamais au contentieux, aucun retard sur la période | `FLAG_CTX = 0` et `FLAG_RETARD = 0` |
+
+La durée d'un passage au contentieux (6 mois, 2 à 5 mois, entrée en septembre) se lit avec `NB_MOIS_CTX`.
+
+**Retard payé** : retard en septembre (`PAY_1 >= 2`) mais facture payée à au moins 90 % en août ou en septembre. Dans ces règles, un ratio de paiement sans facture due vaut 0 : une facture absente n'est pas une preuve de paiement.
+
+*Colonnes abandonnées (02/10/2026), citées dans d'anciens notebooks* : `PAY_1_recode` (la correction est écrite directement dans `PAY_1`), `STATUT_CTX` et `SOUS_STATUT_CTX` (redondantes : les statuts se lisent avec `FLAG_CTX`, `MOIS_SORTIE_CTX`, `FLAG_RETARD`, `MOIS_SORTIE_RETARD` et `NB_MOIS_CTX`).
 
 ---
 
@@ -54,6 +68,7 @@ Colonnes listées dans l'ordre logique de calcul : chaque étape travaille sur l
 | Colonne | Définition | Créée dans |
 |---|---|---|
 | `PAY_habituel` | Codification de paiement habituelle du client : valeur la plus fréquente de `PAY_1` à `PAY_6`, **sur les 6 mois, qu'une facture soit due ou non** (l'ancienneté du compte ou l'absence de facture sont portées par d'autres colonnes), les codifications de retard (2 et plus) regroupées en **2**. En cas d'égalité, la plus récente des codifications à égalité (dernière situation connue par la banque). Jamais vide | `05_03_EDA_storytelling` (avant l'export du CSV Streamlit, définie le 02/10/2026) | Page Streamlit 4.3, feature ML |
+| `CUMUL_INCIDENT` | Nombre total de mois en retard (codification 2 et plus) de `PAY_1` à `PAY_6`, consécutifs ou non ; de 0 à 6, jamais vide. Simple colonne de comptage, sans aucune règle du contentieux : elle se calcule sur les `PAY_n` du dataset lu et suit donc son niveau de nettoyage (aujourd'hui `cleaned5`, le niveau retenu comme le plus pertinent) : la fréquence des retards, quand `NB_MOIS_CTX` mesure la durée du dernier passage au contentieux | `05_03_EDA_storytelling` (avant l'export, déplacée du niveau 5 le 03/10/2026) | Page Streamlit 4.6, feature ML |
 | `FLAG_OUVERTURE` | 1 si le compte s'ouvre pendant la période : `BILL_AMT6 = 0` et `PAY_AMT6 = 0` en avril (sans dette ni avoir, donc rien en mars non plus), puis une activité de mai à septembre (mouvement de l'encours `BILL_AMTn ≠ BILL_AMT(n+1)` ou paiement `PAY_AMTn > 0`) ; 0 sinon, et d'office si `BILL_AMT6 ≠ 0` | `05_03_EDA_storytelling` (avant l'export, définie le 02/10/2026) | Page Streamlit 4.4, feature ML |
 | `FLAG_DEGEL` | 1 si un compte dormant créditeur se réveille : `BILL_AMT6 < 0` et `PAY_AMT6 = 0` en avril, puis une activité de mai à septembre (même critère) ; 0 sinon. Ne peut pas valoir 1 en même temps que `FLAG_OUVERTURE` | `05_03_EDA_storytelling` (avant l'export, définie le 02/10/2026) | Page Streamlit 4.4, feature ML |
 | `MOIS_ACTIVATION` | n (1 à 5) : mois M-n de la première activité quand `FLAG_OUVERTURE` ou `FLAG_DEGEL` vaut 1 ; **0** sinon (comptes déjà actifs en avril). Remplace `ACTIVATION_MONTH` | `05_03_EDA_storytelling` (avant l'export, définie le 02/10/2026) | Page Streamlit 4.4, feature ML |
