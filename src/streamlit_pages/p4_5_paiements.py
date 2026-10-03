@@ -118,7 +118,7 @@ st.caption("Mois avec une facture due seulement ; chaque mois, la facture est ce
 premier, dernier = evolution.iloc[0], evolution.iloc[-1]
 st.markdown(f"""
 - **La moyenne reste autour d'un tiers de la facture** ({nombre_fr(premier['moyenne'], 1)} % en mai, {nombre_fr(dernier['moyenne'], 1)} % en septembre). Elle est tirée vers le haut par les clients qui soldent leur facture, entre {nombre_fr(evolution['soldees'].min(), 1)} et {nombre_fr(evolution['soldees'].max(), 1)} % des mois selon le mois.
-- **La médiane est bien plus basse et progresse un peu**, de {nombre_fr(premier['mediane'], 1)} à {nombre_fr(dernier['mediane'], 1)} % : chaque mois, dans la moitié des cas, le client ne rembourse qu'une faible part de sa facture, à la façon du crédit par mensualité vu en 4.3.
+- **La médiane est bien plus basse et progresse un peu**, de {nombre_fr(premier['mediane'], 1)} à {nombre_fr(dernier['mediane'], 1)} % : chaque mois, dans la moitié des cas, le client ne rembourse qu'une faible part de sa facture, à la façon du crédit lent vu en 4.3.
 
 - **En montant, l'écart se creuse** : la facture due médiane passe de {nombre_fr(premier['facture_med'])} à {nombre_fr(dernier['facture_med'])} NT\\$, le paiement médian de {nombre_fr(premier['paiement_med'])} à {nombre_fr(dernier['paiement_med'])} NT\\$. L'écart entre la facture et le paiement médians grandit : de {nombre_fr(premier['facture_med'] - premier['paiement_med'])} à {nombre_fr(dernier['facture_med'] - dernier['paiement_med'])} NT\\$.
 
