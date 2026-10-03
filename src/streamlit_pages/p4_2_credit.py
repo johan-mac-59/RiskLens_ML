@@ -8,6 +8,28 @@ from streamlit_pages.commun import *
 df = load_data()
 taux_moyen = df["dpnm"].mean() * 100
 
+
+def graphique_focus_septembre(categories, stats_6m, stats_sept, titre_x):
+    """Barres groupées : moyenne des 6 mois (rouge pâle) et focus sur septembre, le dernier mois."""
+    fig = go.Figure()
+    for stats, nom, couleur, decalage in ((stats_6m, "Moyenne des 6 mois", COULEURS["rouge_pale"], -22),
+                                          (stats_sept, "Septembre (M-1), le plus proche d'octobre", COULEURS["mauve"], 22)):
+        fig.add_trace(go.Bar(x=categories, y=stats['taux_defaut'], name=nom, marker_color=couleur,
+                             customdata=stats['nb_clients'],
+                             hovertemplate="%{x}<br>%{y:.1f} % de défaut (%{customdata} clients)<extra></extra>"))
+        # Valeurs dans de petites étiquettes, devant la ligne de moyenne, décalées sur leur barre
+        for cat, taux in zip(categories, stats['taux_defaut']):
+            fig.add_annotation(x=cat, y=taux, xshift=decalage, yshift=12, showarrow=False,
+                               text=f"<b>{nombre_fr(taux, 1)}</b>", font_size=TAILLE_ETIQUETTE - 2,
+                               bgcolor="rgba(128, 128, 128, 0.25)", borderpad=1)
+    fig.add_hline(y=taux_moyen, line_dash="dash", line_width=2, line_color=COULEURS["orange"])
+    maximum = max(stats_6m['taux_defaut'].max(), stats_sept['taux_defaut'].max(), taux_moyen)
+    fig.update_layout(barmode="group", xaxis_title=titre_x, yaxis_title="Taux de défaut de paiement (%)",
+                      yaxis_range=[0, maximum * 1.25], height=500, separators=", ",
+                      legend=dict(orientation="h", y=1.12), margin=dict(t=60))
+    return fig
+
+
 entete_partie_4(df)
 
 st.markdown("---")
@@ -296,34 +318,13 @@ stats_defaut = (
 
 stats_defaut["taux_defaut"] = stats_defaut["taux_defaut"].fillna(0)
 
-fig_defaut_ratio_plafond = go.Figure()
-
-fig_defaut_ratio_plafond.add_trace(
-    go.Bar(
-        x=stats_defaut["ratio_mean_bin"],
-        y=stats_defaut["taux_defaut"],
-        marker_color=COULEURS["rouge_pale"],
-        hoverinfo="skip",
-    )
-)
-
-# Taux de défaut moyen en pointillés orange ; valeurs dans de petites étiquettes, devant la ligne (comme en 4.1)
-fig_defaut_ratio_plafond.add_hline(y=taux_moyen, line_dash="dash", line_width=2, line_color=COULEURS["orange"])
-for _, row in stats_defaut.iterrows():
-    fig_defaut_ratio_plafond.add_annotation(
-        x=row["ratio_mean_bin"], y=row["taux_defaut"], yshift=20, showarrow=False,
-        text=f"<b>{nombre_fr(row['taux_defaut'], 1)} %<br>({nombre_fr(row['nb_clients'])} clients)</b>",
-        bgcolor="rgba(128, 128, 128, 0.25)", borderpad=2, font_size=TAILLE_ETIQUETTE,
-    )
-
-fig_defaut_ratio_plafond.update_layout(
-    xaxis_title="Tranche d'utilisation moyenne du plafond sur 6 mois",
-    yaxis_title="Taux de défaut (%)",
-    yaxis_range=[0, max(stats_defaut["taux_defaut"]) * 1.3],
-    height=500,
-    showlegend=False,
-)
-
+# Focus sur septembre : utilisation du plafond du seul dernier mois (ratio_BILL_LIMIT1), mêmes tranches
+df_ratio["ratio_sept_bin"] = pd.cut(df_ratio["ratio_BILL_LIMIT1"], bins=bins, labels=labels, include_lowest=True)
+stats_sept = (df_ratio.groupby("ratio_sept_bin", observed=False)["dpnm"]
+              .agg(nb_clients="count", taux_defaut=lambda x: x.mean() * 100).reset_index())
+stats_sept["taux_defaut"] = stats_sept["taux_defaut"].fillna(0)
+fig_defaut_ratio_plafond = graphique_focus_septembre(labels, stats_defaut, stats_sept,
+                                                     "Tranche d'utilisation du plafond (moyenne des 6 mois ou septembre seul)")
 st.plotly_chart(fig_defaut_ratio_plafond, width='stretch')
 
 zero = stats_defaut.iloc[0]
@@ -337,6 +338,44 @@ La tendance est claire : au-delà d'une utilisation faible, plus un client utili
 - **un autre sens du mot « défaut »** pour la banque : une clôture administrative du compte, une saisie, une faillite personnelle, c'est-à-dire un événement de gestion plutôt qu'un retard de paiement.
 
 Ce petit groupe ne reflète donc pas la tendance, et il rappelle que la cible elle-même doit être lue avec prudence.
+""")
+
+# ------------------------------------------------------------------------------
+st.subheader("Le montant utilisé, lui, ne fait pas varier le risque", anchor="defaut-montant")
+st.markdown("Contre-épreuve : si le risque venait de la somme dépensée, le taux de défaut devrait monter avec le montant utilisé en valeur absolue. On range donc les clients selon leur facture moyenne sur 6 mois, en NT$, sans la rapporter au plafond.")
+
+# Montant utilisé brut : facture moyenne des 6 mois, encours négatifs ramenés à 0 (calcul d'affichage, comme l'utilisation moyenne)
+montant_moyen = df[[f'BILL_AMT{i}' for i in range(1, 7)]].clip(lower=0).mean(axis=1)
+# 0 à part, comme la première barre de l'utilisation : aucune facture positive, donc les anomalies de la cible
+bornes_montant = [-np.inf, 0, 10000, 25000, 50000, 100000, 150000, 200000, 300000, np.inf]
+libelles_montant = ["0", "plus de 0 à 10k", "10k à 25k", "25k à 50k", "50k à 100k", "100k à 150k", "150k à 200k", "200k à 300k", "plus de 300k"]
+tranche_montant = pd.cut(montant_moyen, bins=bornes_montant, labels=libelles_montant, include_lowest=True)
+stats_montant = df.groupby(tranche_montant, observed=False)['dpnm'].agg(nb_clients='size', taux_defaut='mean').reset_index()
+stats_montant['taux_defaut'] = stats_montant['taux_defaut'] * 100
+
+# Focus sur septembre : facture du seul dernier mois (BILL_AMT1), mêmes tranches
+tranche_sept = pd.cut(df['BILL_AMT1'].clip(lower=0), bins=bornes_montant, labels=libelles_montant, include_lowest=True)
+stats_montant_sept = df.groupby(tranche_sept, observed=False)['dpnm'].agg(nb_clients='size', taux_defaut='mean').reset_index()
+stats_montant_sept['taux_defaut'] = stats_montant_sept['taux_defaut'] * 100
+fig_montant = graphique_focus_septembre(libelles_montant, stats_montant, stats_montant_sept,
+                                        "Facture (NT$) : moyenne des 6 mois ou septembre seul")
+st.plotly_chart(fig_montant, width='stretch')
+
+# À montant comparable, l'utilisation du plafond sépare-t-elle encore les clients ?
+utilisation_moyenne = df[[f'ratio_BILL_LIMIT{i}' for i in range(1, 7)]].mean(axis=1)
+petit_montant = (montant_moyen > 0) & (montant_moyen <= 25000)
+faible_util, forte_util = petit_montant & (utilisation_moyenne < 30), petit_montant & (utilisation_moyenne > 70)
+hors_extremes = stats_montant[stats_montant['nb_clients'] >= 500]['taux_defaut']
+st.markdown(f"""
+Le contraste est net : quel que soit le montant dépensé, le taux de défaut reste proche de la moyenne, entre {nombre_fr(hors_extremes.min(), 1)} et {nombre_fr(hors_extremes.max(), 1)} % sur les tranches de plus de 500 clients, sans tendance. À l'inverse, **à montant comparable, c'est la part du plafond utilisée qui fait la différence** : parmi les clients dont la facture moyenne ne dépasse pas 25 000 NT\\$, le taux de défaut est de **{nombre_fr(df.loc[faible_util, 'dpnm'].mean() * 100, 1)} %** pour ceux qui utilisent moins de 30 % de leur plafond, contre **{nombre_fr(df.loc[forte_util, 'dpnm'].mean() * 100, 1)} %** pour ceux qui en utilisent plus de 70 %.
+
+Une même dépense de 20 000 NT\\$ ne pèse pas pareil sur un plafond de 30 000 et sur un plafond de 300 000 : **ce n'est pas la somme dépensée qui signale le risque, mais la part du crédit disponible qu'elle consomme.**
+""")
+
+haut_sept = stats_sept.iloc[-2]['taux_defaut']
+bas_sept = stats_sept.iloc[2]['taux_defaut']
+st.markdown(f"""
+**Focus sur septembre**, le mois le plus proche du défaut d'octobre : la hiérarchie se maintient, mais elle est **moins marquée** qu'en moyenne sur 6 mois. Entre 10 et 30 % d'utilisation et entre 90 et 110 %, le taux de défaut passe de {nombre_fr(bas_sept, 1)} à {nombre_fr(haut_sept, 1)} % en septembre, contre {nombre_fr(bas['taux_defaut'], 1)} à {nombre_fr(haut['taux_defaut'], 1)} % en moyenne. Une facture de fin de mois ponctuelle, un gros achat soldé ensuite par exemple, peut gonfler l'utilisation d'un seul mois sans rien dire de l'habitude du client : la moyenne lisse ces pics. Le montant brut, lui, reste sans effet sur le risque en septembre comme en moyenne. La première barre, à 0, isole à nouveau les anomalies : {nombre_fr(stats_montant_sept.iloc[0]['nb_clients'])} clients n'ont aucune facture en septembre, donc rien à payer en octobre, et pourtant {nombre_fr(stats_montant_sept.iloc[0]['taux_defaut'], 1)} % d'entre eux sont notés en défaut. **L'habitude sur 6 mois en dit plus qu'une photo du dernier mois.**
 """)
 
 st.info("""
