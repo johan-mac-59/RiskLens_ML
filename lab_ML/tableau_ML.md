@@ -642,12 +642,14 @@ Sur ce périmètre, le recall vaut 100 % par construction et le ROC AUC n'est pa
 * Code 2 posé le mois où la facture est payée en totalité (historique) : anomalie documentée, non corrigée.
 
 
-### Features de comportement de paiement (issues de la page Streamlit 4.3, définies le 02/10/2026)
+### Features de comportement de paiement (issues des pages Streamlit 4.2 et 4.3, définies les 02 et 03/10/2026)
 *Liste de travail : rien n'est encore testé. Définitions uniques dans `docs/colonnes_creees.md`, colonnes créées dans `05_03_EDA_storytelling`.*
-* `ratio_PAY_BILL_global` : remboursements cumulés sur 5 mois / dette cumulée sans doublon ; absorbe le décalage d'un mois des paiements.
-* `ratio_PAY_BILL_median` : comportement habituel de paiement (médiane départagée par `ratio_PAY_BILL_global`) ; remplace `ratio_PAY_to_BILL_median` ; -1 pour les comptes qui n'ont qu'une facture en septembre.
-* `ratio_PAY_BILL_regularite` : part des mois dans le même type d'usage que la médiane ; un payeur au comptant qui s'écarte de son habitude est un signal à tester.
+* `ratio_PAY_BILL_global` : remboursements cumulés sur 5 mois / dette cumulée sans doublon, **corrigé** : un solde négatif est un paiement en trop, et une avance dépensée en septembre n'est pas comptée comme trop-payé ; absorbe le décalage d'un mois des paiements.
+* `ratio_PAY_BILL_median` : comportement habituel de paiement (médiane départagée par le taux global corrigé) ; remplace `ratio_PAY_to_BILL_median` ; -1 pour les comptes qui n'ont qu'une facture en septembre.
+* `TYPE_USAGE` : type d'usage habituel, 6 catégories construites sur les seuls paiements (ne paie rien, client en difficulté, crédit lent, crédit rapide, usage mixte, paiement comptant) ; une seule facture due → classé par le taux global corrigé. Catégorielle à ordre presque naturel (part de la facture remboursée), sauf l'usage mixte, hétérogène : à tester en encodage ordinal et en one-hot.
+* `ratio_PAY_BILL_regularite` : part des mois avec une facture due dans la tranche de `TYPE_USAGE` ; un payeur au comptant qui s'écarte de son habitude est un signal à tester.
 * `PAY_habituel` : codification la plus fréquente de `PAY_1` à `PAY_6`, sans condition de facture.
+* `PAY_habituel_hors_retard` : codification la plus fréquente parmi les seuls mois codifiés -2, -1 ou 0 (comment la banque voit le client quand il n'est pas en retard) ; vide si le client est en retard ou codifié 1 tous les mois. En 4.2 : à plafond égal, crédit renouvelable (0) et absence de crédit (-1, -2) font presque autant défaut ; c'est le plafond qui porte le risque.
 
 ## Problèmes rencontrés
 
