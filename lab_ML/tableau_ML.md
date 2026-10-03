@@ -629,6 +629,7 @@ Sur ce périmètre, le recall vaut 100 % par construction et le ROC AUC n'est pa
 
 **Scénarios à comparer**
 * Niveau de correction : `cleaned2` vs `cleaned3` (niveau 3 v2).
+* **À vérifier : les corrections du niveau 5 n'effacent-elles pas un signal utile au modèle ?** Entraîner le même modèle sur `cleaned4` (codifications d'origine) puis sur `cleaned5` (faux retards neutralisés, mois de transition recodé), et comparer les scores en validation croisée **sur le train uniquement** (test réservé à l'évaluation finale). Regarder aussi le poids de `FAUX_CODAGE` et `SURVEILLANCE_RECENTE`, qui gardent la trace des faux retards neutralisés. Si `cleaned5` fait moins bien, récupérer le signal perdu par une feature plutôt qu'en gardant des codifications fausses. Contexte : le contrôle de `cleaned5` (`05_04_EDA_codification1`, section 7) valide le nettoyage (rien d'oublié, aucune erreur, population non déformée ; 346 clients modifiés), mais ne dit rien de l'effet sur les modèles.
 * Deux usages métier :
   * **Comportemental** : codes PAY_n conservés (complets, ou version réduite PAY_1 + agrégats).
   * **Sans codes risque** : PAY_n supprimés, on garde montants, ratios, démographie et flags CTX. Mesurer le coût en performance.
