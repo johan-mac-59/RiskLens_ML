@@ -86,6 +86,7 @@ pages = {
         st.Page("streamlit_pages/p4_2_credit.py", title="4.2 L'usage du crédit : les clients qui utilisent le plus leur plafond sont les plus risqués", icon=":material/credit_score:"),
         st.Page("streamlit_pages/p4_3_usage_carte.py", title="4.3 Le type d'usage de la carte : plus le client rembourse, moins il fait défaut", icon=":material/payments:"),
         st.Page("streamlit_pages/p4_4_vie_comptes.py", title="4.4 La vie des comptes : les nouveaux comptes ne sont pas plus risqués", icon=":material/history:"),
+        st.Page("streamlit_pages/p4_5_paiements.py", title="4.5 Les paiements : un comportement stable, alors que la dette grandit", icon=":material/account_balance_wallet:"),
     ],
 }
 # Menu automatique masqué : il se placerait au-dessus du logo et du titre.
