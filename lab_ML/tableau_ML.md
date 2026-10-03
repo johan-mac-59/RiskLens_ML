@@ -36,7 +36,7 @@ $$\text{Niveau 0} \subset \text{Niveau 1} \subset \text{Niveau 2} \subset \text{
 ### 🔴 Niveau 3 (`corrections_niveau3`) — Recalage de la codification `PAY_1 = 1` par Ratio de Remboursement
 *Inclut l'intégralité des niveaux précédents*
 Analyse du ratio de remboursement en pourcentage $R = \frac{\text{PAY\_AMT1}}{\text{BILL\_AMT2}} \times 100$ pour corriger les faux retards en $M-1$ (`PAY_1 = 1`) :
-* **Si $R \ge 90$ et $\text{PAY}_2 \le 0$** $\implies \text{PAY}_1 = \text{PAY}_2$ (facture soldée : payeur au comptant / à jour, reprise de la codification antérieure).
+* **Si $R \ge 90$ et $\text{PAY}_2 \le 0$** $\implies \text{PAY}_1 = \text{PAY}_2$ (facture considérée comme soldée : à partir de 90 % de ratio de paiement, la sortie du retard devient nettement majoritaire, EDA_lab cellules 94 à 96 ; reprise de la codification antérieure).
 * **Tous les autres cas** (remboursement partiel ou nul) : $\text{PAY}_1 = 1$ maintenu, la vraie codification ne pouvant être déterminée.
 
 > ⚠️ **Version actuelle (v2).** L'ancienne version (v1) utilisait des seuils à $R > 4$ % et $R > 10$ % et recopiait $\text{PAY}_2$ dans $\text{PAY}_1$ si $\text{PAY}_2 \ge 2$ : elle créait des `PAY_1 = 2` qui faisaient entrer des clients à tort dans la population contentieuse (CTX). Elle est abandonnée.
