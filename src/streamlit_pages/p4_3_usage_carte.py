@@ -21,21 +21,26 @@ nb_mois_ratio = ratios_affichables(df, ratio_columns).notna().sum(axis=1)
 peu_de_mois = int(((nb_mois_ratio > 0) & (nb_mois_ratio <= 2)).sum())
 
 # Types d'usage : tranches tirées de la forme de la répartition des ratios de paiement (pic net à 3-5 %, puis
-# décroissance régulière jusque vers 30 %, zone clairsemée de 30 à 90 %) et de la logique métier ; jamais du taux de défaut
-RIEN, DIFFICULTE, MENSUALITE, MIXTE, ELEVE, COMPTANT = (
-    "Ne paie rien", "Client en difficulté", "Crédit par mensualité", "Usage mixte", "Remboursement élevé", "Paiement comptant")
+# décroissance régulière jusque vers 30 %, zone clairsemée de 30 à 99 %, paiement complet concentré autour de 100 %)
+# et de la logique métier ; jamais du taux de défaut. Mêmes tranches que ratio_PAY_BILL_regularite (docs/colonnes_creees.md)
+RIEN, DIFFICULTE, MENSUALITE, MIXTE, ELEVE, COMPTANT, TROP_PAYE = (
+    "Ne paie rien", "Client en difficulté", "Crédit par mensualité", "Usage mixte", "Remboursement élevé", "Paiement comptant",
+    "Paie plus que sa facture")
 TYPES = [
     (RIEN, "0 %"),
     (DIFFICULTE, "moins de 3 %, moins qu'une mensualité"),
     (MENSUALITE, "3 à 6 %"),
     (MIXTE, "6 à 30 %"),
-    (ELEVE, "30 à 90 %"),
-    (COMPTANT, "90 % et plus"),
+    (ELEVE, "30 à 99 %"),
+    (COMPTANT, "99 à 105 %, léger trop-perçu compris"),
+    (TROP_PAYE, "plus de 105 %, anomalie mise à part"),
 ]
-df_ratio['type_usage'] = pd.cut(df_ratio['ratio_PAY_BILL_median'], bins=[-np.inf, 0, 3, 6, 30, 90, np.inf],
-                                labels=[t[0] for t in TYPES], right=False)
-# 0 % exactement à part, puis ]0-3[, [3-6[, [6-30[, [30-90[, 90 % et plus
-df_ratio.loc[df_ratio['ratio_PAY_BILL_median'] == 0, 'type_usage'] = RIEN
+# 0 % exactement, ]0-3[, [3-6[, [6-30[, [30-99[, [99-105], plus de 105 %
+mediane = df_ratio['ratio_PAY_BILL_median']
+df_ratio['type_usage'] = pd.Categorical(
+    np.select([mediane == 0, mediane < 3, mediane < 6, mediane < 30, mediane < 99, mediane <= 105], [t[0] for t in TYPES[:6]],
+              default=TROP_PAYE),
+    categories=[t[0] for t in TYPES])
 
 stats_type = (
     df_ratio.groupby('type_usage', observed=False)['dpnm']
@@ -95,26 +100,31 @@ st.plotly_chart(fig_medianes, width='stretch')
 st.caption("Ratio de paiement : montant payé divisé par la facture qu'il règle, écrêté entre 0 et 200 %. Pour chaque client, médiane des mois où une facture était due (définition ci-dessous).")
 
 part_faible = (df_ratio['ratio_PAY_BILL_median'] <= 10).mean() * 100
-part_solde = df_ratio['ratio_PAY_BILL_median'].between(90, 110).mean() * 100
+part_solde = df_ratio['ratio_PAY_BILL_median'].between(99, 105).mean() * 100
 # Clients dont la médiane classique (moyenne des deux valeurs du milieu) n'est pas une valeur observée
 mediane_classique = ratios_affichables(df_ratio, ratio_columns).median(axis=1)
 nb_corriges = int((mediane_classique != df_ratio['ratio_PAY_BILL_median']).sum())
 pointe_50_classique = int((mediane_classique == 50).sum())
 pointe_50 = int((df_ratio['ratio_PAY_BILL_median'] == 50).sum())
 st.markdown(f"""
-Les clients ont des **tendances d'usage** nettes : leur comportement habituel se concentre sur deux pics. **{nombre_fr(part_faible, 1)} %** des clients remboursent en général 10 % ou moins de leur facture, et **{nombre_fr(part_solde, 1)} %** la règlent en totalité (entre 90 et 110 %). Les comportements intermédiaires sont rares. Avec un nombre pair de mois, la médiane classique fait la moyenne des deux valeurs du milieu : un client qui alterne un mois sans paiement et un mois soldé, souvent à cause du décalage d'un mois des paiements (page 3.3), obtiendrait 50 %, un comportement qu'il n'a jamais eu. Quand les deux valeurs du milieu diffèrent, on garde donc celle qui est la plus proche de son **taux de remboursement global** : tout ce qu'il a payé sur la période, rapporté à tout ce qu'il a dû, chaque facture reportée n'étant comptée qu'une fois. La médiane reste ainsi un ratio réellement observé, rattaché au comportement d'ensemble du client. {nombre_fr(nb_corriges)} clients sont concernés ; les clients à 50 % pile passent de {nombre_fr(pointe_50_classique)} à {nombre_fr(pointe_50)}. Ces médianes portent sur les {nombre_fr(len(df_ratio))} clients qui ont eu au moins une facture à payer d'avril à août. Les {nombre_fr(sans_facture)} autres n'ont pas de ratio mesurable et ne sont pas affichés : {nombre_fr(sans_facture_sept)} n'ont qu'une facture en septembre, dont le paiement tombe en octobre, hors période (des comptes qui commencent à servir, médiane fixée à -1), et {nombre_fr(sans_facture - sans_facture_sept)} n'ont eu aucune facture positive sur les 6 mois (page « 4.2 L'usage du crédit »).
+Les clients ont des **tendances d'usage** nettes : leur comportement habituel se concentre sur deux pics. **{nombre_fr(part_faible, 1)} %** des clients remboursent en général 10 % ou moins de leur facture, et **{nombre_fr(part_solde, 1)} %** la règlent en totalité (entre 99 et 105 %). Les comportements intermédiaires sont rares. Avec un nombre pair de mois, la médiane classique fait la moyenne des deux valeurs du milieu : un client qui alterne un mois sans paiement et un mois soldé, souvent à cause du décalage d'un mois des paiements (page 3.3), obtiendrait 50 %, un comportement qu'il n'a jamais eu. Quand les deux valeurs du milieu diffèrent, on garde donc celle qui est la plus proche de son **taux de remboursement global** : tout ce qu'il a payé sur la période, rapporté à tout ce qu'il a dû, chaque facture reportée n'étant comptée qu'une fois. La médiane reste ainsi un ratio réellement observé, rattaché au comportement d'ensemble du client. {nombre_fr(nb_corriges)} clients sont concernés ; les clients à 50 % pile passent de {nombre_fr(pointe_50_classique)} à {nombre_fr(pointe_50)}. Ces médianes portent sur les {nombre_fr(len(df_ratio))} clients qui ont eu au moins une facture à payer d'avril à août. Les {nombre_fr(sans_facture)} autres n'ont pas de ratio mesurable et ne sont pas affichés : {nombre_fr(sans_facture_sept)} n'ont qu'une facture en septembre, dont le paiement tombe en octobre, hors période (des comptes qui commencent à servir, médiane fixée à -1), et {nombre_fr(sans_facture - sans_facture_sept)} n'ont eu aucune facture positive sur les 6 mois (page « 4.2 L'usage du crédit »).
 """)
 
-st.subheader("Six types d'usage, et un comportement plutôt régulier", anchor="regularite")
+st.subheader("Sept types d'usage, et un comportement plutôt régulier", anchor="regularite")
 # Répartition de tous les ratios mensuels (mois avec une facture due) : elle ne dépend pas de la définition de la médiane
 ratios_mensuels = pd.concat([df.loc[df[f'BILL_AMT{n + 1}'] > 0, f'ratio_PAY_BILL{n}'] for n in range(1, 6)])
-partiels = np.floor(ratios_mensuels[(ratios_mensuels > 0) & (ratios_mensuels < 90)])
+partiels = np.floor(ratios_mensuels[(ratios_mensuels > 0) & (ratios_mensuels < 99)])
+trop_payes = int((df_ratio['type_usage'] == TROP_PAYE).sum())
 pic = int(partiels.value_counts().idxmax())
 part_pic = (partiels == pic).mean() * 100
 st.markdown("Chaque client est rangé selon son ratio de paiement médian : " + " ; ".join(f"**{nom}** ({tranche})" for nom, tranche in TYPES) + ". "
             "Les tranches ont été posées sur la répartition de **tous les ratios de paiement mensuels**, qui ne dépend pas de la façon "
             f"de calculer la médiane : parmi les paiements partiels, le point le plus fréquent est {pic} % ({nombre_fr(part_pic, 1)} % des mois), "
-            "puis la fréquence décroît régulièrement jusque vers 30 %, et la zone de 30 à 90 % est clairsemée. "
+            "puis la fréquence décroît régulièrement jusque vers 30 %, et la zone de 30 à 99 % est clairsemée. "
+            "Le paiement comptant est resserré autour de 100 % : un léger trop-perçu, jusqu'à 105 %, n'a rien de choquant "
+            "(un montant arrondi au-dessus de la facture, par exemple). Au-delà, payer d'habitude plus que sa facture n'est plus "
+            f"l'usage d'une carte de crédit : ces {nombre_fr(trop_payes)} clients sont **mis à part**, comme une anomalie qu'on ne sait pas "
+            "expliquer (avance, erreur de saisie, avoir ?), plutôt que comptés avec les payeurs au comptant. "
             "Les tranches ne découlent pas du taux de défaut.")
 
 # Seuil de 3 % : part des mois codifiés en retard selon la part de la facture payée dans le mois (codification, pas défaut)
@@ -157,8 +167,8 @@ st.markdown(
     + f"</tr></thead><tbody>{lignes_html}</tbody></table>",
     unsafe_allow_html=True,
 )
-st.caption("Pour « Ne paie rien » et « Paiement comptant », la dernière colonne vaut 0 % par construction : quand la médiane vaut 0 % "
-           "(ou 90 % et plus), au moins la moitié des mois valent 0 % (ou 90 % et plus).")
+st.caption("Pour « Ne paie rien » et « Paie plus que sa facture », la dernière colonne vaut 0 % par construction : quand la médiane vaut 0 % "
+           "(ou plus de 105 %), au moins la moitié des mois valent 0 % (ou plus de 105 %).")
 
 cinq = nb_mois_dus == 5
 part_3_sur_5 = (nb_conformes[cinq] >= 3).mean() * 100
@@ -168,11 +178,13 @@ regul = {t[0]: regularite[assez & (df_ratio['type_usage'] == t[0])].mean() for t
 comptant = assez & (df_ratio['type_usage'] == COMPTANT)
 part_comptant_tous = (regularite[comptant] == 100).mean() * 100
 ecarts = mois_dus[comptant].stack()
-ecarts = ecarts[ecarts < 90]
+ecarts = ecarts[(ecarts < 99) | (ecarts > 105)]
 part_ecarts_zero = (ecarts == 0).mean() * 100
+part_ecarts_trop = (ecarts > 105).mean() * 100
+part_ecarts_partiel = 100 - part_ecarts_zero - part_ecarts_trop
 st.markdown(f"""
 - **Le comportement de paiement est majoritairement récurrent** : parmi les clients qui ont 5 mois avec une facture due, {nombre_fr(part_3_sur_5, 0)} % ont au moins 3 mois sur 5 dans le même type d'usage que leur médiane, et {nombre_fr(part_5_sur_5, 0)} % les ont tous.
-- **Les comportements nets sont les plus stables** : en moyenne, {nombre_fr(regul[COMPTANT], 0)} % des mois d'un client au paiement comptant restent dans son type d'usage, {nombre_fr(regul[MENSUALITE], 0)} % pour le crédit par mensualité et {nombre_fr(regul[RIEN], 0)} % pour ceux qui ne paient rien. Le paiement comptant reste pourtant une **habitude plus qu'une règle** : {nombre_fr(part_comptant_tous, 0)} % seulement des payeurs au comptant soldent tous leurs mois avec facture ; les autres s'en écartent un ou deux mois, le plus souvent en sautant un paiement ({nombre_fr(part_ecarts_zero, 0)} % des écarts), sinon en ne réglant qu'une partie de leur facture.
+- **Les comportements nets sont les plus stables** : en moyenne, {nombre_fr(regul[COMPTANT], 0)} % des mois d'un client au paiement comptant restent dans son type d'usage, {nombre_fr(regul[MENSUALITE], 0)} % pour le crédit par mensualité et {nombre_fr(regul[RIEN], 0)} % pour ceux qui ne paient rien. Le paiement comptant reste pourtant une **habitude plus qu'une règle** : {nombre_fr(part_comptant_tous, 0)} % seulement des payeurs au comptant soldent tous leurs mois avec facture ; les autres ont un ou deux mois où ils ne paient pas au comptant. Ces mois-là, ils règlent seulement une partie de leur facture dans {nombre_fr(part_ecarts_partiel, 0)} % des cas, ne paient rien dans {nombre_fr(part_ecarts_zero, 0)} % des cas, et paient plus que leur facture (plus de 105 %) dans {nombre_fr(part_ecarts_trop, 0)} % des cas.
 - **Le remboursement élevé et le client en difficulté sont des comportements de passage** ({nombre_fr(regul[ELEVE], 0)} % et {nombre_fr(regul[DIFFICULTE], 0)} % des mois dans leur type d'usage) : ces clients alternent entre plusieurs façons de payer.
 """)
 
@@ -213,6 +225,7 @@ st.markdown(f"""
 - **Plus le client rembourse, moins il fait défaut** : le taux de défaut passe de **{nombre_fr(ligne.loc[RIEN, 'taux'], 1)} %** pour les clients qui ne paient rien et **{nombre_fr(ligne.loc[DIFFICULTE, 'taux'], 1)} %** pour les clients en difficulté, à **{nombre_fr(ligne.loc[MENSUALITE, 'taux'], 1)} %** pour le crédit par mensualité, **{nombre_fr(ligne.loc[MIXTE, 'taux'], 1)} %** pour l'usage mixte, puis **{nombre_fr(ligne.loc[ELEVE, 'taux'], 1)} %** pour le remboursement élevé et **{nombre_fr(ligne.loc[COMPTANT, 'taux'], 1)} %** pour le paiement comptant (moyenne de {nombre_fr(taux_moyen, 1)} %, en pointillés orange).
 - **L'usage mixte et le remboursement élevé restent ambigus** : paiement en plusieurs fois, rattrapage partiel d'un retard, paiement anticipé… Le remboursement élevé concerne peu de clients ({nombre_fr(ligne.loc[ELEVE, 'clients'])}), mais son risque est déjà proche de celui du paiement comptant.
 - **Ne rien payer est le signal le plus fort**, mais il concerne peu de clients ({nombre_fr(ligne.loc[RIEN, 'clients'])}).
+- **Les clients qui paient plus que leur facture restent une anomalie** ({nombre_fr(ligne.loc[TROP_PAYE, 'clients'])} clients, {nombre_fr(ligne.loc[TROP_PAYE, 'taux'], 1)} % de défaut) : avance, erreur de saisie ou avoir, le dataset ne permet pas de trancher. Ils sont montrés pour mémoire, sans être interprétés.
 """)
 
 # ------------------------------------------------------------------------------
@@ -241,7 +254,7 @@ clients_type = stats_type.set_index('type_usage')['clients']
 for type_usage in parts_codif.index:
     fig_codif.add_annotation(x=101, y=type_usage, xanchor="left", showarrow=False,
                              text=f"<b>{nombre_fr(clients_type[type_usage])} clients</b>", font_size=TAILLE_ETIQUETTE)
-fig_codif.update_layout(barmode="stack", height=470, xaxis_title="Part des clients (%)",
+fig_codif.update_layout(barmode="stack", height=520, xaxis_title="Part des clients (%)",
                         xaxis=dict(range=[0, 125], tickvals=[0, 20, 40, 60, 80, 100]),
                         yaxis=dict(autorange="reversed", title=None), legend_title="Codification la plus fréquente",
                         # entrywidth : espace après chaque libellé, pour que chaque carré reste collé à sa signification
