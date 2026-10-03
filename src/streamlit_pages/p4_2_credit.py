@@ -272,7 +272,65 @@ st.plotly_chart(fig6, width='stretch')
 util_petits = df.loc[df['LIMIT_BAL'] <= 150000, 'ratio_BILL_LIMIT1'].median()
 util_grands = df.loc[df['LIMIT_BAL'] >= 200000, 'ratio_BILL_LIMIT1'].median()
 st.markdown(f"""
-En septembre, les plus petits plafonds sont les plus utilisés : utilisation médiane de **{nombre_fr(util_petits, 1)} %** jusqu'à 150 000 NT\\$, contre **{nombre_fr(util_grands, 1)} %** à partir de 200 000 NT\\$. On a vu que les petits plafonds sont les plus risqués : est-ce le montant du plafond qui compte, ou l'usage qu'en fait le client ?
+En septembre, les plus petits plafonds sont les plus utilisés : utilisation médiane de **{nombre_fr(util_petits, 1)} %** jusqu'à 150 000 NT\\$, contre **{nombre_fr(util_grands, 1)} %** à partir de 200 000 NT\\$. Les petits plafonds servent-ils aussi davantage de crédit renouvelable ? Et si oui, est-ce ce crédit, ou le petit plafond, qui porte le risque ?
+""")
+
+# ------------------------------------------------------------------------------
+st.subheader("Les petits plafonds vivent à crédit, mais c'est le plafond qui porte le risque", anchor="codification-plafond")
+st.markdown(f"""
+Pour chaque client, on retient la codification que la banque lui pose le plus souvent **quand il n'est pas en retard** (colonne `PAY_habituel_hors_retard`) : {codif('-1')} pour une facture payée à temps, {codif('-2')} pour un crédit non utilisé (tout payé ou rien à payer), {codif('0')} pour un crédit renouvelable en cours (page « 3.3 Les codifications »). Les mois en retard sont laissés de côté : on regarde ici comment le client utilise sa carte, pas ses incidents.
+""")
+
+# Tranches de plafond larges (effectifs suffisants pour croiser avec la codification)
+BORNES_PLAFOND = [0, 50_000, 100_000, 150_000, 200_000, 300_000, 500_000]
+NOMS_PLAFOND = ["50 000 ou moins", "50 001 à 100 000", "100 001 à 150 000", "150 001 à 200 000", "200 001 à 300 000", "300 001 à 500 000"]
+tranche_plafond = pd.cut(df['LIMIT_BAL'], BORNES_PLAFOND, labels=NOMS_PLAFOND)
+codif_hors_retard = df['PAY_habituel_hors_retard'].map({-2: "-2", -1: "-1", 0: "0"})
+parts_codif = (pd.crosstab(tranche_plafond, codif_hors_retard, normalize='index') * 100).reindex(index=NOMS_PLAFOND, columns=["-2", "-1", "0"], fill_value=0)
+clients_tranche = codif_hors_retard.notna().groupby(tranche_plafond, observed=False).sum().reindex(NOMS_PLAFOND)
+
+fig_codif_plafond = go.Figure()
+for valeur in ["-2", "-1", "0"]:
+    fig_codif_plafond.add_trace(go.Bar(
+        x=NOMS_PLAFOND, y=parts_codif[valeur], name=valeur, marker_color=COULEURS_CODIF[valeur],
+        text=[f"{nombre_fr(v, 0)} %" if v >= 5 else "" for v in parts_codif[valeur]], textposition="inside", textfont_size=TAILLE_ETIQUETTE,
+        hovertemplate="Plafond %{x} NT$<br>Codification " + valeur + " : %{y:.1f} % des clients<extra></extra>"))
+for nom, n in clients_tranche.items():
+    fig_codif_plafond.add_annotation(x=nom, y=100, yshift=14, showarrow=False, text=f"{nombre_fr(n)} clients", font_size=TAILLE_ETIQUETTE - 2)
+fig_codif_plafond.update_layout(barmode="stack", height=480, yaxis_title="Part des clients de la tranche (%)", yaxis_range=[0, 110],
+                                xaxis_title="Plafond de crédit (NT$)", legend_title="Codification principale hors retard",
+                                legend=dict(orientation="h", y=1.15), margin=dict(t=70), separators=", ")
+st.plotly_chart(fig_codif_plafond, width='stretch')
+st.caption("Codification la plus fréquente de chaque client parmi ses mois codifiés -2, -1 ou 0 ; clients en retard tous les mois écartés.")
+
+petits, moyens = NOMS_PLAFOND[0], NOMS_PLAFOND[3]
+st.markdown(f"""
+**Plus le plafond est petit, plus le crédit renouvelable domine** : {nombre_fr(parts_codif.loc[petits, '0'], 0)} % des clients aux plafonds de 50 000 NT\\$ ou moins sont habituellement codifiés {codif('0')}, contre {nombre_fr(parts_codif.loc[moyens, '0'], 0)} % entre 150 001 et 200 000 NT\\$. Au-delà, la répartition ne bouge plus guère : un client sur deux n'utilise pas son crédit ({codif('-1')} ou {codif('-2')}).
+""")
+
+# Taux de défaut par tranche de plafond, selon que le client utilise ou non le crédit renouvelable
+famille = pd.Series(np.select([df['PAY_habituel_hors_retard'] == 0, df['PAY_habituel_hors_retard'] <= -1],
+                              ["Crédit renouvelable (0)", "Pas de crédit utilisé (-1 ou -2)"], default=None), index=df.index)
+taux_famille = (df.groupby([tranche_plafond, famille], observed=False)['dpnm'].mean().unstack() * 100).reindex(NOMS_PLAFOND)
+fig_famille = go.Figure()
+for nom_famille, valeur, decalage in (("Pas de crédit utilisé (-1 ou -2)", "-1", -22), ("Crédit renouvelable (0)", "0", 22)):
+    fig_famille.add_trace(go.Bar(x=NOMS_PLAFOND, y=taux_famille[nom_famille], name=nom_famille, marker_color=COULEURS_CODIF[valeur],
+                                 hovertemplate="Plafond %{x} NT$<br>%{y:.1f} % de défaut<extra></extra>"))
+    for nom, taux in taux_famille[nom_famille].items():
+        fig_famille.add_annotation(x=nom, y=taux, xshift=decalage, yshift=12, showarrow=False, text=f"<b>{nombre_fr(taux, 1)}</b>",
+                                   font_size=TAILLE_ETIQUETTE - 2, bgcolor="rgba(128, 128, 128, 0.25)", borderpad=1)
+fig_famille.add_hline(y=taux_moyen, line_dash="dash", line_width=2, line_color=COULEURS["orange"])
+fig_famille.update_layout(barmode="group", height=460, yaxis_title="Taux de défaut de paiement (%)", xaxis_title="Plafond de crédit (NT$)",
+                          yaxis_range=[0, taux_famille.max().max() * 1.3], legend=dict(orientation="h", y=1.12), margin=dict(t=60), separators=", ")
+st.markdown("#### Taux de défaut de paiement selon le plafond autorisé")
+st.plotly_chart(fig_famille, width='stretch')
+
+ecart_petits = taux_famille.loc[petits, "Crédit renouvelable (0)"] - taux_famille.loc[petits, "Pas de crédit utilisé (-1 ou -2)"]
+st.markdown(f"""
+- **À plafond égal, utiliser ou non le crédit renouvelable change peu le risque** : {nombre_fr(ecart_petits, 1)} points d'écart seulement pour les plafonds de 50 000 NT\\$ ou moins, autant de défaut entre 100 001 et 150 000 NT\\$, et à partir de 150 000 NT\\$ le crédit renouvelable fait même un peu moins défaut.
+- **À codification égale, c'est le plafond qui fait la différence** : le taux de défaut des clients en crédit renouvelable passe de **{nombre_fr(taux_famille.loc[petits, 'Crédit renouvelable (0)'], 1)} %** sous 50 000 NT\\$ à **{nombre_fr(taux_famille.loc[NOMS_PLAFOND[-1], 'Crédit renouvelable (0)'], 1)} %** entre 300 001 et 500 000 NT\\$.
+
+Le crédit renouvelable paraît donc risqué surtout parce qu'il est concentré sur les petits plafonds. Une prudence s'impose sur le sens de la causalité : c'est la banque qui fixe le plafond, selon son jugement du client ; un petit plafond signale peut-être un client jugé fragile dès le départ plus qu'il ne crée le risque.
 """)
 
 # ------------------------------------------------------------------------------
@@ -374,6 +432,13 @@ st.markdown(f"""
 **Focus sur septembre**, le mois le plus proche du défaut d'octobre : la hiérarchie se maintient, mais elle est **moins marquée** qu'en moyenne sur 6 mois. Entre 10 et 30 % d'utilisation et entre 90 et 110 %, le taux de défaut passe de {nombre_fr(bas_sept, 1)} à {nombre_fr(haut_sept, 1)} % en septembre, contre {nombre_fr(bas['taux_defaut'], 1)} à {nombre_fr(haut['taux_defaut'], 1)} % en moyenne. Une facture de fin de mois ponctuelle, un gros achat soldé ensuite par exemple, peut gonfler l'utilisation d'un seul mois sans rien dire de l'habitude du client : la moyenne lisse ces pics. Le montant brut, lui, reste sans effet sur le risque en septembre comme en moyenne. La première barre, à 0, isole à nouveau les anomalies : {nombre_fr(stats_montant_sept.iloc[0]['nb_clients'])} clients n'ont aucune facture en septembre, donc rien à payer en octobre, et pourtant {nombre_fr(stats_montant_sept.iloc[0]['taux_defaut'], 1)} % d'entre eux sont notés en défaut. **L'habitude sur 6 mois en dit plus qu'une photo du dernier mois.**
 """)
 
-st.info("""
-**Ce que révèle l'usage du crédit** : le montant du plafond seul n'explique pas le risque. Les petits plafonds sont plus risqués, mais ce sont aussi les plus utilisés ; et plus un client utilise son crédit, plus son taux de défaut est élevé. L'utilisation du plafond, qui augmente mois après mois, est un signal de risque plus parlant que le plafond lui-même.
+# Plafond et utilisation croisés : le risque des petits plafonds, et celui d'une forte utilisation chez les gros plafonds
+utilisation_6m = df[[f'ratio_BILL_LIMIT{i}' for i in range(1, 7)]].mean(axis=1)
+petits_plafonds = df['LIMIT_BAL'] <= 50_000
+gros_plafonds = df['LIMIT_BAL'] > 300_000
+taux_petits_util = [df.loc[petits_plafonds & masque, 'dpnm'].mean() * 100 for masque in (utilisation_6m < 30, utilisation_6m > 70)]
+taux_gros_faible = df.loc[gros_plafonds & utilisation_6m.between(10, 30, inclusive="left"), 'dpnm'].mean() * 100
+taux_gros_forte = df.loc[gros_plafonds & (utilisation_6m > 70), 'dpnm'].mean() * 100
+st.info(f"""
+**Ce que révèle l'usage du crédit** : deux signaux se complètent. **Le plafond** d'abord : les petits plafonds font davantage défaut, qu'ils utilisent ou non le crédit renouvelable, et quelle que soit la part du plafond utilisée ({nombre_fr(min(taux_petits_util), 1)} à {nombre_fr(max(taux_petits_util), 1)} % sous 50 000 NT\\$, selon que l'utilisation est faible ou forte). **L'utilisation du plafond** ensuite, qui augmente mois après mois : elle alerte surtout chez les gros plafonds, dont le taux de défaut passe de {nombre_fr(taux_gros_faible, 1)} % entre 10 et 30 % d'utilisation à {nombre_fr(taux_gros_forte, 1)} % au-delà de 70 %. Le crédit renouvelable, lui, n'est pas un facteur de risque en soi : il paraît risqué parce qu'il est concentré sur les petits plafonds. Et le montant dépensé en NT\\$ ne dit rien : c'est la part du crédit disponible qu'il consomme qui compte. Le plafond reflète aussi le jugement que la banque porte sur le client : il signale le risque autant qu'il le crée.
 """)
