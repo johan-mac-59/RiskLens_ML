@@ -49,7 +49,7 @@ ctx, paye, sorti, isole, aucun = (par_statut.loc[nom] for nom in NOMS_STATUTS)
 st.markdown(f"""
 - **Au contentieux, {nombre_fr(ctx['taux'], 1)} % des clients font défaut**, soit {nombre_fr(ctx['taux'] / aucun['taux'], 1)} fois plus que les clients sans incident ({nombre_fr(aucun['taux'], 1)} %). Retirer ces clients du machine learning pour les prédire en défaut se justifie.
 - **Avoir été en retard ne suffit pas à faire un contentieux** : les clients sortis du contentieux ({nombre_fr(sorti['taux'], 1)} %) et ceux qui ont payé leur retard de septembre ({nombre_fr(paye['taux'], 1)} %) restent bien au-dessus de la moyenne, mais très loin du contentieux. Ce qui compte, c'est d'y être encore en septembre.
-- **Un retard isolé pèse moins qu'un vrai passage au contentieux** : {nombre_fr(isole['taux'], 1)} % de défaut, contre {nombre_fr(sorti['taux'], 1)} % pour les clients sortis du contentieux. C'est la confirmation, par le défaut, du choix fait en page 5.3 : un seul mois de retard n'est pas un contentieux.
+- **Un retard isolé pèse moins qu'un vrai passage au contentieux** : {nombre_fr(isole['taux'], 1)} % de défaut, contre {nombre_fr(sorti['taux'], 1)} % pour les clients sortis du contentieux. C'est la confirmation, par le défaut, du choix fait en page 5.3 : une seule codification de retard n'est pas un contentieux.
 """)
 
 # ------------------------------------------------------------------------------
@@ -72,7 +72,7 @@ with col_t:
 
 # ------------------------------------------------------------------------------
 st.subheader("3. Sortis du contentieux : le risque grandit avec la durée du passage", anchor="sortis")
-st.markdown("Pour les clients sortis du contentieux pendant la période, deux informations sont disponibles : **combien de temps ils y sont restés** (`NB_MOIS_CTX`) et **quand ils en sont sortis** (`MOIS_SORTIE_CTX`). Les deux sont liées : un long passage ne peut s'être terminé que récemment (cinq mois de retard d'affilée finissent forcément en septembre). Les deux graphiques les montrent séparément, le tableau croisé les démêle.")
+st.markdown("Pour les clients sortis du contentieux pendant la période, deux informations sont disponibles : **combien de temps ils y sont restés** (`NB_MOIS_CTX`) et **quand ils en sont sortis** (`MOIS_SORTIE_CTX`). Les deux sont liées : un long passage ne peut s'être terminé que récemment (cinq codifications de retard d'affilée finissent forcément en septembre). Les deux graphiques les montrent séparément, le tableau croisé les démêle.")
 sortis = train[train['STATUT'] == "Sorti du contentieux"]
 par_nb = stats(sortis, sortis['NB_MOIS_CTX'].astype(int))
 par_mois = stats(sortis, sortis['MOIS_SORTIE_CTX'].astype(int)).sort_index(ascending=False)   # chronologique : mai -> septembre

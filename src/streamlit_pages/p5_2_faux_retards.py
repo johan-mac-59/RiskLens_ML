@@ -69,7 +69,7 @@ st.subheader("1. Le point de départ : un retard, c'est une codification 2 ou pl
 st.markdown(f"""
 La documentation du dataset présente {codif('1')} comme un retard d'un mois, {codif('2')} comme un retard de deux mois, et ainsi de suite. Mais la codification {codif('1')} n'existe presque qu'en septembre et reste un statut provisoire (page « 3.3 Les codifications »). L'étude retient donc comme **retard** une codification de {codif('2')} ou plus.
 
-Une codification {codif('2')} signifie au moins deux échéances non réglées, soit **au minimum 60 jours de retard de paiement**. En banque de détail, la règle métier usuelle place un client à ce stade **en recouvrement**, puis **en contentieux** si sa situation ne revient pas à la normale.
+Une codification {codif('2')} signifie au moins deux échéances non réglées, soit **au minimum 60 jours de retard de paiement**. Dans la pratique bancaire actuelle, en France, un client à ce stade passe **en recouvrement**, puis **au contentieux** si sa situation ne revient pas à la normale ; sa carte est en principe bloquée avant. Les règles de la banque taïwanaise de 2005 ne sont pas connues : cette logique métier est retenue par analogie, et c'est sur elle que repose le seuil de deux codifications de retard d'affilée, soit au moins 90 jours (page 5.3).
 
 C'est le postulat de départ : un client **entre** en retard quand sa codification passe à {codif('2')} ou plus, et la population contentieuse se cherche parmi ces retards, à commencer par les clients figés à {codif('2')} (page 5.1). Mais la codification ne suit pas toujours la dette (page « 3.3 Les codifications ») : chaque entrée en retard a donc été confrontée aux montants, une à une, sur le jeu d'entraînement.
 """)
@@ -149,9 +149,10 @@ for n in range(2, 5):
                      & (train[f'BILL_AMT{n + 2}'] > 0) & (train[f'BILL_AMT{n + 1}'] > 0))
     retombe = (train[[f'PAY_{k}' for k in range(1, n)]] >= 2).any(axis=1)
     for avec, m in ((False, sortie_n & sans_paiement), (True, sortie_n & ~sans_paiement)):
-        hist.append({'avec_paiement': avec, 'n': int(m.sum()), 'retombe': int(retombe[m].sum())})
+        hist.append({'avec_paiement': avec, 'n': int(m.sum()), 'retombe': int(retombe[m].sum()), 'defauts': int(train.loc[m, 'dpnm'].sum())})
 hist = pd.DataFrame(hist).groupby('avec_paiement').sum()
 hist['part_retombe'] = hist['retombe'] / hist['n'] * 100
+hist['taux_defaut'] = hist['defauts'] / hist['n'] * 100
 sans_p, avec_p = hist.loc[False], hist.loc[True]
 
 st.subheader("3. Une autre sortie de retard en suspens : septembre", anchor="mois-transition")
@@ -163,6 +164,8 @@ Des clients étaient en retard en août. En septembre, la banque ne les codifie 
 Deux questions se posent. Les paiements confirment-ils cette sortie du retard ? Et si oui, quelle codification leur donner ?
 
 **Pourquoi la question ne se pose-t-elle qu'en septembre ?** La banque sort aussi des clients du retard les autres mois, parfois sans aucun paiement. Mais pour ces mois-là, la suite de l'historique a déjà tranché : les codifications des mois suivants disent si la sortie a tenu. Et elle tient dans les faits. Sur l'entraînement, la banque a sorti du retard {nombre_fr(sans_p['n'])} clients en juin, juillet ou août sans aucun paiement sur deux mois, alors que deux factures étaient dues, sur {nombre_fr(sans_p['n'] + avec_p['n'])} sorties de retard ces trois mois-là. Seuls {nombre_fr(sans_p['part_retombe'], 1)} % d'entre eux retombent en retard ensuite. La banque avait sans doute des raisons que le dataset ne montre pas (arrangement, plan de paiement, paiement enregistré ailleurs) : pour ces mois, sa codification peut être prise telle quelle.
+
+**Une piste pour ces sorties de retard sans paiement : des accords de paiement.** Un échéancier ou un rééchelonnement négocié avec la banque expliquerait qu'un client sorte du retard avant tout versement, puis reste hors du retard les mois suivants. Ces clients font pourtant défaut à {nombre_fr(sans_p['taux_defaut'], 1)} % (entraînement), comme si une bonne partie des accords n'était pas tenue. L'année 2005 s'y prête : l'autorité de supervision demande alors aux banques de négocier avec leurs débiteurs (page 5.3). Le dataset ne garde aucune trace de tels accords : c'est une hypothèse cohérente, pas un constat.
 
 Septembre est différent. Le mois qui confirmerait la sortie, octobre, n'est pas dans les données. Et septembre porte un statut d'attente, la codification {codif('1')}, presque absente des autres mois.
 

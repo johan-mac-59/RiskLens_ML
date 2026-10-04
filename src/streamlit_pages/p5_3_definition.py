@@ -23,7 +23,7 @@ CTRL_REMIS_DEPUIS_1, CTRL_REMIS_DEPUIS_SAIN = 73, 45
 CTRL_CODIFS_MODIFIEES, CTRL_CLIENTS_MODIFIES, CTRL_RETARDS_NEUTRALISES = 566, 346, 442
 taux_train = train['dpnm'].mean() * 100
 
-# 05_02_EDA_contentieux, cellule 14 (train, codifications d'origine) : clients avec un seul mois de retard, hors septembre
+# 05_02_EDA_contentieux, cellule 14 (train, codifications d'origine) : clients avec une seule codification de retard, hors septembre
 UN_SEUL_RETARD, SUR_VRAIE_FACTURE, SUR_FACTURE_NULLE, EN_AVRIL = 2146, 1738, 1, 407
 
 entete_partie_5(df, s12, train, test)
@@ -37,9 +37,9 @@ Les codifications sont désormais corrigées (page « 5.2 Chercher le contentieu
 # ------------------------------------------------------------------------------
 st.subheader("1. Un retard isolé n'est pas un contentieux", anchor="retard-isole")
 st.markdown(f"""
-Un client peut n'avoir qu'**un seul mois** de retard sur toute la période. Dans l'étude, {nombre_fr(UN_SEUL_RETARD)} clients de l'entraînement étaient dans ce cas : quand on peut le vérifier, ce retard porte presque toujours sur **une vraie facture** ({nombre_fr(SUR_VRAIE_FACTURE)} cas, contre {SUR_FACTURE_NULLE} seul sur une facture nulle ; les {EN_AVRIL} retards d'avril ne sont pas vérifiables, faute de connaître mars). Le client a payé en retard, puis a régularisé le mois suivant : c'est le **fonctionnement normal d'un crédit** ([05_02_EDA_contentieux.ipynb]({GH}/src/05_02_EDA_contentieux.ipynb), cellules 14 et 15).
+Un client peut n'avoir qu'**une seule codification** de retard sur toute la période. Dans l'étude, {nombre_fr(UN_SEUL_RETARD)} clients de l'entraînement étaient dans ce cas : quand on peut le vérifier, ce retard porte presque toujours sur **une vraie facture** ({nombre_fr(SUR_VRAIE_FACTURE)} cas, contre {SUR_FACTURE_NULLE} seul sur une facture nulle ; les {EN_AVRIL} retards d'avril ne sont pas vérifiables, faute de connaître mars). Le client a payé en retard, puis a régularisé le mois suivant : c'est le **fonctionnement normal d'un crédit** ([05_02_EDA_contentieux.ipynb]({GH}/src/05_02_EDA_contentieux.ipynb), cellules 14 et 15).
 
-À l'inverse, **deux mois de retard d'affilée** signifient que la dette n'a pas été régularisée le mois suivant. Une codification {codif('2')} correspond déjà, a priori, à au moins 60 jours sans paiement (page 5.2) : deux codifications {codif('2')} d'affilée signifient donc **au moins 90 jours de retard**. Le retard s'installe. C'est ce seuil, et non un retard ponctuel, que l'étude a **choisi comme frontière entre la gestion standard et le contentieux**. Le dataset ne dit pas où la banque place elle-même cette frontière : c'est une définition de travail, fondée sur la logique métier.
+À l'inverse, **deux codifications de retard d'affilée** signifient que la dette n'a pas été régularisée le mois suivant. Une codification {codif('2')} correspond déjà, a priori, à au moins 60 jours sans paiement (page 5.2) : deux codifications {codif('2')} d'affilée signifient donc **au moins 90 jours de retard**. Le retard s'installe. C'est ce seuil, et non un retard ponctuel, que l'étude a **choisi comme frontière entre la gestion standard et le contentieux**. Le dataset ne dit pas où la banque place elle-même cette frontière : c'est une définition de travail, fondée sur la logique métier.
 """)
 
 # ------------------------------------------------------------------------------
@@ -52,10 +52,10 @@ La règle s'applique aux codifications **déjà corrigées** en page 5.2. Pour m
 """)
 st.caption("Comment lire : une ligne par situation, avec le classement du client et les indicateurs du dataset qui la retranscrivent (définitions complètes dans docs/colonnes_creees.md). Un retard est une codification 2 ou plus.")
 tableau_html(["Situation sur les 6 mois", "Classement", "Indicateurs"], [
-    ["<b>Au moins deux mois de retard d'affilée</b>", "Passage au contentieux", "<code>FLAG_CTX</code> = 1"],
+    ["<b>Au moins deux codifications de retard d'affilée</b>", "Passage au contentieux", "<code>FLAG_CTX</code> = 1"],
     ["Après ce passage, la codification redescend sous 2", "Sorti du contentieux, le mois du retour",
      "<code>MOIS_SORTIE_CTX</code> = 1 (septembre) à 5 (mai)"],
-    ["<b>Un seul mois de retard</b>, suivi d'un retour sous 2", "Retard isolé régularisé : ce n'est pas un contentieux",
+    ["<b>Une seule codification de retard</b>, suivie d'un retour sous 2", "Retard isolé régularisé : ce n'est pas un contentieux",
      "<code>FLAG_RETARD</code> = 1 et <code>MOIS_SORTIE_RETARD</code> = mois du retour (1 à 4)"],
     ["Un retard isolé en <b>avril</b>, premier mois observé", "Compté comme un passage au contentieux, par prudence : mars n'est pas observé, et ce retard peut terminer une série plus longue",
      "<code>FLAG_CTX</code> = 1"],
@@ -70,7 +70,7 @@ Quatre précisions :
 - **La population « au contentieux » regroupe les clients supposés être toujours au contentieux en octobre**, le mois du défaut (`FLAG_CTX` = 1 et `MOIS_SORTIE_CTX` = -1). Elle **n'inclut pas** les clients passés par le contentieux puis sortis pendant la période, ni ceux dont le retard est payé : ils gardent `FLAG_CTX` = 1, mais restent dans le machine learning, avec leur mois de sortie.
 - **« Aucun incident » veut dire aucune codification de retard sur les six mois** (`CUMUL_INCIDENT` = 0, page 4.6). Un client sorti du contentieux n'a plus de retard en septembre, mais il a eu des incidents : il est classé « sorti du contentieux », et ses colonnes gardent la trace de son passage (`FLAG_CTX` = 1).
 - **C'est une décision de traitement**, pas une observation : le dataset ne donne pas la situation d'octobre. Elle s'appuie sur la dernière situation connue, celle de septembre.
-- **La durée du dernier passage au contentieux** est comptée en mois de retard consécutifs (`NB_MOIS_CTX`) : de 1 (entrée en septembre, ou retard isolé d'avril) à 6 (en retard sur toute la période).
+- **La durée du dernier passage au contentieux** est comptée en codifications de retard consécutives (`NB_MOIS_CTX`) : de 1 (entrée en septembre, ou retard isolé d'avril) à 6 (en retard sur toute la période).
 """)
 
 # ------------------------------------------------------------------------------
@@ -86,7 +86,7 @@ SITUATIONS = [
     ("Au contentieux, depuis les 6 mois", (statut == "Au contentieux") & (duree == 6) & simple,
      "En retard sur toute la période, figé à 2 : le cas qui a lancé l'étude"),
     ("Au contentieux, entré pendant la période", (statut == "Au contentieux") & duree.between(3, 4) & simple & (s12['PAY_6'] <= 0),
-     "Plusieurs mois de retard d'affilée, toujours en retard en septembre"),
+     "Plusieurs codifications de retard d'affilée, toujours en retard en septembre"),
     ("Au contentieux, entré en septembre", (statut == "Au contentieux") & (duree == 1) & (codes.iloc[:, :5] <= 0).all(axis=1),
      "Un seul retard, mais en septembre : la suite n'est pas connue"),
     ("Retard payé en septembre", (statut == "Retard payé en septembre") & (s12['PAY_2'] >= 2) & simple,
@@ -94,9 +94,9 @@ SITUATIONS = [
     # Sortie en août ou en juillet, confirmée par les mois suivants (aucun retard ensuite)
     ("Sorti du contentieux", (statut == "Sorti du contentieux") & duree.between(2, 3) & s12['MOIS_SORTIE_CTX'].between(2, 3) & simple
      & (codes != 1).all(axis=1) & (s12['PAY_6'] <= 0) & (s12[['PAY_1', 'PAY_2']] <= 0).all(axis=1),
-     "Deux mois de retard d'affilée ou plus, puis retour à une codification sans retard, confirmé par les mois suivants"),
+     "Deux codifications de retard d'affilée ou plus, puis retour à une codification sans retard, confirmé par les mois suivants"),
     ("Retard isolé régularisé", (statut == "Retard isolé régularisé") & s12['MOIS_SORTIE_RETARD'].between(2, 3) & simple,
-     "Un seul mois de retard, régularisé le mois suivant"),
+     "Une seule codification de retard, régularisée le mois suivant"),
     ("Aucun incident", (statut == "Aucun incident") & (codes.nunique(axis=1) >= 2),
      "Aucune codification de retard sur les six mois"),
 ]
@@ -157,9 +157,9 @@ with col_texte:
 """)
 st.caption(f"Tout le périmètre ({nombre_fr(len(s12))} clients, dette positive en septembre), sans le défaut. Un client qui a connu plusieurs situations est classé selon la plus récente et la plus grave : par exemple, un retard isolé suivi d'un passage au contentieux compte comme un passage au contentieux.")
 
-# 4.2 Entrées mois par mois : premier mois de retard, et passage au contentieux (deuxième mois de retard d'affilée)
+# 4.2 Entrées mois par mois : première codification de retard, et passage au contentieux (deuxième codification de retard d'affilée)
 # Entrée en retard au mois n : PAY_n >= 2 alors que PAY_(n+1) < 2 (mai à septembre ; avril n'a pas de mois précédent)
-# Entrée au contentieux au mois n : deuxième mois de retard d'affilée atteint, PAY_n >= 2, PAY_(n+1) >= 2 et PAY_(n+2) < 2
+# Entrée au contentieux au mois n : deuxième codification de retard d'affilée atteint, PAY_n >= 2, PAY_(n+1) >= 2 et PAY_(n+2) < 2
 # (juin à septembre ; en mai, le début de la série n'est pas connu)
 MOIS_ENTREE = [(5, "Mai"), (4, "Juin"), (3, "Juillet"), (2, "Août"), (1, "Septembre")]
 entrees = pd.DataFrame([{
@@ -172,9 +172,9 @@ entrees['passage'] = entrees['contentieux'] / entrees['retard'].shift(1) * 100
 
 st.markdown("#### Mois par mois : entrées en retard et entrées au contentieux")
 fig_entrees = go.Figure()
-fig_entrees.add_trace(go.Bar(x=entrees['mois'], y=entrees['retard'], name="Entrée en retard (premier mois de retard)",
+fig_entrees.add_trace(go.Bar(x=entrees['mois'], y=entrees['retard'], name="Entrée en retard (première codification de retard)",
                              marker_color=COULEURS["rouge_pale"], hovertemplate="<b>%{x}</b><br>Entrées en retard : %{y}<extra></extra>"))
-fig_entrees.add_trace(go.Bar(x=entrees['mois'], y=entrees['contentieux'], name="Entrée au contentieux (deuxième mois de retard d'affilée)",
+fig_entrees.add_trace(go.Bar(x=entrees['mois'], y=entrees['contentieux'], name="Entrée au contentieux (deuxième codification de retard d'affilée)",
                              marker_color=STATUTS_CTX["Au contentieux"], hovertemplate="<b>%{x}</b><br>Entrées au contentieux : %{y}<extra></extra>"))
 # Étiquettes écrites à la main : aucune pour l'entrée au contentieux de mai, non mesurable
 for trace, colonne in zip(fig_entrees.data, ('retard', 'contentieux')):
@@ -185,7 +185,7 @@ fig_entrees.update_layout(barmode='group', xaxis_title="Mois", yaxis_title="Nomb
                           yaxis_range=[0, entrees['retard'].max() * 1.2], height=430,
                           legend=dict(orientation="h", x=0, xanchor="left", y=1.02, yanchor="bottom", title_text=""), margin=dict(t=50))
 st.plotly_chart(fig_entrees, width='stretch')
-st.caption("Comment lire : pour chaque mois, le nombre de clients qui entrent en retard (codification 2 ou plus, alors qu'ils ne l'étaient pas le mois d'avant), et le nombre de clients qui atteignent ce mois-là leur deuxième mois de retard d'affilée, seuil d'entrée au contentieux. Codifications corrigées, tout le périmètre, sans le défaut. Avril n'a pas de mois précédent, et en mai le début d'une série de retards n'est pas connu : l'entrée au contentieux n'y est pas mesurable.")
+st.caption("Comment lire : pour chaque mois, le nombre de clients qui entrent en retard (codification 2 ou plus, alors qu'ils ne l'étaient pas le mois d'avant), et le nombre de clients qui atteignent ce mois-là leur deuxième codification de retard d'affilée, seuil d'entrée au contentieux. Codifications corrigées, tout le périmètre, sans le défaut. Avril n'a pas de mois précédent, et en mai le début d'une série de retards n'est pas connu : l'entrée au contentieux n'y est pas mesurable.")
 passages = entrees['passage'].dropna()
 juin_aout = passages.iloc[:-1]
 sept_e = entrees.iloc[-1]
@@ -195,7 +195,7 @@ st.markdown(f"""
 - **Septembre fait exception** : seuls {nombre_fr(sept_e['passage'])} % des retards d'août atteignent un deuxième mois en septembre. Une partie d'entre eux porte la codification provisoire {codif('1')}, que la banque n'a pas encore tranchée (page 5.2). À l'inverse, les {nombre_fr(sept_e['retard'])} retards qui commencent en septembre sont comptés au contentieux, sauf quand la facture a été payée (retard payé) : par prudence, faute de connaître la suite, et parce que la codification suit le paiement avec un mois de décalage. Un retard codifié en septembre traduit déjà au moins 60 jours sans paiement.
 """)
 
-# 4.3 Population contentieuse mois par mois : au contentieux au mois n = au moins le deuxième mois de retard d'affilée,
+# 4.3 Population contentieuse mois par mois : au contentieux au mois n = au moins le deuxième codification de retard d'affilée,
 # PAY_n >= 2 et PAY_(n+1) >= 2 (mai à septembre ; avril n'est pas mesurable, mars étant inconnu).
 # Septembre : on passe de ce décompte à la population retenue à la fin de la période (règle de la page) en retirant les
 # retards payés en fin de série et en ajoutant les premiers retards de septembre non payés, comptés par prudence
@@ -213,7 +213,7 @@ col_stock, col_stock_texte = st.columns([2, 1], vertical_alignment="center")
 with col_stock:
     fig_stock = go.Figure()
     fig_stock.add_trace(go.Bar(x=list(stock['mois']) + [LIBELLE_FIN], y=list(stock['clients']) + [nb_retenus - prudence],
-                               name="Au moins deux mois de retard d'affilée", marker_color=STATUTS_CTX["Au contentieux"],
+                               name="Au moins deux codifications de retard d'affilée", marker_color=STATUTS_CTX["Au contentieux"],
                                hovertemplate="%{x}<br>%{y} clients<extra></extra>"))
     fig_stock.add_trace(go.Bar(x=[LIBELLE_FIN], y=[prudence], name="Premier retard en septembre (compté au contentieux)",
                                marker=dict(color=STATUTS_CTX["Au contentieux"], opacity=0.55, pattern_shape="/"),
@@ -278,7 +278,7 @@ st.markdown("Chaque colonne part d'une **valeur par défaut**, celle d'un client
 tableau_html(["Colonne", "Valeur par défaut", "Ce qui la modifie, et ce qu'elle dit du client"], [
     ["<code>FLAG_CTX</code>", "0", "1 si le client est passé par le contentieux pendant la période"],
     ["<code>MOIS_SORTIE_CTX</code>", "-1 (pas de sortie)", "Mois de sa dernière sortie du contentieux : 1 (septembre) à 5 (mai), ou 0 si sa sortie est présumée en octobre (retard payé en fin de série). Reste à -1 pour un client encore au contentieux, comme pour un client qui n'y est jamais passé"],
-    ["<code>NB_MOIS_CTX</code>", "0", "Durée de son dernier passage au contentieux, en mois de retard consécutifs (1 à 6)"],
+    ["<code>NB_MOIS_CTX</code>", "0", "Durée de son dernier passage au contentieux, en codifications de retard consécutives (1 à 6)"],
     ["<code>FLAG_RETARD</code>", "0", "1 si le client a eu un retard isolé, régularisé ensuite"],
     ["<code>MOIS_SORTIE_RETARD</code>", "-1 (pas de régularisation)", "Mois de la régularisation de ce retard isolé : 1 à 4, ou 0 si elle est présumée en octobre (retard isolé de septembre payé)"],
     ["<code>SURVEILLANCE_RECENTE</code>", "0", "1 pour un compte (ré)activé dont un retard posé sur une facture nulle a été corrigé (page 5.2)"],
@@ -342,5 +342,5 @@ st.caption("Les retards qui restent posés sur une facture nulle après le netto
 
 
 st.info(f"""
-**Ce qu'il faut retenir** : un client est au contentieux quand son retard s'installe, c'est-à-dire au moins deux mois de retard d'affilée, ou un retard en septembre dont on ne connaît pas la suite. Il n'en sort que si sa codification redescend, ou si sa facture est payée. Ainsi définie, la population contentieuse rassemble {nombre_fr(part['Au contentieux'], 1)} % du périmètre. Reste à vérifier qu'elle décrit un vrai comportement, et pas seulement une étiquette de la banque : c'est l'objet de la page suivante, avant même de regarder le défaut.
+**Ce qu'il faut retenir** : un client est au contentieux quand son retard s'installe, c'est-à-dire au moins deux codifications de retard d'affilée, ou un retard en septembre dont on ne connaît pas la suite. Il n'en sort que si sa codification redescend, ou si sa facture est payée. Ainsi définie, la population contentieuse rassemble {nombre_fr(part['Au contentieux'], 1)} % du périmètre. Reste à vérifier qu'elle décrit un vrai comportement, et pas seulement une étiquette de la banque : c'est l'objet de la page suivante, avant même de regarder le défaut.
 """)
