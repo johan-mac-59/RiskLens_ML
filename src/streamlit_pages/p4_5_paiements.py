@@ -138,6 +138,69 @@ Les deux lignes de graphiques ne mesurent pas la même chose : **un ratio est un
 - **Le ratio moyen n'est pas le paiement moyen divisé par la facture moyenne.** Le ratio est calculé client par client, puis on fait la moyenne : chaque client compte pour un, quel que soit le montant de sa facture. Les montants moyens, eux, sont tirés par les grosses factures, qui sont remboursées en plus petite part. Rapporté aux montants moyens, le paiement ne couvre que {nombre_fr(premier['paiement_moy'] / premier['facture_moy'] * 100)} % de la facture en mai, contre {nombre_fr(premier['moyenne'], 1)} % pour le ratio moyen. De même, le ratio médian n'est pas le paiement médian divisé par la facture médiane.
 """)
 
-st.info("""
-**Ce que révèlent les paiements** : vu d'ensemble, le comportement de paiement ne change presque pas en six mois. Les clients paient aussi souvent, et à peu près la même part de leur facture. Mais les factures, elles, grandissent, comme l'utilisation du plafond (page « 4.2 L'usage du crédit ») : les clients paient de la même façon une dette qui grandit. La dégradation ne se lit donc pas dans les paiements eux-mêmes, mais dans l'écart qui se creuse entre ce qui est dû et ce qui est remboursé.
+# ------------------------------------------------------------------------------
+st.subheader("Au total, une dette qui s'envole, remboursée chaque mois dans la même faible proportion", anchor="dette-totale")
+# Dette de fin de mois (BILL_AMTn), d'avril (n = 6) à septembre (n = 1), sur tous les clients ; les soldes créditeurs
+# (avances des clients) ne sont pas des dettes : ils comptent pour 0. La dette de fin du mois n est réglée le mois
+# suivant par PAY_AMT(n-1) : la part remboursée ne se mesure que d'avril à août (septembre serait réglée en octobre).
+# Remboursé = paiement plafonné à la dette du client : un trop-payé ne rembourse pas la dette des autres clients
+# Axe : le mois du paiement (M-5 à M) ; chaque barre rapproche la dette du mois précédent (BILL_AMTn) et le paiement du mois (PAY_AMT(n-1))
+MOIS_DETTE = [(6, 'M-5'), (5, 'M-4'), (4, 'M-3'), (3, 'M-2'), (2, 'M-1'), (1, 'M')]
+lignes_dette = []
+for n, libelle in MOIS_DETTE:
+    dette_client = df[f'BILL_AMT{n}'].clip(lower=0)
+    ligne = {'Mois': libelle, 'total': dette_client.sum() / 1e6, 'endettes': int((dette_client > 0).sum()),
+             'mediane': df.loc[dette_client > 0, f'BILL_AMT{n}'].median(), 'rembourse': np.nan}
+    if n >= 2:
+        ligne['rembourse'] = np.minimum(df[f'PAY_AMT{n - 1}'], dette_client).sum() / 1e6
+    lignes_dette.append(ligne)
+dette = pd.DataFrame(lignes_dette)
+dette['reporte'] = dette['total'] - dette['rembourse']
+dette['part'] = dette['rembourse'] / dette['total'] * 100
+mesure = dette.dropna(subset=['rembourse'])
+
+st.markdown("Les graphiques précédents suivent le client « moyen » ou « médian ». Du point de vue de la banque, ce qui compte est la somme : **combien ses clients lui doivent au total à la fin de chaque mois, et quelle part de cette dette ils remboursent le mois suivant**.")
+fig_dette = go.Figure()
+fig_dette.add_trace(go.Bar(x=mesure['Mois'], y=mesure['rembourse'], name="Paiement", marker_color=COULEURS["turquoise"],
+                           customdata=mesure['part'], hovertemplate="<b>%{x}</b><br>Remboursée le mois suivant : %{y:,.0f} M (%{customdata:.1f} %)<extra></extra>"))
+fig_dette.add_trace(go.Bar(x=mesure['Mois'], y=mesure['reporte'], name="Dette non remboursée", marker_color=COULEURS["rouge_pale"],
+                           hovertemplate="<b>%{x}</b><br>Reportée : %{y:,.0f} M<extra></extra>"))
+inconnu = dette[dette['rembourse'].isna()]
+fig_dette.add_trace(go.Bar(x=inconnu['Mois'], y=inconnu['total'], name="Dette (paiement non observé)", marker_color=COULEURS["bordeaux"],
+                           hovertemplate="<b>%{x}</b><br>Dette totale : %{y:,.0f} M<extra></extra>"))
+for _, row in mesure.iterrows():
+    # Montant remboursé écrit dans le segment vert, dette totale au-dessus de la barre
+    fig_dette.add_annotation(x=row['Mois'], y=row['rembourse'] / 2, showarrow=False, text=f"<b>{nombre_fr(row['rembourse'])} M</b>",
+                             font=dict(size=TAILLE_ETIQUETTE, color="white"))
+for _, row in dette.iterrows():
+    fig_dette.add_annotation(x=row['Mois'], y=row['total'], yshift=12, showarrow=False,
+                             text=f"<b>{nombre_fr(row['total'])} M</b>", font_size=TAILLE_ETIQUETTE,
+                             bgcolor="rgba(128, 128, 128, 0.25)", borderpad=2)
+# Barre de septembre : mention écrite dans la barre, pour ne pas la confondre avec la dette reportée
+for _, row in inconnu.iterrows():
+    fig_dette.add_annotation(x=row['Mois'], y=row['total'] / 2, showarrow=False, text="<b>Paiement<br>non observé</b>",
+                             font=dict(size=TAILLE_ETIQUETTE, color="white"))
+fig_dette.update_layout(barmode='stack', xaxis_title="Mois du paiement", yaxis_title="Dette totale des clients (millions de NT$)",
+                        yaxis_range=[0, dette['total'].max() * 1.15], height=520, separators=", ", showlegend=True,
+                        legend=dict(orientation="h", x=0.5, xanchor="center", y=-0.2, yanchor="top"), margin=dict(t=30, b=120))
+st.plotly_chart(fig_dette, width='stretch')
+st.caption(f"Chaque barre rapproche **la dette du mois précédent et le paiement du mois** : en M-5 (mai), la dette de fin avril et le paiement de mai ; en M (octobre), la dette de fin septembre, dont le paiement n'est pas dans les données. Le paiement d'avril, qui règle la dette de fin mars, n'a donc pas de dette en face : six dettes et six paiements donnent cinq rapprochements. Dettes de fin de mois (BILL_AMTn) des {nombre_fr(len(df))} clients retenus, en millions de NT$ (M), soldes créditeurs comptés pour 0 ; chaque paiement est plafonné à la dette du client (un trop-payé ne rembourse pas la dette des autres).")
+
+avril, sept = dette.iloc[0], dette.iloc[-1]
+premier_r, dernier_r = mesure.iloc[0], mesure.iloc[-1]
+
+
+def hausse(colonne, debut=avril, fin=sept):
+    """Hausse entre deux mois, en %."""
+    return (fin[colonne] / debut[colonne] - 1) * 100
+
+
+st.markdown(f"""
+- **La dette totale passe de {nombre_fr(avril['total'])} à {nombre_fr(sept['total'])} millions de NT\$ en six mois, soit {nombre_fr(hausse('total'))} % de plus**{", et elle augmente chaque mois" if dette['total'].is_monotonic_increasing else ""}. Deux mouvements s'additionnent : chaque client endetté doit davantage (dette médiane de {nombre_fr(avril['mediane'])} NT\$ en avril, {nombre_fr(sept['mediane'])} NT\$ en septembre, {nombre_fr(hausse('mediane'))} % de plus), et les clients endettés sont plus nombreux ({nombre_fr(avril['endettes'])} en avril, {nombre_fr(sept['endettes'])} en septembre, {nombre_fr(hausse('endettes'))} % de plus).
+- **Chaque mois, les clients ne remboursent que {nombre_fr(mesure['part'].min())} à {nombre_fr(mesure['part'].max())} % de cette dette** le mois suivant. Cette part ne bouge presque pas : c'est le comportement stable vu plus haut, rapporté à la dette entière.
+- **Le reste est reporté, et grossit avec la dette** : la dette non remboursée passe de {nombre_fr(premier_r['reporte'])} millions de NT\$ en M-5 à {nombre_fr(dernier_r['reporte'])} millions en M-1, soit {nombre_fr(hausse('reporte', premier_r, dernier_r))} % de plus en quatre mois. Pour la banque, c'est l'**encours**, l'argent prêté et pas encore remboursé, qui augmente : comme la part remboursée reste la même, chaque NT\$ de dette en plus vient grossir le montant exposé au risque de défaut.
+""")
+
+st.info(f"""
+**Ce que révèlent les paiements** : vu d'ensemble, le comportement de paiement ne change presque pas en six mois. Les clients paient aussi souvent, et à peu près la même part de leur facture. Mais les factures, elles, grandissent, comme l'utilisation du plafond (page « 4.2 L'usage du crédit ») : les clients paient de la même façon une dette qui grandit, au point que la dette totale du portefeuille augmente de {nombre_fr(hausse('total'))} % en six mois. La dégradation ne se lit donc pas dans les paiements eux-mêmes, mais dans l'écart qui se creuse entre ce qui est dû et ce qui est remboursé.
 """)
