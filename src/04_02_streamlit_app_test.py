@@ -92,6 +92,7 @@ pages = {
     "5. La population contentieuse : des retards figés à une règle métier": [
         st.Page("streamlit_pages/p5_2_faux_retards.py", title="5.2 Chercher le contentieux révèle de faux retards, corrigés au nettoyage", icon=":material/find_replace:"),
         st.Page("streamlit_pages/p5_3_definition.py", title="5.3 La définition du contentieux : deux mois de retard d'affilée, et une sortie confirmée par les paiements", icon=":material/policy:"),
+        st.Page("streamlit_pages/p5_4_comportements.py", title="5.4 Des comportements distincts, sans même regarder le défaut", icon=":material/compare_arrows:"),
     ],
 }
 # Menu automatique masqué : il se placerait au-dessus du logo et du titre.
