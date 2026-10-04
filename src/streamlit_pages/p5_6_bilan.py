@@ -115,7 +115,7 @@ C'est la **première moitié de la réponse à la problématique** : sans aucun 
 # ------------------------------------------------------------------------------
 st.subheader("5. Comparatif provisoire : la règle, la première itération du machine learning, l'étude de 2009", anchor="comparatif")
 # Résultats calculés hors du site, sur le même jeu de test que la règle (5 441 clients) : le modèle S12_6 de la première
-# itération (lab_ML/corrections_niveau3/best_models/model_S126_corrections_niveau3.joblib, notebook ml12_6_cleaned3, même
+# itération (lab_ML/1ere_iteration/corrections_niveau3/best_models/model_S126_corrections_niveau3.joblib, notebook ml12_6_cleaned3, même
 # périmètre S12 et même découpage) et les règles simples sur les codifications brutes de cleaned3. Ni le modèle ni cleaned3
 # ne sont déployés avec le site : chiffres repris tels quels (décision D19). Yeh et Lien (2009) : Tableau 1 de l'étude.
 ML_S126 = {"predits": 1476, "vp": 764, "fp": 712, "auc": 0.80}
@@ -135,11 +135,11 @@ def ligne_comparatif(nom, predits, vp, fp, detail=""):
 
 
 st.markdown(f"""
-*Section provisoire, en attendant la partie 6.* Pour situer la règle, on la compare, **sur le même jeu de test** ({nombre_fr(len(test))} clients, dont {nombre_fr(defauts_test)} en défaut), au meilleur modèle de la première itération du machine learning sur le même périmètre (S12_6, CatBoost), à deux règles simples, et à l'étude de référence de 2009.
+*Section provisoire, en attendant la partie 6.* Pour situer la règle, on la compare, **sur le même jeu de test** ({nombre_fr(len(test))} clients, dont {nombre_fr(defauts_test)} en défaut), au meilleur modèle de la première itération du machine learning sur le même périmètre (S12_6, CatBoost, entraîné sur le dataset avec la population contentieuse, avant sa définition), à deux règles simples, et à l'étude de référence de 2009.
 """)
 tableau_html(["Approche", "Clients prédits en défaut", "Défauts trouvés", "Précision", "Part des défauts trouvés (rappel)", "Taux d'erreur"], [
     ligne_comparatif("Règle du contentieux", b_test['ctx'], b_test['vp'], b_test['fp']),
-    ligne_comparatif("Machine learning, première itération", ML_S126['predits'], ML_S126['vp'], ML_S126['fp'], "<br><small>meilleur modèle du périmètre (S12_6, CatBoost)</small>"),
+    ligne_comparatif("Machine learning, première itération", ML_S126['predits'], ML_S126['vp'], ML_S126['fp'], "<br><small>meilleur modèle du périmètre (S12_6, CatBoost), entraîné sur le dataset avec la population contentieuse</small>"),
     ligne_comparatif("Règle simple : une codification 2 ou plus sur les 6 mois", SIMPLE_6_MOIS['predits'], SIMPLE_6_MOIS['vp'], SIMPLE_6_MOIS['fp'], "<br><small>codifications brutes</small>"),
     ligne_comparatif("Règle simple : codification 2 ou plus en septembre", SIMPLE_SEPTEMBRE['predits'], SIMPLE_SEPTEMBRE['vp'], SIMPLE_SEPTEMBRE['fp'], "<br><small>codifications brutes</small>"),
     ["<b>Personne en défaut</b>", "0", "0", "–", "0 %", f"{nombre_fr(defauts_test / len(test) * 100, 1)} %"],

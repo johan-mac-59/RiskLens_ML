@@ -1,5 +1,7 @@
 # 📐 Matrice des Expérimentations & Traitements de Données
 
+> **Première itération du machine learning.** Les résultats des sections 2 et 3 (scénarios S1 à S15, features S12_0 à S12_7) appartiennent à la première itération : ils ont été obtenus sur le dataset **avec la population contentieuse**, avant sa définition par une règle métier. Ils restent la référence de performance de cette itération. La section 4 décrit le redémarrage du ML sur le dataset nettoyé, sans la population contentieuse.
+
 ## 1. Niveaux de corrections cumulatifs
 
 Les traitements sont structurés de manière strictement cumulative :

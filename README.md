@@ -3,7 +3,7 @@
 ![Python](https://img.shields.io/badge/Python-3.14-blue.svg)
 ![SQL](https://img.shields.io/badge/SQL-SQLite3-blue.svg)
 ![FastAPI](https://img.shields.io/badge/API-FastAPI-green.svg)
-![PowerBI](https://img.shields.io/badge/BI-PowerBI-yellow.svg)
+![Plotly](https://img.shields.io/badge/DataViz-Plotly-purple.svg)
 ![Scikit-Learn](https://img.shields.io/badge/Library-Scikit--Learn-orange.svg)
 ![Streamlit](https://img.shields.io/badge/UI-Streamlit-red.svg)
 
@@ -13,7 +13,7 @@
 **RiskLens ML** est une mission Data & IA complète visant à transformer des données transactionnelles historiques en un outil d'aide à la décision pour la gestion du risque crédit.
 Durée prévue : 7 semaines à partir du 30 août  
 
-Le projet suit un cycle de vie data complet : du diagnostic initial et la structuration d'une base de données relationnelle, à l'exposition des données via une API, jusqu'à la création d'un modèle prédictif et d'un dashboard décisionnel.
+Le projet suit un cycle de vie data complet : du diagnostic initial et la structuration d'une base de données relationnelle, à l'exposition des données via une API, jusqu'à la création d'un modèle prédictif et d'un dashboard interactif sous Streamlit.
 
 ### 🎯 Problématique
 > **"Peut-on prévoir le défaut de paiement d'un client en se basant uniquement sur son comportement transactionnel des 6 derniers mois, malgré un manque d'informations économiques globales ?"**
@@ -54,23 +54,17 @@ Pour découvrir comment des détails logistiques de l'époque (comme les règlem
 *   Étude dédiée de la codification PAY_n = 1 (statut provisoire du dernier mois, corrections retenues) : [EDA codification 1](/src/05_04_EDA_codification1.ipynb)
 *   Data Visualisation pour identifier les facteurs clés du défaut de paiement : [EDA DataViz](/src/05_03_EDA_storytelling.ipynb)
 
-### 📊 Étape 5 : Restitution Décisionnelle (Power BI)
-*   Construction d'un dashboard interactif sous **Power BI**.
-*   Mise en place d'axes d'analyse et de KPI clés : [télécharger le rapport .pbix](/power_bi/rapport_pbi.pbix) *(fichier téléchargeable pour visionnage local)*
-*   Restitution visuelle via Streamlit : [fichier Streamlit](/src/04_02_streamlit_app.py)
+### 📊 Étape 5 : Restitution Décisionnelle (Streamlit)
+*   Dashboard interactif sous **Streamlit**, construit au fil de l'analyse : chaque graphique et chaque chiffre est recalculé en direct sur les données.
+*   Restitution en ligne : [accéder au site Streamlit](https://risklens-ml.streamlit.app/)
 
 ### ⚖️ Étape intermédiaire : Isoler la population contentieuse par une règle métier
-Pendant les premiers essais de ML, une poche de clients au taux de défaut très élevé plafonnait les performances des modèles. Plutôt que de laisser un modèle la redécouvrir, je l'isole par une **règle métier explicite** : [EDA contentieux](/src/05_02_EDA_contentieux.ipynb).
-
-*   **Méthode** : split train / test fait avant toute analyse, règles justifiées par la logique métier (jamais optimisées sur la cible), cible utilisée uniquement pour valider sur le train, test utilisé une seule fois.
-*   **Règle retenue** : un client est placé au contentieux (CTX) s'il est toujours en retard (code >= 2) au dernier mois observé sans avoir réglé sa facture ; dans l'historique, un passage au CTX suppose deux codes de retard >= 2 consécutifs. Un client en retard qui a payé au moins 90 % de sa facture est considéré comme régularisé. Les codifications incohérentes de la banque sont corrigées lorsque les montants les contredisent (code de retard posé sur une facture nulle, facture payée en totalité, absence de paiement alors que rien n'était dû).
-*   **Résultat sur le dataset complet (30 000 clients)** : la règle retire **10 % des clients** (3 013), qui concentrent **un tiers des défauts** (32 %) avec un **taux de défaut de 70,5 %** (contre 22,1 % en moyenne). Le dataset restant descend à 16,7 % de défaut.
-*   **Métriques de la règle sur la population qu'elle traite** (test) : précision 71,0 %, recall 100 % par construction, F2 0,92. Ses seules erreurs sont des clients sains prédits en défaut. Elle capte environ un tiers des défauts du dataset : les autres seront traités par le ML.
-*   **Pour le ML** : les clients au CTX sont retirés du dataset et prédits en défaut par la règle ; les autres clients gardent des indicateurs de leur historique (passage au CTX, retard régularisé et mois de sortie, compte réactivé sous surveillance, faux codage corrigé).
-*   **Choix assumé** : un client déjà au contentieux relève du recouvrement, pas de la prévention. L'objectif du projet est d'anticiper le défaut chez des clients qui ne sont pas encore dans cette situation : la population contentieuse est donc écartée du ML, et non modélisée à part (voir les axes d'amélioration).
+*   Définition d'une population contentieuse par une règle métier explicable : deux codifications de retard d'affilée, soit au moins 90 jours : [EDA contentieux](/src/05_02_EDA_contentieux.ipynb)
+*   Correction des codifications incohérentes et création d'indicateurs pour le Machine Learning, inscrites au nettoyage : [nettoyage](/src/02_01_nettoyage.ipynb)
+*   Résultat : environ 10 % des clients, un tiers des défauts, 7 prédictions justes sur 10, sans aucun modèle.
 
 ### 🧠 Étape 6 : Machine Learning & Risques
-*   Entraînement et comparaison d'au moins 2 modèles via **GridSearch**, sur le dataset **nettoyé de sa population contentieuse** : [journal des expérimentations](/lab_ML/tableau_ML.md).
+*   Entraînement et comparaison d'au moins 2 modèles via **GridSearch**, sur le dataset **nettoyé de sa population contentieuse**. Première itération, sur le dataset complet : [journal des expérimentations](/lab_ML/1ere_iteration/tableau_ML.md).
 *   Sélection du modèle optimal sur un **score de décision** combinant ROC AUC et F2 score (le F2 privilégie le Recall : minimisation des faux négatifs).
 *   Évaluation du **système complet** (règle contentieux + modèle) sur le même jeu de test, comparée à la règle seule, aux premiers modèles et à l'étude de référence.
 *   **Évaluation des risques :** Analyse des biais, éthique et limites du modèle.
@@ -115,7 +109,7 @@ Le projet est entièrement déployé dans le cloud selon une architecture décou
 * **API & Backend :** FastAPI, Pydantic (Validation des schémas JSON, Opérations CRUD, Documentation Swagger UI)
 * **Déploiement Cloud :** Render (API Web Service), GitHub (Gestion de versions & Intégration continue)
 * **Gestionnaire de paquets :** `uv` (`pyproject.toml`)
-* **Business Intelligence :** Power BI (Dashboard décisionnel, Time Intelligence)
+* **Data visualisation :** Plotly, Streamlit (dashboard interactif)
 * **Machine Learning :** Scikit-Learn, CatBoost
 * **Front-end / UI :** Streamlit Cloud
 
