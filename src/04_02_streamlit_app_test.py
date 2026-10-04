@@ -90,6 +90,7 @@ pages = {
         st.Page("streamlit_pages/p4_6_retards.py", title="4.6 Les retards : plus nombreux, plus graves, et plus risqués quand ils durent", icon=":material/warning:"),
     ],
     "5. La population contentieuse : des retards figés à une règle métier": [
+        st.Page("streamlit_pages/p5_1_genese.py", title="5.1 La genèse : des anomalies de codification à l'étude du contentieux", icon=":material/lightbulb:"),
         st.Page("streamlit_pages/p5_2_faux_retards.py", title="5.2 Chercher le contentieux révèle de faux retards, corrigés au nettoyage", icon=":material/find_replace:"),
         st.Page("streamlit_pages/p5_3_definition.py", title="5.3 La définition du contentieux : deux mois de retard d'affilée, et une sortie confirmée par les paiements", icon=":material/policy:"),
         st.Page("streamlit_pages/p5_4_comportements.py", title="5.4 Des comportements distincts, sans même regarder le défaut", icon=":material/compare_arrows:"),
