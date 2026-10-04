@@ -253,8 +253,9 @@ def tableau_html(entetes, lignes, largeurs=None):
     tete = "".join(cellule(e, "th", "background: rgba(128, 128, 128, 0.1);") for e in entetes)
     corps = "".join("<tr>" + "".join(cellule(c) for c in ligne) + "</tr>" for ligne in lignes).replace("$", "&#36;")
     # Étiquettes grisées de codif() : la syntaxe Markdown de Streamlit n'est pas lue dans du HTML, on la traduit
-    corps = re.sub(r":gray-background\[([^\]]*)\]",
-                   r'<span style="background: rgba(128, 128, 128, 0.2); padding: 0 4px; border-radius: 4px;">\1</span>', corps)
+    corps, tete = (re.sub(r":gray-background\[([^\]]*)\]",
+                          r'<span style="background: rgba(128, 128, 128, 0.2); padding: 0 4px; border-radius: 4px;">\1</span>', t)
+                   for t in (corps, tete))
     st.markdown(
         f'<table style="width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 1rem;">{colonnes}'
         f"<thead><tr>{tete}</tr></thead><tbody>{corps}</tbody></table>",
@@ -281,12 +282,16 @@ def cellule_codif(valeur):
 # ==============================================================================
 # Statuts lus dans les indicateurs du niveau 5 du nettoyage (docs/colonnes_creees.md, « Lire les statuts ») :
 # aucune colonne de statut n'est créée, comme le prévoit la documentation. Ordre : du plus risqué au moins risqué
+# Couleurs, toutes tirées de la palette « Safe » de Plotly : bordeaux = contentieux, rouge pâle = entrée en retard
+# (graphiques d'entrées, comme les codifications 2 et plus), bleu nuit = sortie du contentieux, jaune = sortie du retard
+# (retard isolé régularisé), vert-bleu = aucun incident (plus clair que le bordeaux, qu'il touche dans le disque),
+# violet = retard payé (sortie présumée en octobre)
 STATUTS_CTX = {
     "Au contentieux": COULEURS["bordeaux"],
     "Retard payé en septembre": COULEURS["violet"],
-    "Sorti du contentieux": COULEURS["olive"],
-    "Retard isolé régularisé": COULEURS["gris"],
-    "Aucun retard": COULEURS["turquoise"],
+    "Sorti du contentieux": COULEURS["mauve"],
+    "Retard isolé régularisé": COULEURS["jaune"],
+    "Aucun incident": COULEURS["turquoise"],
 }
 NOMS_STATUTS = list(STATUTS_CTX)
 # Libellés sur deux lignes pour les axes des graphiques étroits
@@ -295,7 +300,7 @@ LIBELLES_STATUTS = {
     "Retard payé en septembre": "Retard payé<br>en septembre",
     "Sorti du contentieux": "Sorti du<br>contentieux",
     "Retard isolé régularisé": "Retard isolé<br>régularisé",
-    "Aucun retard": "Aucun<br>retard",
+    "Aucun incident": "Aucun<br>incident",
 }
 
 
@@ -318,8 +323,6 @@ def _decoupage_partie_5(chemin, date_modification):
     df = pd.read_csv(chemin)
     s12 = df[(df["BILL_AMT1"] > 0) & (df["LIMIT_BAL"] <= 500000)].copy()
     train, test = train_test_split(s12, test_size=0.2, stratify=s12["dpnm"], random_state=42)
-    for d in (s12, train, test):
-        d["STATUT"] = statut_contentieux(d)
     return df, s12, train, test
 
 
@@ -331,7 +334,11 @@ def etiquette_grise(fig, x, y, texte, yshift=12, xshift=0):
 
 def donnees_partie_5():
     """Population retenue, périmètre du contentieux (S12), jeux d'entraînement et de test, avec le statut de chaque client."""
-    return [d.copy() for d in _decoupage_partie_5(DATA_PATH, DATA_PATH.stat().st_mtime)]
+    # Statuts calculés hors du cache : un changement de libellé ou de règle est pris en compte sans vider le cache
+    donnees = [d.copy() for d in _decoupage_partie_5(DATA_PATH, DATA_PATH.stat().st_mtime)]
+    for d in donnees[1:]:
+        d["STATUT"] = statut_contentieux(d)
+    return donnees
 
 
 def entete_partie_5(df, s12, train, test, renvoi_genese=True):
