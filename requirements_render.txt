@@ -1,0 +1,5 @@
+# Dépendances de l'API déployée sur Render (src/04_01_api.py) : uniquement ce que l'API importe.
+# Versions alignées sur uv.lock. Commande de build Render : pip install -r requirements_render.txt
+fastapi==0.141.1
+uvicorn==0.52.4
+python-dotenv==1.2.3
