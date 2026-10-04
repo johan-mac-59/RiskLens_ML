@@ -87,7 +87,7 @@ st.markdown(f"""
 La même sur toutes les pages de cette partie :
 - les règles sont fixées par la **logique métier**, jamais en cherchant le seuil qui « marche le mieux » sur le défaut ;
 - l'étude du contentieux part des données du **nettoyage de niveau 3** (`cleaned3`). C'est sur ces données qu'elle a fixé ses règles et repéré les codifications à corriger. Ces corrections ont ensuite été ajoutées au nettoyage, au **niveau 5** (page 5.2). Les chiffres de cette partie sont calculés sur ces données corrigées : ce sont les mêmes clients, et on retrouve exactement les résultats de l'étude ;
-- avant toute analyse, le périmètre est découpé au hasard en un jeu d'**entraînement** (80 %, {nombre_fr(len(train))} clients) et un jeu de **test** (20 %, {nombre_fr(len(test))} clients), avec la même part de défauts dans les deux (découpage stratifié, tirage fixé pour être reproductible). C'est le même découpage que dans les notebooks d'étude et de machine learning ;
+- avant toute analyse, le périmètre est découpé au hasard en un jeu d'**entraînement** (80 %, {nombre_fr(len(train))} clients) et un jeu de **test** (20 %, {nombre_fr(len(test))} clients), avec la même part de défauts dans les deux (découpage stratifié, tirage fixé pour être reproductible). C'est le même découpage que dans le notebook d'étude du contentieux ;
 - les descriptions, faites **sans regarder le défaut**, portent sur tout le périmètre. Le **taux de défaut** (part des clients en défaut de paiement en octobre 2005, le mois qui suit les six mois de données) n'est calculé que **sur l'entraînement**, pour vérifier qu'une règle a un sens ; le test n'a servi **qu'une seule fois**, une fois la règle figée (page 5.6).
 """)
 

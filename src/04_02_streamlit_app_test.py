@@ -97,6 +97,9 @@ pages = {
         st.Page("streamlit_pages/p5_5_risque.py", title="5.5 Le défaut confirme la définition : très fréquent au contentieux, et d'autant plus que le retard a duré", icon=":material/trending_up:"),
         st.Page("streamlit_pages/p5_6_bilan.py", title="5.6 Peu de clients, beaucoup de défauts : une règle métier qui prédit déjà un tiers des défauts", icon=":material/verified:"),
     ],
+    "6. Le machine learning": [
+        st.Page("streamlit_pages/p6_1_historique.py", title="6.1 L'historique : une première itération qui a buté sur un plafond, et mené à l'étude du contentieux", icon=":material/history_edu:"),
+    ],
 }
 # Menu automatique masqué : il se placerait au-dessus du logo et du titre.
 # Le menu est reconstruit ci-dessous avec st.page_link, sous le logo et le titre.

@@ -317,7 +317,7 @@ def statut_contentieux(d):
 
 @st.cache_data
 def _decoupage_partie_5(chemin, date_modification):
-    """Périmètre du contentieux et découpage train / test, identiques à ceux des notebooks d'étude et du ML :
+    """Périmètre du contentieux et découpage train / test, identiques à ceux de l'étude du contentieux et de la première itération du ML :
     encours positif en septembre et plafond <= 500 000 NT$ (S12), 80/20, stratifié sur dpnm, random_state=42."""
     from sklearn.model_selection import train_test_split
     df = pd.read_csv(chemin)
