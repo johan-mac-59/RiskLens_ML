@@ -6,6 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import json
 import os
+import re
 from pathlib import Path
 import numpy as np
 from plotly.subplots import make_subplots
@@ -236,3 +237,108 @@ COULEURS_CODIF = {
     "-2": "#332288",         # mauve foncé
 }
 
+
+# ==============================================================================
+# TABLEAUX HTML (largeurs de colonnes fixées, cellules colorées possibles)
+# ==============================================================================
+STYLE_CELLULE_HTML = "border: 1px solid rgba(128, 128, 128, 0.3); padding: 6px 8px; vertical-align: top; text-align: left;"
+
+
+def tableau_html(entetes, lignes, largeurs=None):
+    """Tableau HTML : une cellule est un texte, ou un couple (texte, style CSS ajouté à la cellule)."""
+    def cellule(c, balise="td", fond=""):
+        texte, style = c if isinstance(c, tuple) else (c, "")
+        return f'<{balise} style="{STYLE_CELLULE_HTML} {fond} {style}">{texte}</{balise}>'
+    colonnes = ("<colgroup>" + "".join(f'<col style="width: {l}%">' for l in largeurs) + "</colgroup>") if largeurs else ""
+    tete = "".join(cellule(e, "th", "background: rgba(128, 128, 128, 0.1);") for e in entetes)
+    corps = "".join("<tr>" + "".join(cellule(c) for c in ligne) + "</tr>" for ligne in lignes).replace("$", "&#36;")
+    # Étiquettes grisées de codif() : la syntaxe Markdown de Streamlit n'est pas lue dans du HTML, on la traduit
+    corps = re.sub(r":gray-background\[([^\]]*)\]",
+                   r'<span style="background: rgba(128, 128, 128, 0.2); padding: 0 4px; border-radius: 4px;">\1</span>', corps)
+    st.markdown(
+        f'<table style="width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 1rem;">{colonnes}'
+        f"<thead><tr>{tete}</tr></thead><tbody>{corps}</tbody></table>",
+        unsafe_allow_html=True,
+    )
+
+
+# Mois dans l'ordre chronologique (gauche à droite) : PAY_6 = avril, ..., PAY_1 = septembre
+MOIS_CHRONO = [(6, "Avril"), (5, "Mai"), (4, "Juin"), (3, "Juillet"), (2, "Août"), (1, "Septembre")]
+
+
+def cellule_codif(valeur):
+    """Cellule de tableau HTML colorée selon la codification (mêmes couleurs que COULEURS_CODIF)."""
+    if valeur is None or valeur == "":
+        return ("", "")
+    v = int(valeur)
+    fond = COULEURS_CODIF["2 et plus"] if v >= 2 else COULEURS_CODIF[str(v)]
+    texte = "white" if v in (-1, -2) else "black"
+    return (f"<b>{v}</b>", f"background: {fond}; color: {texte}; text-align: center;")
+
+
+# ==============================================================================
+# PARTIE 5 : LA POPULATION CONTENTIEUSE
+# ==============================================================================
+# Statuts lus dans les indicateurs du niveau 5 du nettoyage (docs/colonnes_creees.md, « Lire les statuts ») :
+# aucune colonne de statut n'est créée, comme le prévoit la documentation. Ordre : du plus risqué au moins risqué
+STATUTS_CTX = {
+    "Au contentieux": COULEURS["bordeaux"],
+    "Retard payé en septembre": COULEURS["violet"],
+    "Sorti du contentieux": COULEURS["olive"],
+    "Retard isolé régularisé": COULEURS["gris"],
+    "Aucun retard": COULEURS["turquoise"],
+}
+NOMS_STATUTS = list(STATUTS_CTX)
+# Libellés sur deux lignes pour les axes des graphiques étroits
+LIBELLES_STATUTS = {
+    "Au contentieux": "Au<br>contentieux",
+    "Retard payé en septembre": "Retard payé<br>en septembre",
+    "Sorti du contentieux": "Sorti du<br>contentieux",
+    "Retard isolé régularisé": "Retard isolé<br>régularisé",
+    "Aucun retard": "Aucun<br>retard",
+}
+
+
+def statut_contentieux(d):
+    """Statut de chaque client à la fin de la période, lu dans FLAG_CTX, MOIS_SORTIE_CTX, FLAG_RETARD et MOIS_SORTIE_RETARD."""
+    au_ctx = (d["FLAG_CTX"] == 1) & (d["MOIS_SORTIE_CTX"] == -1)
+    # Retard de septembre payé à 90 % ou plus : fin de série (MOIS_SORTIE_CTX = 0) ou retard isolé (MOIS_SORTIE_RETARD = 0)
+    retard_paye = ((d["FLAG_CTX"] == 1) & (d["MOIS_SORTIE_CTX"] == 0)) | ((d["FLAG_RETARD"] == 1) & (d["MOIS_SORTIE_RETARD"] == 0))
+    sorti = (d["FLAG_CTX"] == 1) & d["MOIS_SORTIE_CTX"].between(1, 5)
+    isole = (d["FLAG_RETARD"] == 1) & d["MOIS_SORTIE_RETARD"].between(1, 4)
+    statut = np.select([au_ctx, retard_paye, sorti, isole], NOMS_STATUTS[:4], default=NOMS_STATUTS[4])
+    return pd.Series(pd.Categorical(statut, categories=NOMS_STATUTS), index=d.index)
+
+
+@st.cache_data
+def _decoupage_partie_5(chemin, date_modification):
+    """Périmètre du contentieux et découpage train / test, identiques à ceux des notebooks d'étude et du ML :
+    encours positif en septembre et plafond <= 500 000 NT$ (S12), 80/20, stratifié sur dpnm, random_state=42."""
+    from sklearn.model_selection import train_test_split
+    df = pd.read_csv(chemin)
+    s12 = df[(df["BILL_AMT1"] > 0) & (df["LIMIT_BAL"] <= 500000)].copy()
+    train, test = train_test_split(s12, test_size=0.2, stratify=s12["dpnm"], random_state=42)
+    for d in (s12, train, test):
+        d["STATUT"] = statut_contentieux(d)
+    return df, s12, train, test
+
+
+def etiquette_grise(fig, x, y, texte, yshift=12, xshift=0):
+    """Petite étiquette grisée posée sur une barre (au-dessus, ou à droite avec xshift pour les barres horizontales)."""
+    fig.add_annotation(x=x, y=y, yshift=yshift, xshift=xshift, showarrow=False, text=f"<b>{texte}</b>",
+                       font_size=TAILLE_ETIQUETTE, bgcolor="rgba(128, 128, 128, 0.25)", borderpad=2)
+
+
+def donnees_partie_5():
+    """Population retenue, périmètre du contentieux (S12), jeux d'entraînement et de test, avec le statut de chaque client."""
+    return [d.copy() for d in _decoupage_partie_5(DATA_PATH, DATA_PATH.stat().st_mtime)]
+
+
+def entete_partie_5(df, s12, train, test):
+    """En-tête court, repris sur toutes les pages de la partie 5 ; la genèse, l'hypothèse et la méthode sont en page 5.1."""
+    st.title("⚖️ 5. La population contentieuse : des retards figés à une règle métier")
+    st.markdown(f"""
+    Cette partie part de clients figés en retard, au taux de défaut anormalement élevé, et d'un modèle de machine learning qui plafonnait ; elle aboutit à une **règle métier** qui isole les clients en gestion contentieuse pour les prédire en défaut sans modèle. La genèse de l'étude, l'hypothèse qui relie ses anomalies et sa méthode sont présentées en page « 5.1 La genèse ».
+
+    Le périmètre est celui des **{nombre_fr(len(s12))} clients qui ont une dette en septembre**, découpés en un jeu d'entraînement ({nombre_fr(len(train))} clients) et un jeu de test ({nombre_fr(len(test))} clients). Les règles ont été fixées sur les données du nettoyage de niveau 3 ; les chiffres affichés sont recalculés sur les codifications corrigées au niveau 5, avec les mêmes résultats. Le **taux de défaut** (part des clients en défaut de paiement en octobre 2005) n'est calculé que sur l'entraînement ; le test n'a servi qu'une seule fois, la règle une fois figée.
+    """)

@@ -47,7 +47,7 @@ entete_partie_4(df)
 st.markdown("---")
 st.header("4.6 Les retards : plus nombreux, plus graves, et plus risqués quand ils durent", anchor="retards")
 st.markdown(f"""
-Un client est dit **en retard** un mois donné quand sa codification de paiement vaut {codif('2')} ou plus. Les codifications utilisées ici sont celles corrigées au nettoyage : les retards posés alors qu'aucune facture n'était due ont été neutralisés, et le mois de transition de septembre recodé selon les paiements (page « 3.5 Décisions »).
+Un client est dit **en retard** un mois donné quand sa codification de paiement vaut {codif('2')} ou plus. Les codifications utilisées ici sont celles corrigées au nettoyage : les retards posés alors qu'aucune facture n'était due ont été neutralisés, et le mois de transition de septembre recodé selon les paiements. Ces corrections sont nées plus tard, de l'étude du contentieux : elles sont présentées en page « 5.2 Chercher le contentieux révèle de faux retards ».
 
 La codification {codif('1')} est traitée à part : c'est une **codification non statuée**. Elle n'existe presque qu'en septembre, comme un statut d'attente que la banque n'a pas encore tranché (page « 3.3 Les codifications »). Même après le recodage du nettoyage, une partie reste indécidable : **on ne peut pas être sûr qu'il s'agisse d'impayés, mais ce sont des impayés potentiels**.
 """)

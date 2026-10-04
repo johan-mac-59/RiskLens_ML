@@ -89,6 +89,9 @@ pages = {
         st.Page("streamlit_pages/p4_5_paiements.py", title="4.5 Les paiements : un comportement stable, alors que la dette grandit", icon=":material/account_balance_wallet:"),
         st.Page("streamlit_pages/p4_6_retards.py", title="4.6 Les retards : plus nombreux, plus graves, et plus risqués quand ils durent", icon=":material/warning:"),
     ],
+    "5. La population contentieuse : des retards figés à une règle métier": [
+        st.Page("streamlit_pages/p5_2_faux_retards.py", title="5.2 Chercher le contentieux révèle de faux retards, corrigés au nettoyage", icon=":material/find_replace:"),
+    ],
 }
 # Menu automatique masqué : il se placerait au-dessus du logo et du titre.
 # Le menu est reconstruit ci-dessous avec st.page_link, sous le logo et le titre.
