@@ -92,7 +92,7 @@ pages = {
     "5. La population contentieuse : des retards figés à une règle métier": [
         st.Page("streamlit_pages/p5_1_genese.py", title="5.1 La genèse : des anomalies de codification à l'étude du contentieux", icon=":material/lightbulb:"),
         st.Page("streamlit_pages/p5_2_faux_retards.py", title="5.2 Chercher le contentieux révèle de faux retards, corrigés au nettoyage", icon=":material/find_replace:"),
-        st.Page("streamlit_pages/p5_3_definition.py", title="5.3 La définition du contentieux : deux mois de retard d'affilée, et une sortie confirmée par les paiements", icon=":material/policy:"),
+        st.Page("streamlit_pages/p5_3_definition.py", title="5.3 La définition du contentieux : deux codifications de retard d'affilée, soit au moins 90 jours", icon=":material/policy:"),
         st.Page("streamlit_pages/p5_4_comportements.py", title="5.4 Des comportements distincts, sans même regarder le défaut", icon=":material/compare_arrows:"),
         st.Page("streamlit_pages/p5_5_risque.py", title="5.5 Le défaut confirme la définition : très fréquent au contentieux, et d'autant plus que le retard a duré", icon=":material/trending_up:"),
         st.Page("streamlit_pages/p5_6_bilan.py", title="5.6 Peu de clients, beaucoup de défauts : une règle métier qui prédit déjà un tiers des défauts", icon=":material/verified:"),

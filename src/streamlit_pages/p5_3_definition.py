@@ -29,7 +29,7 @@ UN_SEUL_RETARD, SUR_VRAIE_FACTURE, SUR_FACTURE_NULLE, EN_AVRIL = 2146, 1738, 1, 
 entete_partie_5(df, s12, train, test)
 
 st.markdown("---")
-st.header("5.3 La définition du contentieux : deux mois de retard d'affilée, et une sortie confirmée par les paiements", anchor="definition")
+st.header("5.3 La définition du contentieux : deux codifications de retard d'affilée, soit au moins 90 jours", anchor="definition")
 st.markdown("""
 Les codifications sont désormais corrigées (page « 5.2 Chercher le contentieux révèle de faux retards »). Reste à dire, pour chaque client, s'il est au contentieux. Toute la définition repose sur une idée métier : **le contentieux, c'est un retard qui s'installe, pas un incident ponctuel**. Elle a été fixée par la logique, avant de regarder le défaut ; sa validation vient ensuite, en pages 5.5 et 5.6.
 """)
