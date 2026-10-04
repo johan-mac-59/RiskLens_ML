@@ -334,11 +334,13 @@ def donnees_partie_5():
     return [d.copy() for d in _decoupage_partie_5(DATA_PATH, DATA_PATH.stat().st_mtime)]
 
 
-def entete_partie_5(df, s12, train, test):
-    """En-tête court, repris sur toutes les pages de la partie 5 ; la genèse, l'hypothèse et la méthode sont en page 5.1."""
+def entete_partie_5(df, s12, train, test, renvoi_genese=True):
+    """En-tête court et global, repris sur toutes les pages de la partie 5 (renvoi_genese=False sur la page 5.1 elle-même).
+    Le périmètre et le découpage entraînement / test sont présentés en page 5.1, pas ici."""
     st.title("⚖️ 5. La population contentieuse : des retards figés à une règle métier")
+    renvoi = " La genèse de l'étude, l'hypothèse qui relie ses anomalies et sa méthode sont présentées en page « 5.1 La genèse »." if renvoi_genese else ""
     st.markdown(f"""
-    Cette partie part de clients figés en retard, au taux de défaut anormalement élevé, et d'un modèle de machine learning qui plafonnait ; elle aboutit à une **règle métier** qui isole les clients en gestion contentieuse pour les prédire en défaut sans modèle. La genèse de l'étude, l'hypothèse qui relie ses anomalies et sa méthode sont présentées en page « 5.1 La genèse ».
+    Tout part de clients figés en retard, au taux de défaut anormalement élevé, et d'un modèle de machine learning qui plafonnait. L'étude a d'abord posé des règles candidates, fondées sur la logique métier. En les confrontant aux montants, elle a découvert des anomalies de codification et les a corrigées. Elle a ensuite vérifié et ajusté la définition sur le jeu d'entraînement, puis l'a validée une seule fois sur le jeu de test. Les corrections ont enfin été inscrites dans le nettoyage, et contrôlées.
 
-    Le périmètre est celui des **{nombre_fr(len(s12))} clients qui ont une dette en septembre**, découpés en un jeu d'entraînement ({nombre_fr(len(train))} clients) et un jeu de test ({nombre_fr(len(test))} clients). Les règles ont été fixées sur les données du nettoyage de niveau 3 ; les chiffres affichés sont recalculés sur les codifications corrigées au niveau 5, avec les mêmes résultats. Le **taux de défaut** (part des clients en défaut de paiement en octobre 2005) n'est calculé que sur l'entraînement ; le test n'a servi qu'une seule fois, la règle une fois figée.
+    Le résultat est la **population contentieuse** : une sous-population définie par une règle métier **explicable et traçable**, prédite en défaut sans modèle. Rien n'est perdu en chemin : aucun client n'est supprimé, chaque correction laisse une trace, et l'historique des retards est transmis au machine learning sous forme de **nouvelles variables** (partie 6).{renvoi}
     """)
