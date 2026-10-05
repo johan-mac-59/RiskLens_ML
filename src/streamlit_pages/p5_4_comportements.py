@@ -65,7 +65,7 @@ with col_utilisation:
 ctx, aucun, sorti, isole, paye = (indicateurs.loc[nom] for nom in
                                   ("Au contentieux", "Aucun incident", "Sorti du contentieux", "Retard isolé régularisé", "Retard payé en septembre"))
 st.markdown(f"""
-- **Les clients au contentieux ont un plafond médian de {nombre_fr(ctx['plafond'])} NT\$**, contre {nombre_fr(aucun['plafond'])} NT\$ pour les clients sans incident : la banque leur accorde moins de crédit. Le dataset ne dit pas si ce plafond a été fixé ainsi dès l'ouverture du compte ou réduit après les premiers incidents.
+- **Les clients au contentieux ont un plafond médian de {nombre_fr(ctx['plafond'])} NT\\$**, contre {nombre_fr(aucun['plafond'])} NT\\$ pour les clients sans incident : la banque leur accorde moins de crédit. Le dataset ne dit pas si ce plafond a été fixé ainsi dès l'ouverture du compte ou réduit après les premiers incidents.
 - **Ils en utilisent la plus grande partie** : leur dette de septembre en représente {nombre_fr(ctx['utilisation'], 1)} % (médiane), contre {nombre_fr(aucun['utilisation'], 1)} % pour les clients sans incident. Les clients sortis du contentieux ({nombre_fr(sorti['utilisation'], 1)} %) et ceux qui ont eu un retard isolé ({nombre_fr(isole['utilisation'], 1)} %) se placent entre les deux.
 - Le lien entre un crédit très utilisé et le risque, vu en page « 4.2 L'usage du crédit », se retrouve ici sous la forme d'un statut.
 """)

@@ -1,4 +1,10 @@
+import sys
+from pathlib import Path
 import streamlit as st
+
+# Dossier src/ dans le chemin d'import : le paquet streamlit_pages est trouvé quelle que soit la façon dont l'app est lancée
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
 from streamlit_pages.commun import BASE_DIR, API_URL
 
 # ==============================================================================
