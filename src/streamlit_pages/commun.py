@@ -464,3 +464,11 @@ def entete_partie_5(df, s12, train, test, renvoi_genese=True):
 
     Le résultat est la **population contentieuse** : une sous-population définie par une règle métier **explicable et traçable**, prédite en défaut sans modèle. Rien n'est perdu en chemin : aucun client n'est supprimé, chaque correction laisse une trace, et l'historique des retards est transmis au machine learning sous forme de **nouvelles variables** (partie 6).{renvoi}
     """)
+
+
+def entete_partie_6():
+    """En-tête de la partie 6, repris sur toutes ses pages."""
+    st.title("🤖 6. Le machine learning")
+    st.markdown("""
+    Le but du machine learning est de prédire le défaut de paiement d'octobre 2005 à partir des six mois d'historique de chaque client, et de faire mieux que l'étude de référence de 2009. Cette partie raconte d'abord la première tentative, puis la démarche reprise une fois la population contentieuse définie.
+    """)

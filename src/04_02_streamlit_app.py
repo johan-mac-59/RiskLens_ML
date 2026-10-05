@@ -105,6 +105,7 @@ pages = {
     ],
     "6. Le machine learning": [
         st.Page("streamlit_pages/p6_1_historique.py", title="6.1 L'historique : une première itération qui a buté sur un plafond, et mené à l'étude du contentieux", icon=":material/history_edu:"),
+        st.Page("streamlit_pages/p6_2_demarche.py", title="6.2 La nouvelle démarche : séparer le contentieux du reste", icon=":material/route:"),
     ],
 }
 # Menu automatique masqué : il se placerait au-dessus du logo et du titre.

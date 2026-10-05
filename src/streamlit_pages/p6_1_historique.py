@@ -10,10 +10,7 @@ from streamlit_pages.commun import *
 GH_RACINE = "https://github.com/johan-mac-59/RiskLens_ML/blob/main"
 TABLEAU_ML = f"{GH_RACINE}/lab_ML/1ere_iteration/tableau_ML.md"
 
-st.title("🤖 6. Le machine learning")
-st.markdown("""
-Le but du machine learning est de prédire le défaut de paiement d'octobre 2005 à partir des six mois d'historique de chaque client, et de faire mieux que l'étude de référence de 2009. Cette partie raconte d'abord la première tentative, puis la démarche reprise une fois la population contentieuse définie.
-""")
+entete_partie_6()
 st.markdown("---")
 st.header("6.1 L'historique : une première itération qui a buté sur un plafond, et mené à l'étude du contentieux", anchor="historique")
 
