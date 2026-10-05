@@ -44,10 +44,10 @@ tableau_html(["", "Première itération", "Nouvelle démarche"], [
     ["<b>Point de décision</b>", "Seuil de 0,5 pour tous les modèles : chacun trouvait une part différente des défauts",
      "Un <b>taux de rappel minimal</b>, exigence métier : chaque modèle doit trouver au moins cette part des défauts ; son seuil en découle"],
     ["<b>Score pour régler les modèles</b>", "Moyenne du ROC AUC et du F2 score au seuil de 0,5",
-     "La <b>précision</b> à ce point : la part des clients signalés qui font réellement défaut"],
+     "La <b>précision des défauts prédits</b> à ce point : la part des clients prédits en défaut qui font réellement défaut"],
     ["<b>Surapprentissage</b>", "Surveillé à l'œil, avec une limite fixe",
      "Une limite relative, appliquée par la boucle, et un plancher pour que le modèle apprenne quand même"],
-    ["<b>Classement des modèles</b>", "Le score de décision", "Un « F2 final », calculé à la fin, qui réunit précision et part des défauts trouvés"],
+    ["<b>Classement des modèles</b>", "Le score de décision", "Un « score décisionnel F2 », calculé à la fin, qui réunit précision et part des défauts trouvés"],
     ["<b>Traçabilité</b>", "Un tableau de suivi tenu à la main",
      "Résultats de chaque modèle enregistrés à chaque lancement ; chaque évolution de la méthode est datée et mesurée"],
 ], largeurs=[20, 37, 43])
@@ -68,7 +68,7 @@ On fixe un **taux de rappel minimal** : la part des défauts que la banque exige
 Un modèle qui réussit beaucoup mieux sur les clients qu'il a vus que sur les autres apprend par cœur. La boucle limite donc l'écart entre les deux et, quand il est trop grand, simplifie le modèle au tour suivant. Mais trop simplifier mène à l'excès inverse : un modèle qui ne fait plus mieux que le hasard. **Un plancher l'empêche** : un réglage doit battre le hasard pour compter. Entre les deux bornes, le modèle apprend une logique, pas le dataset.
 
 **Comment classer des modèles qui ne trouvent pas exactement la même part des défauts ?**
-Certains modèles ne savent pas s'arrêter pile au taux de rappel minimal : beaucoup de clients ont exactement la même probabilité, et le seuil les prend tous. On les mesure à leur vrai point de fonctionnement, sans tronquer leurs prédictions. Pour les classer, un **« F2 final »** est calculé à la fin, pour chaque modèle, à sa propre part de défauts trouvés : à part égale, la meilleure précision gagne ; à précision égale, la plus grande part de défauts trouvés gagne. Il ne sert qu'au classement final et à la comparaison des scénarios : les modèles sont réglés sur la précision.
+Certains modèles ne savent pas s'arrêter pile au taux de rappel minimal : beaucoup de clients ont exactement la même probabilité, et le seuil les prend tous. On les mesure à leur vrai point de fonctionnement, sans tronquer leurs prédictions. Pour les classer, un **« score décisionnel F2 »** est calculé à la fin, pour chaque modèle, à sa propre part de défauts trouvés : à part égale, la meilleure précision gagne ; à précision égale, la plus grande part de défauts trouvés gagne. Il ne sert qu'au classement final et à la comparaison des scénarios : les modèles sont réglés sur la précision.
 """)
 
 # ------------------------------------------------------------------------------
@@ -89,5 +89,5 @@ D'autres variables pourront être créées si les résultats le suggèrent.
 """)
 
 st.info("""
-**Ce qu'il faut retenir** : le machine learning reprend sur les seuls clients en gestion normale, le contentieux étant confié à la règle métier. La méthode devient automatique et reproductible : chaque modèle doit atteindre un taux de rappel minimal, exigence métier, et il est réglé pour être le plus précis possible à ce point, sans apprendre le dataset par cœur ni cesser d'apprendre, puis classé par un F2 final. Chaque choix répond à une question concrète posée par les premiers résultats. Les scénarios enrichissent ensuite le socle, groupe de variables par groupe de variables, chacun gardé seulement s'il apporte un gain réel.
+**Ce qu'il faut retenir** : le machine learning reprend sur les seuls clients en gestion normale, le contentieux étant confié à la règle métier. La méthode devient automatique et reproductible : chaque modèle doit atteindre un taux de rappel minimal, exigence métier, et il est réglé pour être le plus précis possible à ce point, sans apprendre le dataset par cœur ni cesser d'apprendre, puis classé par un score décisionnel F2. Chaque choix répond à une question concrète posée par les premiers résultats. Les scénarios enrichissent ensuite le socle, groupe de variables par groupe de variables, chacun gardé seulement s'il apporte un gain réel.
 """)
