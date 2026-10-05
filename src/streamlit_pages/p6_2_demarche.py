@@ -31,6 +31,8 @@ La première itération mélangeait deux populations (page 6.1). La partie 5 les
 - **sans les {nombre_fr(au_ctx.sum())} clients au contentieux en octobre** : restent **{nombre_fr(len(hors_ctx))} clients en gestion normale**, dont {nombre_fr(hors_ctx['dpnm'].mean() * 100, 1)} % font défaut ;
 - un **découpage propre au machine learning** : {nombre_fr(len(train_ml))} clients pour l'entraînement (80 %), {nombre_fr(len(test_ml))} pour le test (20 %), avec la même part de défauts dans les deux. **Le test n'est lu qu'une seule fois, à la toute fin**, sur le modèle figé : tous les choix se font sur l'entraînement.
 
+Ces deux jeux sont créés **directement à partir du nettoyage le plus avancé** (partie 3), sans dépendre de l'exploration : n'importe qui peut les recréer à l'identique à partir des données d'origine.
+
 Cette base est **plus difficile** que celle de la première itération : les défauts les plus faciles à repérer, ceux du contentieux, sont partis à la règle métier. Les scores des modèles y sont mécaniquement plus bas, sans que les modèles soient moins bons ; la vraie comparaison se fera sur le système complet, la règle pour le contentieux et le modèle pour le reste (partie 7).
 """)
 
@@ -39,6 +41,8 @@ st.subheader("2. Ce qui change par rapport à la première itération", anchor="
 st.markdown("Les données changent, et la méthode aussi : elle devient automatique, reproductible et tracée.")
 tableau_html(["", "Première itération", "Nouvelle démarche"], [
     ["<b>Population</b>", "Tout le dataset, contentieux compris", "Clients actifs en gestion normale ; le contentieux est confié à la règle métier"],
+    ["<b>Préparation des variables</b>", "Codifications de paiement traitées comme des catégories ordonnées : un retard rare, absent des clients d'apprentissage, pouvait être lu comme celui d'un excellent payeur",
+     "Codifications traitées comme des nombres (un cran par mois de retard) ; paiements passés au logarithme, pour que les petits et moyens paiements ne soient pas écrasés par quelques très gros remboursements ; toutes les variables mises à la même échelle"],
     ["<b>Réglage des modèles</b>", "Recherche (GridSearch), puis grilles retouchées à la main pour limiter le surapprentissage",
      "Une boucle automatique : elle corrige elle-même ses grilles, tour après tour, et s'arrête quand le modèle est stable"],
     ["<b>Point de décision</b>", "Seuil de 0,5 pour tous les modèles : chacun trouvait une part différente des défauts",
@@ -49,7 +53,7 @@ tableau_html(["", "Première itération", "Nouvelle démarche"], [
      "Une limite relative, appliquée par la boucle, et un plancher pour que le modèle apprenne quand même"],
     ["<b>Classement des modèles</b>", "Le score de décision", "Un « score décisionnel F2 », calculé à la fin, qui réunit précision et part des défauts trouvés"],
     ["<b>Traçabilité</b>", "Un tableau de suivi tenu à la main",
-     "Résultats de chaque modèle enregistrés à chaque lancement ; chaque évolution de la méthode est datée et mesurée"],
+     "Résultats de chaque modèle enregistrés à chaque lancement, avec la trace du code et des données qui les ont produits ; chaque évolution de la méthode est datée et mesurée"],
 ], largeurs=[20, 37, 43])
 st.caption(f"Détail de la méthode, de ses versions successives et de leur effet mesuré : [méthodologie du machine learning]({METHODOLOGIE}).")
 
