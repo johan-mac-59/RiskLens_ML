@@ -78,7 +78,9 @@ Certains modèles ne savent pas s'arrêter pile au taux de rappel minimal : beau
 # ------------------------------------------------------------------------------
 st.subheader("4. La suite : enrichir le socle, scénario par scénario", anchor="scenarios")
 st.markdown("""
-**La méthode a d'abord été éprouvée sur un socle** : les seules variables d'origine du dataset. Elle y donne la même performance que l'ajustement à la main de la première itération, mais sans surapprentissage, et elle juge enfin tous les modèles de la même façon : trois d'entre eux se retrouvent à égalité en tête, dont le SVM, revenu dans la course. La méthode est désormais figée : elle ne changera plus d'un scénario à l'autre.
+**La méthode a d'abord été éprouvée sur un socle** : les seules variables d'origine du dataset. Le meilleur modèle, CatBoost, n'y a pas progressé : il garde la performance de l'ajustement à la main, mais **sans surapprentissage**, donc avec un score enfin crédible. Ce qui a changé, ce sont les autres modèles. Jugés au même taux de rappel minimal, puis nourris de variables mises en forme (codifications traitées comme des nombres, paiements et factures passés au logarithme), ils l'ont tous rejoint : **les six modèles sont à égalité**, et la régression logistique, le plus simple et le plus explicable, fait jeu égal avec le plus complexe.
+
+**La méthode est fiable, rigoureuse et reproductible, et elle met chaque modèle en pleine possession de ses moyens, sans en désavantager aucun.** Elle est désormais figée : elle ne changera plus d'un scénario à l'autre. Le socle a donné ce que ses variables permettaient ; pour monter plus haut, il faut de nouvelles informations.
 
 **Les scénarios enrichissent ensuite ce socle, petit groupe de variables par petit groupe.** Ces variables viennent en grande partie de l'**exploration déjà réalisée**, qui les a construites et en a montré le lien avec le risque :
 - l'**utilisation du plafond**, mois par mois (page 4.2) ;
@@ -93,5 +95,5 @@ D'autres variables pourront être créées si les résultats le suggèrent.
 """)
 
 st.info("""
-**Ce qu'il faut retenir** : le machine learning reprend sur les seuls clients en gestion normale, le contentieux étant confié à la règle métier. La méthode devient automatique et reproductible : chaque modèle doit atteindre un taux de rappel minimal, exigence métier, et il est réglé pour être le plus précis possible à ce point, sans apprendre le dataset par cœur ni cesser d'apprendre, puis classé par un score décisionnel F2. Chaque choix répond à une question concrète posée par les premiers résultats. Les scénarios enrichissent ensuite le socle, groupe de variables par groupe de variables, chacun gardé seulement s'il apporte un gain réel.
+**Ce qu'il faut retenir** : le machine learning reprend sur les seuls clients en gestion normale, le contentieux étant confié à la règle métier. La méthode devient automatique et reproductible : chaque modèle doit atteindre un taux de rappel minimal, exigence métier, et il est réglé pour être le plus précis possible à ce point, sans apprendre le dataset par cœur ni cesser d'apprendre, puis classé par un score décisionnel F2. Chaque choix répond à une question concrète posée par les premiers résultats. Sur le socle, elle met les six modèles à égalité, sans en désavantager aucun : elle est prête pour les nouvelles variables. Les scénarios enrichissent ensuite le socle, groupe de variables par groupe de variables, chacun gardé seulement s'il apporte un gain réel.
 """)
