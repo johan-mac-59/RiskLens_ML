@@ -1,0 +1,466 @@
+# Code partagé par toutes les pages Streamlit (repris de 04_02_streamlit_app.py)
+import streamlit as st
+import requests
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import json
+import os
+import re
+from pathlib import Path
+import numpy as np
+from plotly.subplots import make_subplots
+
+
+# Configuration de l'URL de l'API
+API_URL = "https://risklens-ml-api.onrender.com" 
+# API_URL = "http://127.0.0.1:8000"  # En local
+
+# Délai max d'attente d'une réponse API (Render peut mettre ~2 min à sortir de veille)
+API_TIMEOUT = 180
+
+# ==============================================================================
+# FONCTIONS UTILITAIRES
+# =============================================================================
+# --- 1. CHEMINS DE FICHIERS ---
+current_file = Path(__file__).resolve()
+BASE_DIR = next(
+    p for p in [current_file] + list(current_file.parents) if (p / "data").exists()
+)
+DATA_PATH = BASE_DIR / "data" / "csv_streamlit" / "dataset_streamlit.csv"
+MAPPING_PATH = BASE_DIR / "data" / "correspondances.json"
+# Effectifs de chaque étape du nettoyage, enregistrés par 02_01_nettoyage (page 3.5)
+ENTONNOIR_PATH = BASE_DIR / "data" / "csv_streamlit" / "entonnoir_nettoyage.csv"
+
+# --- 2. FONCTIONS DE CHARGEMENT AVEC CACHE ---
+@st.cache_data
+def _lire_csv(chemin, date_modification):
+    """Lecture mise en cache ; la date de modification fait partie de la clé : un CSV régénéré est relu automatiquement."""
+    return pd.read_csv(chemin)
+
+
+def load_data():
+    return _lire_csv(DATA_PATH, DATA_PATH.stat().st_mtime).copy()
+
+
+def load_entonnoir():
+    """Effectifs du nettoyage, indexés par étape (colonnes : retires, clients, plafonds_atypiques_origine)."""
+    return _lire_csv(ENTONNOIR_PATH, ENTONNOIR_PATH.stat().st_mtime).set_index("etape")
+
+@st.cache_data
+def load_mappings():
+    """Charge le JSON et reformatte chaque table en dictionnaire {code_int: description}."""
+    if not os.path.exists(MAPPING_PATH):
+        return {}
+
+    with open(MAPPING_PATH, "r", encoding="utf-8") as f:
+        raw_data = json.load(f)
+
+    mappings = {}
+    for category, items in raw_data.items():
+        if isinstance(items, list) and items:
+            # Repère la colonne servant de clé (ex: 'code_genre', 'code_marital', etc.)
+            code_key = next(
+                (k for k in items[0].keys() if "code" in k or "id" in k),
+                list(items[0].keys())[0],
+            )
+
+            # Reconstruit le dictionnaire simple {1: 'Homme', 2: 'Femme'}
+            mappings[category] = {
+                int(item[code_key]): item["description"]
+                for item in items
+                if code_key in item and "description" in item
+            }
+        elif isinstance(items, dict):
+            mappings[category] = {int(k): v for k, v in items.items()}
+
+    return mappings
+
+def ratios_affichables(d, cols):
+    """Ratios de paiement à afficher dans les graphiques : uniquement quand une facture était exigible
+    (BILL_AMT(n+1) > 0). La colonne ratio_PAY_BILLn garde sa définition unique (100 % sans facture
+    exigible, voir docs/colonnes_creees.md) : ce filtre ne sert qu'à l'affichage."""
+    out = d[cols].copy()
+    for col in cols:
+        n = int(col.replace('ratio_PAY_BILL', ''))
+        out[col] = out[col].where(d[f'BILL_AMT{n + 1}'] > 0)
+    return out
+
+
+
+
+@st.cache_data
+def _fetch_app_mappings():
+    # Une exception n'est jamais mise en cache par st.cache_data :
+    # si l'API est en veille, le prochain appel retentera la requête
+    res = requests.get(f"{API_URL}/metadata/mappings", timeout=API_TIMEOUT)
+    res.raise_for_status()
+    return res.json()
+
+def message_erreur_api(res):
+    """Transforme la réponse d'erreur de l'API en message lisible pour l'utilisateur."""
+    try:
+        detail = res.json().get("detail")
+    except ValueError:
+        # Réponse non JSON (ex : page d'erreur Render pendant le réveil du serveur)
+        return f"réponse inattendue du serveur (code {res.status_code})"
+    if isinstance(detail, list):
+        # Erreur de validation FastAPI (422) : liste de champs refusés
+        return " ; ".join(
+            f"{err.get('loc', ['?'])[-1]} : {err.get('msg', '')}" for err in detail
+        )
+    return detail
+
+
+def load_app_mappings():
+    try:
+        return _fetch_app_mappings()
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=600)
+def _fetch_global_default_rate():
+    # Taux de défaut sur toute la BDD (même population que le simulateur), rafraîchi toutes les 10 min
+    res = requests.get(f"{API_URL}/analyze/risk-by-profile", timeout=API_TIMEOUT)
+    res.raise_for_status()
+    return res.json()["default_rate_pct"]
+
+def load_global_default_rate():
+    try:
+        return _fetch_global_default_rate()
+    except Exception:
+        # Repli sur le dataset local si l'API ne répond pas
+        return round(df["dpnm"].mean() * 100, 2)
+
+
+# ==============================================================================
+# EN-TÊTE COMMUN AUX PAGES DE LA PARTIE 2
+# ==============================================================================
+def entete_partie_2():
+    st.title("🗄️ 2. La base de données et l'API REST")
+    st.markdown("""
+    Avant d'être analysées, les données sont rangées comme dans le système d'information d'une banque : une **base de données relationnelle** (SQLite), accessible uniquement par une **API REST** (FastAPI). Le fichier plat de 30 000 lignes devient des tables reliées entre elles, et toute lecture ou modification passe par l'API, qui contrôle chaque donnée avant de toucher à la base.
+
+    La base contient les 30 000 clients du fichier d'origine, après un nettoyage structurel (niveau 0). C'est une base de démonstration : les analyses des parties suivantes s'appuient sur une version plus poussée du nettoyage.
+    """)
+
+
+# ==============================================================================
+# EN-TÊTE COMMUN AUX PAGES DE LA PARTIE 3
+# ==============================================================================
+def entete_partie_3():
+    st.title("🔎 3. Comprendre le jeu de données : des anomalies aux règles métier")
+    st.markdown("""
+    Les données ne se lisent pas telles quelles. Chaque incohérence repérée a soulevé une question, prolongé l'enquête et abouti à une **règle métier**. C'est ce qui a conduit à étudier une population définie par ces règles, en écartant le plus possible les incohérences.
+
+    Chaque étape suit le même fil : **anomalie constatée → question posée → enquête → règle retenue**.
+
+    Le **taux de défaut** cité dans cette partie est la part des clients en défaut de paiement en octobre 2005, le mois qui suit les six mois de données. Il sert à décrire, jamais à fixer une règle.
+    """)
+
+
+# ==============================================================================
+# EN-TÊTE COMMUN AUX PAGES DE LA PARTIE 4
+# ==============================================================================
+# ==============================================================================
+# RÈGLE COMMUNE DES TAILLES DE POLICE DES GRAPHIQUES (valeurs brutes, en pixels)
+# ==============================================================================
+TAILLE_ETIQUETTE = 14     # étiquettes de données (valeurs écrites sur les graphiques)
+TAILLE_GRADUATIONS = 14   # libellés des axes x et y (12 par défaut dans Plotly, + 2)
+TAILLE_TITRES_AXES = 15   # titres des axes x et y (environ 14 par défaut dans Plotly, + 1)
+
+_plotly_chart_streamlit = st.plotly_chart
+
+
+def _plotly_chart_style_commun(figure, *args, **kwargs):
+    """Applique les tailles communes aux axes de tout graphique Plotly avant son affichage."""
+    if isinstance(figure, go.Figure):
+        figure.update_xaxes(tickfont_size=TAILLE_GRADUATIONS, title_font_size=TAILLE_TITRES_AXES)
+        figure.update_yaxes(tickfont_size=TAILLE_GRADUATIONS, title_font_size=TAILLE_TITRES_AXES)
+    return _plotly_chart_streamlit(figure, *args, **kwargs)
+
+
+# Toutes les pages importent commun.py : st.plotly_chart applique ainsi la règle commune partout
+if getattr(st.plotly_chart, "__name__", "") != "_plotly_chart_style_commun":
+    st.plotly_chart = _plotly_chart_style_commun
+
+
+def codif(valeur):
+    """Valeur de PAY_n affichée comme une étiquette grisée dans les textes, pour ne pas la confondre avec un chiffre.
+    Syntaxe Markdown de Streamlit : fonctionne aussi dans st.info, st.caption, etc."""
+    return f":gray-background[{valeur}]"
+
+
+def nombre_fr(n, decimales=0):
+    """Nombre au format français : espace pour les milliers, virgule pour les décimales."""
+    return f"{n:,.{decimales}f}".replace(",", " ").replace(".", ",")
+
+
+def entete_partie_4(df):
+    st.title("📊 4. Explorer le portefeuille : profils, usage de la carte, paiements et défauts")
+    st.markdown(f"""
+    Les données sont désormais fiables. Cette partie les explore sous tous les angles : le profil des clients, l'usage qu'ils font de leur carte (paiement comptant ou crédit), leur comportement de paiement, la vie de leurs comptes, puis les retards et le défaut de paiement. Chaque étape éclaire le risque de défaut. C'est au fil de cette exploration qu'est apparue une population à part, celle des clients en gestion contentieuse : une réalité métier qu'il a fallu constater, nommer, puis définir pour ce dataset (partie 5).
+
+    Les analyses portent sur les **{nombre_fr(len(df))} clients** retenus par le nettoyage (page « 3.5 Décisions ») et sont calculées en direct sur ces données. Le **taux de défaut**, c'est-à-dire la part des clients en défaut de paiement en octobre 2005, le mois qui suit les six mois de données, y est en moyenne de **{nombre_fr(df['dpnm'].mean() * 100, 1)} %**. Les taux affichés décrivent des tendances et ne servent à fixer aucune règle.
+    """)
+
+
+# ==============================================================================
+# PALETTE GÉNÉRALE DES GRAPHIQUES : « Safe » de Plotly (px.colors.qualitative.Safe), lisible par les daltoniens
+# Les teintes réservées aux codifications (COULEURS_CODIF) ne sont pas réutilisées ailleurs, pour garder leur sens
+# ==============================================================================
+COULEURS = {
+    "bleu_pale": "#88CCEE",
+    "rouge_pale": "#CC6677",
+    "jaune": "#DDCC77",
+    "vert_fonce": "#117733",
+    "mauve": "#332288",
+    "violet": "#AA4499",
+    "turquoise": "#44AA99",
+    "olive": "#999933",
+    "bordeaux": "#882255",
+    "gris": "#888888",
+    "orange": "#EE7733",  # repère (ex. ligne de moyenne), absent de la palette des barres
+}
+
+
+# ==============================================================================
+# COULEURS DES CODIFICATIONS DE PAIEMENT (palette « Safe » de Plotly, lisible par les daltoniens)
+# Du plus risqué au moins risqué : couleurs chaudes pour les retards, froides pour les codifications saines
+# ==============================================================================
+COULEURS_CODIF = {
+    "2 et plus": "#CC6677",  # rouge pâle
+    "1": "#DDCC77",          # jaune orangé
+    "0": "#88CCEE",          # bleu pâle
+    "-1": "#117733",         # vert foncé
+    "-2": "#332288",         # mauve foncé
+}
+
+
+# ==============================================================================
+# ENCADRÉ DES OUTILS INTERACTIFS (simulateurs) : fond turquoise léger, pour les distinguer du texte
+# Turquoise de la palette, absent des codifications ; transparence pour rester lisible en thème clair et sombre
+# ==============================================================================
+# Invitation en tête de l'encadré : turquoise plus foncé (lisible sur fond clair comme sombre), plus grande et en gras
+def encadre_interactif(cle, invitation=None):
+    st.markdown(f"""<style>
+    .st-key-{cle} {{ background: rgba(68, 170, 153, 0.12); border: 1px solid rgba(68, 170, 153, 0.6);
+                     border-radius: 0.6rem; padding: 1rem 1.2rem; }}
+    .invitation-interactif {{ color: #2E8B7A; font-size: 1.3rem; font-weight: 700; margin-bottom: 0.2rem; }}
+    </style>""", unsafe_allow_html=True)
+    conteneur = st.container(key=cle)
+    if invitation:
+        conteneur.markdown(f'<div class="invitation-interactif">👇 {invitation}</div>', unsafe_allow_html=True)
+    return conteneur
+
+
+# ==============================================================================
+# SIMULATEUR DE RISQUE PAR PROFIL, CALCULÉ SUR UN DATAFRAME (4.1, 5.5…)
+# Même interface que le simulateur de la démo de l'API, qui interroge la base ;
+# d : population sur laquelle on calcule (colonnes AGE_BUCKET, SEX, EDUCATION, MARRIAGE, dpnm)
+# ==============================================================================
+TRANCHES_AGE = ['21-25', '26-30', '31-35', '36-40', '41-50', '51+']
+
+
+def simulateur_profil(d, cle, phrase_population, nom_moyenne):
+    mappings = load_mappings()
+    genre_map = {int(k): v for k, v in mappings.get("genre", {}).items()}
+    marital_map = {int(k): v for k, v in mappings.get("statut_marital", {}).items()}
+    scolaire_map = {int(k): v.replace("License", "Licence") for k, v in mappings.get("niveau_scolaire", {}).items()}
+    taux_moyen = d["dpnm"].mean() * 100
+
+    with encadre_interactif(cle, invitation="À vous de tester : choisissez un profil de client et découvrez son taux de défaut de paiement"):
+        st.subheader("🧮 Simulateur de risque par profil", anchor=cle.replace("_", "-"))
+        st.markdown(f"Vous aussi, calculez le taux de défaut de paiement selon les critères choisis, {phrase_population}.")
+
+        st.info("Sélectionnez les critères du client hypothétique.")
+        col_sim1, col_sim2 = st.columns([1, 1])
+
+        with col_sim1:
+            # Choix Âge : les mêmes tranches que les graphiques (AGE_BUCKET)
+            selected_tranche = st.selectbox(
+                "Tranche d'âge",
+                options=["Tous âges"] + TRANCHES_AGE,
+                format_func=lambda x: x if x == "Tous âges" else f"{x} ans",
+                key=f"{cle}_age"
+            )
+
+            # Genre
+            selected_genre = st.selectbox(
+                "Genre",
+                options=[-1] + list(genre_map.keys()),
+                format_func=lambda x: f"{genre_map.get(x, 'Tous les genres')} ({x})" if x != -1 else "Tous les genres",
+                key=f"{cle}_genre"
+            )
+
+        with col_sim2:
+            # Scolaire
+            selected_edu = st.selectbox(
+                "Niveau d'études",
+                options=[-1] + list(scolaire_map.keys()),
+                format_func=lambda x: f"{scolaire_map.get(x, 'Tous niveaux')} ({x})" if x != -1 else "Tous niveaux",
+                key=f"{cle}_edu"
+            )
+
+            # Mariage
+            selected_marital = st.selectbox(
+                "Statut marital",
+                options=[-1] + list(marital_map.keys()),
+                format_func=lambda x: f"{marital_map.get(x, 'Tous statuts')} ({x})" if x != -1 else "Tous statuts",
+                key=f"{cle}_marital"
+            )
+
+        # Bouton de calcul
+        if st.button("🔍 Calculer le taux de défaut", type="primary", width='stretch', key=f"{cle}_bouton"):
+
+            # Filtre de la population selon les critères choisis
+            masque = pd.Series(True, index=d.index)
+            if selected_tranche != "Tous âges":
+                masque &= d["AGE_BUCKET"] == selected_tranche
+            if selected_genre != -1:
+                masque &= d["SEX"] == selected_genre
+            if selected_edu != -1:
+                masque &= d["EDUCATION"] == selected_edu
+            if selected_marital != -1:
+                masque &= d["MARRIAGE"] == selected_marital
+
+            total_clients = int(masque.sum())
+            if total_clients == 0:
+                st.warning("Aucun client ne correspond exactement à ces critères combinés. Essayez d'élargir les tranches.")
+            else:
+                defaut_count = int(d.loc[masque, "dpnm"].sum())
+                risk_pct = round(defaut_count / total_clients * 100, 2)
+
+                # Affichage des résultats
+                col_res1, col_res2 = st.columns(2)
+                with col_res1:
+                    st.metric(label="Nombre de clients ciblés", value=nombre_fr(total_clients))
+                with col_res2:
+                    st.metric(label="Taux de défaut observé", value=f"{nombre_fr(risk_pct, 2)} %")
+
+                st.info(f"Sur ces {nombre_fr(total_clients)} clients, **{nombre_fr(defaut_count)}** ont fait défaut de paiement en octobre.")
+
+                # Barre visuelle pour comparer à la moyenne de la population
+                global_avg = round(taux_moyen, 2)
+                col_viz1, col_viz2 = st.columns([3, 1])
+                with col_viz1:
+                    st.progress(risk_pct / 100, f"Risque du profil ({nombre_fr(risk_pct, 2)} %) contre moyenne {nom_moyenne} ({nombre_fr(global_avg, 2)} %)")
+                with col_viz2:
+                    delta_val = round(risk_pct - global_avg, 1) + 0.0
+                    st.metric(label="Écart à la moyenne", value=f"{delta_val:+.1f} points".replace(".", ","))
+
+
+# ==============================================================================
+# TABLEAUX HTML (largeurs de colonnes fixées, cellules colorées possibles)
+# ==============================================================================
+STYLE_CELLULE_HTML = "border: 1px solid rgba(128, 128, 128, 0.3); padding: 6px 8px; vertical-align: top; text-align: left;"
+
+
+def tableau_html(entetes, lignes, largeurs=None):
+    """Tableau HTML : une cellule est un texte, ou un couple (texte, style CSS ajouté à la cellule)."""
+    def cellule(c, balise="td", fond=""):
+        texte, style = c if isinstance(c, tuple) else (c, "")
+        return f'<{balise} style="{STYLE_CELLULE_HTML} {fond} {style}">{texte}</{balise}>'
+    colonnes = ("<colgroup>" + "".join(f'<col style="width: {l}%">' for l in largeurs) + "</colgroup>") if largeurs else ""
+    tete = "".join(cellule(e, "th", "background: rgba(128, 128, 128, 0.1);") for e in entetes)
+    corps = "".join("<tr>" + "".join(cellule(c) for c in ligne) + "</tr>" for ligne in lignes).replace("$", "&#36;")
+    # Étiquettes grisées de codif() : la syntaxe Markdown de Streamlit n'est pas lue dans du HTML, on la traduit
+    corps, tete = (re.sub(r":gray-background\[([^\]]*)\]",
+                          r'<span style="background: rgba(128, 128, 128, 0.2); padding: 0 4px; border-radius: 4px;">\1</span>', t)
+                   for t in (corps, tete))
+    st.markdown(
+        f'<table style="width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 1rem;">{colonnes}'
+        f"<thead><tr>{tete}</tr></thead><tbody>{corps}</tbody></table>",
+        unsafe_allow_html=True,
+    )
+
+
+# Mois dans l'ordre chronologique (gauche à droite) : PAY_6 = avril, ..., PAY_1 = septembre
+MOIS_CHRONO = [(6, "Avril"), (5, "Mai"), (4, "Juin"), (3, "Juillet"), (2, "Août"), (1, "Septembre")]
+
+
+def cellule_codif(valeur):
+    """Cellule de tableau HTML colorée selon la codification (mêmes couleurs que COULEURS_CODIF)."""
+    if valeur is None or valeur == "":
+        return ("", "")
+    v = int(valeur)
+    fond = COULEURS_CODIF["2 et plus"] if v >= 2 else COULEURS_CODIF[str(v)]
+    texte = "white" if v in (-1, -2) else "black"
+    return (f"<b>{v}</b>", f"background: {fond}; color: {texte}; text-align: center;")
+
+
+# ==============================================================================
+# PARTIE 5 : LA POPULATION CONTENTIEUSE
+# ==============================================================================
+# Statuts lus dans les indicateurs du niveau 5 du nettoyage (docs/colonnes_creees.md, « Lire les statuts ») :
+# aucune colonne de statut n'est créée, comme le prévoit la documentation. Ordre : du plus risqué au moins risqué
+# Couleurs, toutes tirées de la palette « Safe » de Plotly : bordeaux = contentieux, rouge pâle = entrée en retard
+# (graphiques d'entrées, comme les codifications 2 et plus), bleu nuit = sortie du contentieux, jaune = sortie du retard
+# (retard isolé régularisé), vert-bleu = aucun incident (plus clair que le bordeaux, qu'il touche dans le disque),
+# violet = retard payé (sortie présumée en octobre)
+STATUTS_CTX = {
+    "Au contentieux": COULEURS["bordeaux"],
+    "Retard payé en septembre": COULEURS["violet"],
+    "Sorti du contentieux": COULEURS["mauve"],
+    "Retard isolé régularisé": COULEURS["jaune"],
+    "Aucun incident": COULEURS["turquoise"],
+}
+NOMS_STATUTS = list(STATUTS_CTX)
+# Libellés sur deux lignes pour les axes des graphiques étroits
+LIBELLES_STATUTS = {
+    "Au contentieux": "Au<br>contentieux",
+    "Retard payé en septembre": "Retard payé<br>en septembre",
+    "Sorti du contentieux": "Sorti du<br>contentieux",
+    "Retard isolé régularisé": "Retard isolé<br>régularisé",
+    "Aucun incident": "Aucun<br>incident",
+}
+
+
+def statut_contentieux(d):
+    """Statut de chaque client à la fin de la période, lu dans FLAG_CTX, MOIS_SORTIE_CTX, FLAG_RETARD et MOIS_SORTIE_RETARD."""
+    au_ctx = (d["FLAG_CTX"] == 1) & (d["MOIS_SORTIE_CTX"] == -1)
+    # Retard de septembre payé à 90 % ou plus : fin de série (MOIS_SORTIE_CTX = 0) ou retard isolé (MOIS_SORTIE_RETARD = 0)
+    retard_paye = ((d["FLAG_CTX"] == 1) & (d["MOIS_SORTIE_CTX"] == 0)) | ((d["FLAG_RETARD"] == 1) & (d["MOIS_SORTIE_RETARD"] == 0))
+    sorti = (d["FLAG_CTX"] == 1) & d["MOIS_SORTIE_CTX"].between(1, 5)
+    isole = (d["FLAG_RETARD"] == 1) & d["MOIS_SORTIE_RETARD"].between(1, 4)
+    statut = np.select([au_ctx, retard_paye, sorti, isole], NOMS_STATUTS[:4], default=NOMS_STATUTS[4])
+    return pd.Series(pd.Categorical(statut, categories=NOMS_STATUTS), index=d.index)
+
+
+@st.cache_data
+def _decoupage_partie_5(chemin, date_modification):
+    """Périmètre du contentieux et découpage train / test, identiques à ceux de l'étude du contentieux et de la première itération du ML :
+    encours positif en septembre et plafond <= 500 000 NT$ (S12), 80/20, stratifié sur dpnm, random_state=42."""
+    from sklearn.model_selection import train_test_split
+    df = pd.read_csv(chemin)
+    s12 = df[(df["BILL_AMT1"] > 0) & (df["LIMIT_BAL"] <= 500000)].copy()
+    train, test = train_test_split(s12, test_size=0.2, stratify=s12["dpnm"], random_state=42)
+    return df, s12, train, test
+
+
+def etiquette_grise(fig, x, y, texte, yshift=12, xshift=0):
+    """Petite étiquette grisée posée sur une barre (au-dessus, ou à droite avec xshift pour les barres horizontales)."""
+    fig.add_annotation(x=x, y=y, yshift=yshift, xshift=xshift, showarrow=False, text=f"<b>{texte}</b>",
+                       font_size=TAILLE_ETIQUETTE, bgcolor="rgba(128, 128, 128, 0.25)", borderpad=2)
+
+
+def donnees_partie_5():
+    """Population retenue, périmètre du contentieux (S12), jeux d'entraînement et de test, avec le statut de chaque client."""
+    # Statuts calculés hors du cache : un changement de libellé ou de règle est pris en compte sans vider le cache
+    donnees = [d.copy() for d in _decoupage_partie_5(DATA_PATH, DATA_PATH.stat().st_mtime)]
+    for d in donnees[1:]:
+        d["STATUT"] = statut_contentieux(d)
+    return donnees
+
+
+def entete_partie_5(df, s12, train, test, renvoi_genese=True):
+    """En-tête court et global, repris sur toutes les pages de la partie 5 (renvoi_genese=False sur la page 5.1 elle-même).
+    Le périmètre et le découpage entraînement / test sont présentés en page 5.1, pas ici."""
+    st.title("⚖️ 5. La population contentieuse : des retards figés à une règle métier")
+    renvoi = " La genèse de l'étude, l'hypothèse qui relie ses anomalies et sa méthode sont présentées en page « 5.1 La genèse »." if renvoi_genese else ""
+    st.markdown(f"""
+    Tout part de clients figés en retard, au taux de défaut anormalement élevé, et d'un modèle de machine learning qui plafonnait. L'étude a d'abord posé des règles candidates, fondées sur la logique métier. En les confrontant aux montants, elle a découvert des anomalies de codification et les a corrigées. Elle a ensuite vérifié et ajusté la définition sur le jeu d'entraînement, puis l'a validée une seule fois sur le jeu de test. Les corrections ont enfin été inscrites dans le nettoyage, et contrôlées.
+
+    Le résultat est la **population contentieuse** : une sous-population définie par une règle métier **explicable et traçable**, prédite en défaut sans modèle. Rien n'est perdu en chemin : aucun client n'est supprimé, chaque correction laisse une trace, et l'historique des retards est transmis au machine learning sous forme de **nouvelles variables** (partie 6).{renvoi}
+    """)
