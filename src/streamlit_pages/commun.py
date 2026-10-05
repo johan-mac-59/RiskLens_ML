@@ -239,6 +239,119 @@ COULEURS_CODIF = {
 
 
 # ==============================================================================
+# ENCADRÉ DES OUTILS INTERACTIFS (simulateurs) : fond turquoise léger, pour les distinguer du texte
+# Turquoise de la palette, absent des codifications ; transparence pour rester lisible en thème clair et sombre
+# ==============================================================================
+# Invitation en tête de l'encadré : turquoise plus foncé (lisible sur fond clair comme sombre), plus grande et en gras
+def encadre_interactif(cle, invitation=None):
+    st.markdown(f"""<style>
+    .st-key-{cle} {{ background: rgba(68, 170, 153, 0.12); border: 1px solid rgba(68, 170, 153, 0.6);
+                     border-radius: 0.6rem; padding: 1rem 1.2rem; }}
+    .invitation-interactif {{ color: #2E8B7A; font-size: 1.3rem; font-weight: 700; margin-bottom: 0.2rem; }}
+    </style>""", unsafe_allow_html=True)
+    conteneur = st.container(key=cle)
+    if invitation:
+        conteneur.markdown(f'<div class="invitation-interactif">👇 {invitation}</div>', unsafe_allow_html=True)
+    return conteneur
+
+
+# ==============================================================================
+# SIMULATEUR DE RISQUE PAR PROFIL, CALCULÉ SUR UN DATAFRAME (4.1, 5.5…)
+# Même interface que le simulateur de la démo de l'API, qui interroge la base ;
+# d : population sur laquelle on calcule (colonnes AGE_BUCKET, SEX, EDUCATION, MARRIAGE, dpnm)
+# ==============================================================================
+TRANCHES_AGE = ['21-25', '26-30', '31-35', '36-40', '41-50', '51+']
+
+
+def simulateur_profil(d, cle, phrase_population, nom_moyenne):
+    mappings = load_mappings()
+    genre_map = {int(k): v for k, v in mappings.get("genre", {}).items()}
+    marital_map = {int(k): v for k, v in mappings.get("statut_marital", {}).items()}
+    scolaire_map = {int(k): v.replace("License", "Licence") for k, v in mappings.get("niveau_scolaire", {}).items()}
+    taux_moyen = d["dpnm"].mean() * 100
+
+    with encadre_interactif(cle, invitation="À vous de tester : choisissez un profil de client et découvrez son taux de défaut de paiement"):
+        st.subheader("🧮 Simulateur de risque par profil", anchor=cle.replace("_", "-"))
+        st.markdown(f"Vous aussi, calculez le taux de défaut de paiement selon les critères choisis, {phrase_population}.")
+
+        st.info("Sélectionnez les critères du client hypothétique.")
+        col_sim1, col_sim2 = st.columns([1, 1])
+
+        with col_sim1:
+            # Choix Âge : les mêmes tranches que les graphiques (AGE_BUCKET)
+            selected_tranche = st.selectbox(
+                "Tranche d'âge",
+                options=["Tous âges"] + TRANCHES_AGE,
+                format_func=lambda x: x if x == "Tous âges" else f"{x} ans",
+                key=f"{cle}_age"
+            )
+
+            # Genre
+            selected_genre = st.selectbox(
+                "Genre",
+                options=[-1] + list(genre_map.keys()),
+                format_func=lambda x: f"{genre_map.get(x, 'Tous les genres')} ({x})" if x != -1 else "Tous les genres",
+                key=f"{cle}_genre"
+            )
+
+        with col_sim2:
+            # Scolaire
+            selected_edu = st.selectbox(
+                "Niveau d'études",
+                options=[-1] + list(scolaire_map.keys()),
+                format_func=lambda x: f"{scolaire_map.get(x, 'Tous niveaux')} ({x})" if x != -1 else "Tous niveaux",
+                key=f"{cle}_edu"
+            )
+
+            # Mariage
+            selected_marital = st.selectbox(
+                "Statut marital",
+                options=[-1] + list(marital_map.keys()),
+                format_func=lambda x: f"{marital_map.get(x, 'Tous statuts')} ({x})" if x != -1 else "Tous statuts",
+                key=f"{cle}_marital"
+            )
+
+        # Bouton de calcul
+        if st.button("🔍 Calculer le taux de défaut", type="primary", width='stretch', key=f"{cle}_bouton"):
+
+            # Filtre de la population selon les critères choisis
+            masque = pd.Series(True, index=d.index)
+            if selected_tranche != "Tous âges":
+                masque &= d["AGE_BUCKET"] == selected_tranche
+            if selected_genre != -1:
+                masque &= d["SEX"] == selected_genre
+            if selected_edu != -1:
+                masque &= d["EDUCATION"] == selected_edu
+            if selected_marital != -1:
+                masque &= d["MARRIAGE"] == selected_marital
+
+            total_clients = int(masque.sum())
+            if total_clients == 0:
+                st.warning("Aucun client ne correspond exactement à ces critères combinés. Essayez d'élargir les tranches.")
+            else:
+                defaut_count = int(d.loc[masque, "dpnm"].sum())
+                risk_pct = round(defaut_count / total_clients * 100, 2)
+
+                # Affichage des résultats
+                col_res1, col_res2 = st.columns(2)
+                with col_res1:
+                    st.metric(label="Nombre de clients ciblés", value=nombre_fr(total_clients))
+                with col_res2:
+                    st.metric(label="Taux de défaut observé", value=f"{nombre_fr(risk_pct, 2)} %")
+
+                st.info(f"Sur ces {nombre_fr(total_clients)} clients, **{nombre_fr(defaut_count)}** ont fait défaut de paiement en octobre.")
+
+                # Barre visuelle pour comparer à la moyenne de la population
+                global_avg = round(taux_moyen, 2)
+                col_viz1, col_viz2 = st.columns([3, 1])
+                with col_viz1:
+                    st.progress(risk_pct / 100, f"Risque du profil ({nombre_fr(risk_pct, 2)} %) contre moyenne {nom_moyenne} ({nombre_fr(global_avg, 2)} %)")
+                with col_viz2:
+                    delta_val = round(risk_pct - global_avg, 1) + 0.0
+                    st.metric(label="Écart à la moyenne", value=f"{delta_val:+.1f} points".replace(".", ","))
+
+
+# ==============================================================================
 # TABLEAUX HTML (largeurs de colonnes fixées, cellules colorées possibles)
 # ==============================================================================
 STYLE_CELLULE_HTML = "border: 1px solid rgba(128, 128, 128, 0.3); padding: 6px 8px; vertical-align: top; text-align: left;"

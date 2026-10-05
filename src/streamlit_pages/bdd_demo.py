@@ -11,12 +11,12 @@ st.markdown("""
 **Ce que vous pouvez faire** : chaque action ci-dessous interroge en direct l'API REST du projet (FastAPI), qui lit ou modifie la base.
 - **👤 Gestion des clients** : consulter la fiche d'un client à partir de son ID (de 1 à 30 000), créer un client, modifier ses informations ou le supprimer.
 - **📅 Historique transactionnel** : consulter les 6 mois d'historique d'un client, ajouter un mois, en modifier un, ou supprimer un mois ou tout l'historique.
-- **🧮 Simulateur de risque** : choisir un profil (âge, genre, niveau d'études, statut marital) et obtenir, calculés par l'API sur la base, le nombre de clients concernés et leur taux de défaut.
+- **🧮 Simulateur de risque**, sous les deux onglets : choisir un profil (âge, genre, niveau d'études, statut marital) et obtenir, calculés par l'API sur la base, le nombre de clients concernés et leur taux de défaut.
 
 Il s'agit d'une base de démonstration : vous pouvez tester toutes les opérations sans risque. Les analyses des autres pages s'appuient sur une version plus poussée du nettoyage.
 """)
 
-tab_clients, tab_historique, tab_simulateur = st.tabs(["👤 Gestion des clients", "📅 Historique transactionnel", "🧮 Simulateur de risque"])
+tab_clients, tab_historique = st.tabs(["👤 Gestion des clients", "📅 Historique transactionnel"])
 
 # ==============================================================================
 # SECTION 3 : GESTION DES CLIENTS (GET, POST, PATCH, DELETE)
@@ -464,25 +464,26 @@ with tab_historique:
                 except Exception as e:
                     st.error(f"Erreur API : {e}")
 
-with tab_simulateur:
-    # ==============================================================================
-    # CALCULATEUR INTERACTIF RÉEL : TAUX DE DÉFAUT PAR PROFIL
-    # ==============================================================================
-    st.markdown("---")
-    st.subheader("🧮 Simulateur de Risque par Profil Démographique")
+# Simulateur hors des onglets, sous eux, pour qu'il ressorte
+# ==============================================================================
+# CALCULATEUR INTERACTIF RÉEL : TAUX DE DÉFAUT PAR PROFIL
+# ==============================================================================
+st.markdown("---")
+with encadre_interactif("simulateur_api", invitation="À vous de tester : choisissez un profil de client et découvrez son taux de défaut de paiement"):
+    st.subheader("🧮 Simulateur de Risque par Profil Démographique", anchor="simulateur")
     st.markdown("Vous aussi, calculez le taux de défaut de paiement selon les critères démographiques choisis en direct sur la base de données")
 
     col_sim1, col_sim2 = st.columns([1, 1])
 
     with col_sim1:
         st.info("Sélectionnez les critères du client hypothétique.")
-        
+    
         # Conversion sécurisée des clés en entiers
         genre_map = {int(k): v for k, v in mappings.get("genre", {}).items()}
         marital_map = {int(k): v for k, v in mappings.get("statut_marital", {}).items()}
         scolaire_map = {int(k): v for k, v in mappings.get("niveau_scolaire", {}).items()}
         defaut_map = {int(k): v for k, v in mappings.get("statut_defaut", {}).items()}
-        
+    
         # Choix Âge : on offre des tranches
         age_tranches = [
             ("Tous âges", 0, 100),
@@ -493,13 +494,13 @@ with tab_simulateur:
             ("41-50 ans", 41, 50),
             ("51-+", 51, 80)
         ]
-        
+    
         selected_tranche = st.selectbox(
             "Tranche d'âge", 
             options=[t[0] for t in age_tranches],
             format_func=lambda x: x
         )
-        
+    
         # On récupère les bornes de la tranche sélectionnée
         age_min, age_max = next((t[1], t[2]) for t in age_tranches if t[0] == selected_tranche)
 
@@ -530,7 +531,7 @@ with tab_simulateur:
 
     # Bouton de calcul
     if st.button("🔍 Calculer le taux de défaut", type="primary", width='stretch'):
-        
+    
         # Préparation des paramètres pour l'API
         params = {}
         if selected_genre != -1:
@@ -539,7 +540,7 @@ with tab_simulateur:
             params["education_level"] = selected_edu
         if selected_marital != -1:
             params["marital_status"] = selected_marital
-        
+    
         # Ajout des tranches d'âge
         params["age_min"] = age_min
         params["age_max"] = age_max
@@ -547,10 +548,10 @@ with tab_simulateur:
         try:
             with st.spinner("Interrogation de la BDD en temps réel..."):
                 res = requests.get(f"{API_URL}/analyze/risk-by-profile", params=params, timeout=API_TIMEOUT)
-                
+            
                 if res.status_code == 200:
                     data = res.json()
-                    
+                
                     if "error" in data:
                         st.error(f"Erreur API : {data['error']}")
                     elif data["total_clients"] == 0:
@@ -558,24 +559,24 @@ with tab_simulateur:
                     else:
                         # Affichage des résultats
                         col_res1, col_res2 = st.columns(2)
-                        
+                    
                         with col_res1:
                             st.metric(
                                 label="Nombre de clients ciblés",
                                 value=f"{data['total_clients']}"
                             )
-                        
+                    
                         with col_res2:
                             risk_pct = data['default_rate_pct']
-                            
+                        
                             st.metric(
                                 label="Taux de défaut observé",
                                 value=f"{risk_pct}%",
                                 delta_color="inverse" # Rouge si haut, vert si bas
                             )
-                        
+                    
                         st.info(f"Sur ces {data['total_clients']} clients, **{data['defaut_count']}** ont présenté un défaut de paiement le mois suivant.")
-                        
+                    
                         # Visualisation contextuelle simple
                         if risk_pct:
                             # On ajoute une barre visuelle pour comparer à la moyenne globale de la BDD

@@ -171,6 +171,15 @@ st.markdown(f"""
 - **La codification porte un signal que les montants ne montrent pas** : un paiement rejeté après coup, un incident sur un autre produit, une procédure interne de la banque… Le dataset ne permet pas de savoir lequel. Corriger ces retards aurait effacé ce signal ; ils restent dans les données, et le machine learning dispose à la fois des codifications et des montants.
 """)
 
+# ==============================================================================
+# SIMULATEUR : TAUX DE DÉFAUT PAR PROFIL, PARMI LES CLIENTS AU CONTENTIEUX À M (DATASET STREAMLIT COMPLET)
+# (fonction simulateur_profil de commun.py, la même qu'en 4.1)
+# ==============================================================================
+ctx_dataset = df[(df["FLAG_CTX"] == 1) & (df["MOIS_SORTIE_CTX"] == -1)]
+simulateur_profil(ctx_dataset, "simulateur-contentieux",
+                  f"en direct sur les {nombre_fr(len(ctx_dataset))} clients au contentieux en septembre",
+                  "des clients au contentieux")
+
 st.info(f"""
 **Ce qu'il faut retenir** : le défaut, regardé sur le seul jeu d'entraînement, confirme la définition sans l'avoir guidée. Le contentieux concentre un risque très élevé ({nombre_fr(ctx['taux'], 1)} %), y compris pour les clients qui y entrent en septembre. Les autres statuts s'échelonnent nettement en dessous, et dans chacun, le risque dépend de la durée du retard et de l'ancienneté de la sortie : une information graduée, transmise au machine learning par les indicateurs du contentieux. Enfin, même un retard posé sur une facture payée signale un risque deux fois plus élevé : la codification porte une information que les montants ne montrent pas. Reste à vérifier que la règle tient sur des clients qu'elle n'a jamais vus : c'est le test de la page suivante.
 """)

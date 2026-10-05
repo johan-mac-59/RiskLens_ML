@@ -108,3 +108,16 @@ La variable de `S12_7` reposait sur une première définition, abandonnée depui
 st.info("""
 **Ce qu'il faut retenir** : la première itération du machine learning, menée sur tout le dataset, a comparé six modèles, plusieurs niveaux de nettoyage et de nombreux scénarios. Elle a fixé le périmètre (les clients qui ont une dette, hors plafonds atypiques), confirmé le poids de la codification de septembre, puis buté sur un plafond : ni les nouvelles variables, ni une variable de contentieux ne faisaient progresser les modèles. Ce blocage a révélé deux populations mélangées et lancé l'étude du contentieux (partie 5).
 """)
+
+
+# ==============================================================================
+# SIMULATEUR : TAUX DE DÉFAUT PAR PROFIL, SUR LA POPULATION LAISSÉE AU MACHINE LEARNING
+# Dataset Streamlit, périmètre S12 (dette en septembre, plafond <= 500 000 NT$), sans les clients au contentieux à M :
+# la population de lab_ML/creation_datasets_ML.ipynb (train + test). Fonction simulateur_profil de commun.py (4.1, 5.5)
+# ==============================================================================
+df = load_data()
+hors_ctx = df[(df["BILL_AMT1"] > 0) & (df["LIMIT_BAL"] <= 500000)
+              & ~((df["FLAG_CTX"] == 1) & (df["MOIS_SORTIE_CTX"] == -1))]
+simulateur_profil(hors_ctx, "simulateur-ml",
+                  f"en direct sur les {nombre_fr(len(hors_ctx))} clients hors du contentieux, ceux qu'étudie le machine learning",
+                  "des clients hors du contentieux")
