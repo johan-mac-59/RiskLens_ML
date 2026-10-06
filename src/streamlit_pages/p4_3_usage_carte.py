@@ -35,15 +35,20 @@ TYPES = [
 ]
 NOMS_TYPES = [nom for nom, _ in TYPES]
 df_ratio['type_usage'] = pd.Categorical(df_ratio['TYPE_USAGE'], categories=NOMS_TYPES)
+# Septième groupe, sans ratio médian (médiane à -1) : la première facture due de la période arrive en septembre.
+# Il entre dans la répartition, le taux de défaut et les codifications, pas dans les analyses du ratio médian
+PREMIERE = "Première facture"
+NOMS_AFFICHES = NOMS_TYPES + [PREMIERE]
+df['type_usage'] = pd.Categorical(df['TYPE_USAGE'], categories=NOMS_AFFICHES)
 
 stats_type = (
-    df_ratio.groupby('type_usage', observed=False)['dpnm']
+    df.groupby('type_usage', observed=False)['dpnm']
     .agg(clients='size', taux='mean')
     .reset_index()
 )
 stats_type['taux'] = stats_type['taux'] * 100
 stats_type['part'] = stats_type['clients'] / stats_type['clients'].sum() * 100
-COULEURS_TYPES = dict(zip(NOMS_TYPES, px.colors.qualitative.Safe))
+COULEURS_TYPES = dict(zip(NOMS_AFFICHES, px.colors.qualitative.Safe))
 
 entete_partie_4(df)
 
@@ -104,7 +109,7 @@ nb_corriges = int((mediane_classique != df_ratio['ratio_PAY_BILL_median']).sum()
 pointe_50_classique = int((mediane_classique == 50).sum())
 pointe_50 = int((df_ratio['ratio_PAY_BILL_median'] == 50).sum())
 st.markdown(f"""
-Les clients ont des **tendances d'usage** nettes : leur comportement habituel se concentre sur deux pics. **{nombre_fr(part_faible, 1)} %** des clients remboursent en général 10 % ou moins de leur facture, et **{nombre_fr(part_solde, 1)} %** la règlent en totalité (plus de 95 %). Les comportements intermédiaires sont rares. Avec un nombre pair de mois, la médiane classique fait la moyenne des deux valeurs du milieu : un client qui alterne un mois sans paiement et un mois soldé, souvent à cause du décalage d'un mois des paiements (page 3.3), obtiendrait 50 %, un comportement qu'il n'a jamais eu. Quand les deux valeurs du milieu diffèrent, on garde donc celle qui est la plus proche de son **taux de remboursement global** (graphique précédent) : tout ce qu'il a payé sur la période, rapporté à tout ce qu'il a dû. La médiane reste ainsi un ratio réellement observé, rattaché au comportement d'ensemble du client. {nombre_fr(nb_corriges)} clients sont concernés ; les clients à 50 % pile passent de {nombre_fr(pointe_50_classique)} à {nombre_fr(pointe_50)}. Ces médianes portent sur les {nombre_fr(len(df_ratio))} clients qui ont eu au moins une facture à payer d'avril à août. Les {nombre_fr(sans_facture)} autres n'ont pas de ratio mesurable et ne sont pas affichés : {nombre_fr(sans_facture_sept)} n'ont qu'une facture en septembre, dont le paiement tombe en octobre, hors période (des comptes qui commencent à servir, médiane fixée à -1), et {nombre_fr(sans_facture - sans_facture_sept)} n'ont eu aucune facture positive sur les 6 mois (page « 4.2 L'usage du crédit »).
+Les clients ont des **tendances d'usage** nettes : leur comportement habituel se concentre sur deux pics. **{nombre_fr(part_faible, 1)} %** des clients remboursent en général 10 % ou moins de leur facture, et **{nombre_fr(part_solde, 1)} %** la règlent en totalité (plus de 95 %). Les comportements intermédiaires sont rares. Avec un nombre pair de mois, la médiane classique fait la moyenne des deux valeurs du milieu : un client qui alterne un mois sans paiement et un mois soldé, souvent à cause du décalage d'un mois des paiements (page 3.3), obtiendrait 50 %, un comportement qu'il n'a jamais eu. Quand les deux valeurs du milieu diffèrent, on garde donc celle qui est la plus proche de son **taux de remboursement global** (graphique précédent) : tout ce qu'il a payé sur la période, rapporté à tout ce qu'il a dû. La médiane reste ainsi un ratio réellement observé, rattaché au comportement d'ensemble du client. {nombre_fr(nb_corriges)} clients sont concernés ; les clients à 50 % pile passent de {nombre_fr(pointe_50_classique)} à {nombre_fr(pointe_50)}. Ces médianes portent sur les {nombre_fr(len(df_ratio))} clients qui ont eu au moins une facture à payer d'avril à août. Les {nombre_fr(sans_facture)} autres n'ont pas de ratio mesurable et ne sont pas affichés : {nombre_fr(sans_facture_sept)} n'ont qu'une facture en septembre, dont le paiement tombe en octobre, hors période (des comptes qui commencent à servir, médiane fixée à -1 ; ils forment le groupe « {PREMIERE} », présenté plus bas avec les types d'usage), et {nombre_fr(sans_facture - sans_facture_sept)} n'ont eu aucune facture positive sur les 6 mois (page « 4.2 L'usage du crédit »).
 """)
 
 st.subheader("Six types d'usage, et un comportement plutôt régulier", anchor="regularite")
@@ -129,7 +134,11 @@ st.markdown("Chaque client est rangé selon son ratio de paiement médian : " + 
             "Les tranches ont été posées sur la répartition de **tous les ratios de paiement mensuels**, qui ne dépend pas de la façon "
             f"de calculer la médiane, et sur la logique métier : parmi les paiements partiels, le point le plus fréquent est {pic} % "
             f"({nombre_fr(part_pic, 1)} % des mois), celui de la mensualité minimale ; au-delà de 15 %, un client sur deux a déjà soldé au moins une facture : "
-            "on quitte le crédit remboursé régulièrement. Les tranches ne découlent pas du taux de défaut.")
+            "on quitte le crédit remboursé régulièrement. Les tranches ne découlent pas du taux de défaut. "
+            f"Un septième groupe, **{PREMIERE}**, réunit les clients qui n'avaient aucune facture due d'avril à août : leur première facture "
+            "due de la période arrive en septembre, et son paiement tombe en octobre, hors période. Ils n'ont donc pas de ratio médian, "
+            "et aucune habitude de paiement n'est encore mesurable. C'est la première facture **de la période observée**, pas forcément "
+            "celle de la vie du compte : le groupe mêle des ouvertures de compte et d'anciens comptes qui se réveillent.")
 st.markdown(f"""
 - **Le crédit lent et le crédit rapide** laissent tous deux leur dette courir : le premier paie autour du minimum, le second un peu plus. Seuls {nombre_fr(deja_solde[LENT], 0)} % et {nombre_fr(deja_solde[RAPIDE], 0)} % d'entre eux ont soldé au moins une facture sur la période, contre {nombre_fr(deja_solde[MIXTE], 0)} % dans l'usage mixte.
 - **L'usage mixte** (plus de 15 à 95 %) ne décrit pas un comportement, mais plusieurs, que la médiane réunit : un payeur au comptant qui ne règle qu'une partie de sa facture certains mois, un client à crédit qui rembourse une grosse part de sa dette par anticipation, un client qui rattrape un retard. Les paiements le montrent : {nombre_fr(part_alterne, 0)} % de ces clients alternent des mois soldés et des mois à 15 % ou moins, {nombre_fr(part_eleve, 0)} % remboursent chaque mois une part élevée de leur facture sans jamais la solder, et {nombre_fr(part_retard_solde, 0)} % ont à la fois connu un retard et soldé au moins une facture.
@@ -271,11 +280,16 @@ with col_taux:
 
 ligne = stats_type.set_index('type_usage')
 part_credit = ligne.loc[[LENT, RAPIDE], 'part'].sum()
+# Première facture : composition selon la vie du compte (FLAG_OUVERTURE, FLAG_DEGEL, page 4.4)
+premiere = df['type_usage'] == PREMIERE
+part_ouverture_premiere = (df.loc[premiere, 'FLAG_OUVERTURE'] == 1).mean() * 100
+part_degel_premiere = (df.loc[premiere, 'FLAG_DEGEL'] == 1).mean() * 100
 st.markdown(f"""
 - **La carte est d'abord un crédit** : {nombre_fr(part_credit, 1)} % des clients remboursent d'habitude entre 3 et 15 % de leur facture, contre {nombre_fr(ligne.loc[COMPTANT, 'part'], 1)} % qui la règlent au comptant. À eux seuls, {nombre_fr(ligne.loc[LENT, 'part'], 1)} % des clients remboursent autour de la mensualité minimale : c'est le crédit lent.
 - **Plus le client rembourse, moins il fait défaut** : le taux de défaut passe de **{nombre_fr(ligne.loc[RIEN, 'taux'], 1)} %** pour les clients qui ne paient rien et **{nombre_fr(ligne.loc[DIFFICULTE, 'taux'], 1)} %** pour les clients en difficulté, à **{nombre_fr(ligne.loc[LENT, 'taux'], 1)} %** pour le crédit lent et **{nombre_fr(ligne.loc[RAPIDE, 'taux'], 1)} %** pour le crédit rapide, puis **{nombre_fr(ligne.loc[MIXTE, 'taux'], 1)} %** pour l'usage mixte et **{nombre_fr(ligne.loc[COMPTANT, 'taux'], 1)} %** pour le paiement comptant (moyenne de {nombre_fr(taux_moyen, 1)} %, en pointillés orange).
 - **Le taux de défaut de l'usage mixte est une moyenne de situations différentes** : un payeur au comptant qui a réglé une partie de sa facture un mois et un client qui rattrape un retard n'ont pas le même risque. Ses {nombre_fr(ligne.loc[MIXTE, 'clients'])} clients font en moyenne presque aussi peu défaut que les payeurs au comptant, mais ce chiffre ne décrit le risque d'aucun profil en particulier.
 - **Ne rien payer est le signal le plus fort**, mais il concerne peu de clients ({nombre_fr(ligne.loc[RIEN, 'clients'])}).
+- **{PREMIERE} : un petit groupe, pas forcément de nouveaux clients, au risque proche de la moyenne.** Ses {nombre_fr(ligne.loc[PREMIERE, 'clients'])} clients ({nombre_fr(ligne.loc[PREMIERE, 'part'], 1)} % du total) n'ont eu leur première facture due qu'en septembre : leur façon de payer n'est pas encore connue. {nombre_fr(part_ouverture_premiere, 0)} % sont des ouvertures de compte, {nombre_fr(part_degel_premiere, 0)} % d'anciens comptes qui se réveillent, et les autres d'anciens comptes actifs, avec un avoir et sans facture due (page « 4.4 La vie des comptes ») ; les ouvertures elles-mêmes peuvent cacher d'anciens comptes restés à 0. Leur taux de défaut ({nombre_fr(ligne.loc[PREMIERE, 'taux'], 1)} %) est proche de la moyenne ({nombre_fr(taux_moyen, 1)} %) : l'arrivée d'une première facture n'est pas, en soi, un signal de risque.
 """)
 
 # ------------------------------------------------------------------------------
@@ -287,9 +301,9 @@ La page « 3.3 Les codifications » a donné un sens aux codifications à partir
 # Codification la plus fréquente : colonne PAY_habituel lue dans le CSV (créée par 05_03_EDA_storytelling, définie dans
 # docs/colonnes_creees.md : PAY_1 à PAY_6, retards regroupés en 2, égalité tranchée par le mois le plus récent)
 ORDRE_CODIF = ["-2", "-1", "0", "1", "2 et plus"]
-df_ratio['codif_habituelle'] = df_ratio['PAY_habituel'].map({-2: "-2", -1: "-1", 0: "0", 1: "1", 2: "2 et plus"})
-parts_codif = (pd.crosstab(df_ratio['type_usage'], df_ratio['codif_habituelle'], normalize='index') * 100)
-parts_codif = parts_codif.reindex(index=NOMS_TYPES, columns=ORDRE_CODIF, fill_value=0)
+df['codif_habituelle'] = df['PAY_habituel'].map({-2: "-2", -1: "-1", 0: "0", 1: "1", 2: "2 et plus"})
+parts_codif = (pd.crosstab(df['type_usage'], df['codif_habituelle'], normalize='index') * 100)
+parts_codif = parts_codif.reindex(index=NOMS_AFFICHES, columns=ORDRE_CODIF, fill_value=0)
 
 fig_codif = go.Figure()
 for valeur_codif in ORDRE_CODIF:
@@ -319,7 +333,8 @@ Les codifications suivent de près le type d'usage, et confirment la lecture de 
 - **les clients au comptant sont habituellement codifiés {codif('-1')} ou {codif('-2')}** pour {nombre_fr(pc.loc[COMPTANT, ['-2', '-1']].sum(), 0)} % d'entre eux : ni l'un ni l'autre n'utilise le crédit. {codif('-1')} désigne une facture payée à temps ; {codif('-2')} un crédit non utilisé, que le client ait tout payé ou n'ait rien eu à payer, d'où sa présence sur les comptes peu actifs (la codification la plus fréquente porte ici sur les 6 mois, y compris les mois sans facture) ;
 - **les clients à crédit sont habituellement codifiés {codif('0')}** : {nombre_fr(pc.loc[LENT, '0'], 0)} % des clients pour le crédit lent, {nombre_fr(pc.loc[RAPIDE, '0'], 0)} % pour le crédit rapide. Le {codif('0')} est bien le crédit renouvelable en cours ;
 - **l'usage mixte est surtout vu en crédit par la banque** : {nombre_fr(pc.loc[MIXTE, '0'], 0)} % de ses clients sont habituellement codifiés {codif('0')}, ce qui va avec les remboursements anticipés et les rattrapages, et {nombre_fr(pc.loc[MIXTE, ['-2', '-1']].sum(), 0)} % {codif('-1')} ou {codif('-2')}, des payeurs au comptant qui ont payé en partie certains mois ;
-- **les clients qui ne paient rien sont habituellement codifiés en retard ({codif('2 et plus')})** pour {nombre_fr(pc.loc[RIEN, '2 et plus'], 0)} % d'entre eux, et les clients en difficulté mêlent crédit ({codif('0')}) et retards ({nombre_fr(pc.loc[DIFFICULTE, '2 et plus'], 0)} %).
+- **les clients qui ne paient rien sont habituellement codifiés en retard ({codif('2 et plus')})** pour {nombre_fr(pc.loc[RIEN, '2 et plus'], 0)} % d'entre eux, et les clients en difficulté mêlent crédit ({codif('0')}) et retards ({nombre_fr(pc.loc[DIFFICULTE, '2 et plus'], 0)} %) ;
+- **le groupe « {PREMIERE} » est habituellement codifié {codif('-2')}** pour {nombre_fr(pc.loc[PREMIERE, '-2'], 1)} % de ses clients : c'est cohérent avec l'absence d'encours avant septembre, le crédit n'ayant pas été utilisé.
 
 **Ces rapprochements portent sur des comportements habituels**, la médiane du ratio de paiement d'un côté et la codification la plus fréquente de l'autre, et non sur chaque mois : un même client peut payer au comptant un mois, à crédit le suivant, et recevoir des codifications différentes d'un mois à l'autre. Ils confirment les grandes lignes de la lecture de {codif('-2')}, {codif('-1')} et {codif('0')}, sans permettre de conclure sur le cas d'un client en particulier. La codification {codif('1')} et les codifications de retard demandent une étude à part : elles sont reprises avec les retards, en 4.6, puis avec la population contentieuse, en partie 5.
 """)
