@@ -64,15 +64,18 @@ La part des comptes actifs augmente chaque mois, de **{nombre_fr(df_actifs['Pour
 # ------------------------------------------------------------------------------
 st.subheader("Ouvertures et dégels : deux façons de devenir actif", anchor="activations")
 st.markdown("""
-Deux situations se distinguent parmi les comptes sans activité en avril qui s'activent ensuite (colonnes `FLAG_OUVERTURE`, `FLAG_DEGEL` et `MOIS_ACTIVATION`, définies dans la documentation du projet) :
-- une **ouverture** : un encours de 0 exactement et aucun paiement en avril, donc ni dette ni avoir en mars non plus, puis une activité ;
-- un **dégel** : un encours négatif (un avoir qui dormait) et aucun paiement en avril, puis une activité.
+Deux situations se distinguent parmi les comptes qui deviennent actifs pendant la période (colonnes `FLAG_OUVERTURE`, `FLAG_DEGEL` et `MOIS_ACTIVATION`, définies dans la documentation du projet) :
+- une **ouverture** : un compte qui ne laisse **aucune trace** avant sa première activité. Son encours vaut 0 exactement et il n'y a aucun paiement en avril, donc ni dette ni avoir en mars non plus ; puis vient une activité (un mouvement de l'encours ou un paiement). Avec un solde à 0, on ne sait pas distinguer un compte récent d'un compte ancien resté inactif : les deux sont comptés, par convention, comme une ouverture ;
+- un **dégel** : le réveil d'un compte gelé, qui a laissé **une trace avant son gel**, la preuve qu'il existait déjà : un avoir en avril, ou un mois actif juste avant le gel. Un mois est **inactif** quand il n'y a aucun paiement et que l'encours, nul ou créditeur, ne bouge pas : ni achat ni remboursement (en avril, faute de connaître mars, un encours nul ou créditeur sans paiement suffit). Le **gel** est une suite de mois inactifs. Quand on a le recul suffisant, c'est-à-dire quand on voit le mois actif qui la précède, on exige **3 mois inactifs d'affilée**. Sinon, quand le compte est inactif depuis avril (le premier mois observé), on ne peut pas savoir depuis quand il dort : on le considère gelé s'il est **inactif sur toute la durée visible**, d'avril jusqu'à son réveil. Le **réveil** est le premier mois actif qui suit le gel.
 
-Une activité est un mouvement de l'encours ou un paiement.
+Un compte ne peut pas être à la fois une ouverture et un dégel : un compte à 0 sans paiement depuis avril, puis actif, est toujours compté comme une ouverture, puisqu'il ne laisse aucune trace avant.
 
-Le **mois d'activation** (`MOIS_ACTIVATION`) est le premier mois, de mai à septembre, où une ouverture ou un dégel montre une activité ; il vaut 0 pour les comptes déjà actifs en avril. C'est lui qui place chaque compte dans les barres des deux graphiques ci-dessous.
+Le **mois d'activation** (`MOIS_ACTIVATION`) est le mois de l'ouverture ou du réveil, de mai à septembre ; il vaut -1 pour les autres comptes. C'est lui qui place chaque compte dans les barres des deux graphiques ci-dessous.
 
-**Prudence sur mai (M-5)** : avec un seul mois observé avant (avril), une partie des comptes « activés » en mai peut être des comptes en activité intermittente, simplement sans activité ce mois d'avril, plutôt que de vraies ouvertures ou de vrais dégels.
+**Effets de bord, dus à la fenêtre de 6 mois** :
+- **Un compte inactif depuis avril** compte comme une ouverture ou un dégel, quelle que soit la durée de son inactivité, puisqu'on ne voit pas ce qui précède avril. Une partie de ces comptes, surtout parmi ceux qui s'activent en mai ou en juin, peut être simplement en activité intermittente, sans activité en avril, plutôt que de vraies ouvertures ou de vrais dégels.
+- **Les barres des dégels ne comptent pas les mêmes gels selon le mois** : un gel dont on voit le début (commencé en mai ou après) dure au moins 3 mois et ne peut donc se terminer qu'en août ou en septembre. Les dégels de mai à juillet sont tous des comptes inactifs depuis avril ; ceux d'août et de septembre y ajoutent les gels commencés en cours de période. Les barres ne se comparent donc pas directement d'un mois à l'autre.
+- **Fin de période** : un gel qui commence en juillet ou après n'a pas le temps de durer 3 mois et de se terminer avant octobre ; il n'est pas vu.
 """)
 NOMS_MOIS = {5: "Mai (M-5)", 4: "Juin (M-4)", 3: "Juillet (M-3)", 2: "Août (M-2)", 1: "Sept. (M-1)"}
 
@@ -105,7 +108,7 @@ with col_ouverture:
     st.plotly_chart(fig_o, width='stretch')
 with col_degel:
     st.markdown("#### Dégels de comptes dormants")
-    fig_d, nb_degels, taux_degels = graphique_activation('FLAG_DEGEL', COULEURS["violet"])
+    fig_d, nb_degels, taux_degels = graphique_activation('FLAG_DEGEL', COULEURS["mauve"])
     st.plotly_chart(fig_d, width='stretch')
 st.caption("Attention aux échelles : les deux graphiques n'ont pas le même axe des effectifs.")
 
@@ -138,8 +141,8 @@ stats_vie['part'] = stats_vie['clients'] / len(df) * 100
 
 st.markdown("""
 Cinq situations, attribuées dans cet ordre (un client n'appartient qu'à une seule) :
-- **Ouverture** : encours de 0 exactement et aucun paiement en avril, puis une activité (mouvement de l'encours ou paiement) de mai à septembre ;
-- **Dégel** : encours négatif (un avoir qui dormait) et aucun paiement en avril, puis une activité de mai à septembre ;
+- **Ouverture** : aucune trace avant la première activité (encours de 0 exactement et aucun paiement en avril), puis une activité (mouvement de l'encours ou paiement) de mai à septembre ;
+- **Dégel** : réveil, de mai à septembre, d'un compte gelé qui existait déjà (un avoir en avril, ou un mois actif avant le gel) : 3 mois inactifs d'affilée quand on a le recul suffisant, sinon inactif sur toute la durée visible depuis avril (définition ci-dessus) ;
 - **Compte endormi** : une activité entre avril et juillet, puis plus aucune facture positive ni aucun paiement en août et en septembre ; deux mois sans activité sont exigés, et non un seul, parce qu'un paiement peut être enregistré avec un mois de décalage (page « 3.3 Les codifications ») ;
 - **Actifs sur les 6 mois** : une facture positive ou un paiement chaque mois ;
 - **Activité intermittente** : tous les autres comptes, actifs dès avril mais avec au moins un mois sans activité en cours de période ; une situation difficile à mesurer, à cause des délais d'enregistrement des paiements.
