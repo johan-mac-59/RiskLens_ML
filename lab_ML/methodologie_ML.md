@@ -127,6 +127,18 @@ Le surapprentissage se mesure par l'**écart relatif** : l'écart train - val du
 * **Pourquoi en relatif** : l'ancien seuil était de 0,05 en valeur absolue, sur un score d'environ 0,60 (environ 8 % du score). Sur une précision d'environ 0,27, ces 5 points représentaient environ 18 % du score : le seuil était devenu plus de deux fois plus tolérant. Le seuil relatif de 5 % est plus sévère que l'ancien (environ 1,4 point sur une précision de 27 %).
 * **Limite connue** : l'écart relatif ne tient pas compte du niveau du hasard (16 % de précision, le taux de défaut). Le rapporter au gain sur le hasard serait plus rigoureux, mais plus difficile à expliquer pour un bénéfice faible.
 
+**Diagnostic de capacité (06/10/2026, `diagnostic_capacite.ipynb`)** : la règle de surapprentissage bride-t-elle les modèles ? RandomForest, CatBoost et le MLP ont été poussés dans leurs retranchements (8 réglages fixés à l'avance : arbres profonds et petites feuilles, réseau de 256-128-64 neurones peu régularisé), sur toutes les colonnes du scénario complet `ml_11`, avec les mêmes plis, sans boucle ni contrôle du surapprentissage, puis comparés pli par pli à `ml_11` :
+
+| Modèle poussé | Résultat face au même modèle de `ml_11` | Lecture |
+|---|---|---|
+| RandomForest (profondeur 12, feuilles de 20) | +0,006 ± 0,006 (4 plis sur 5), dans le bruit ; égale le meilleur de `ml_11` (0,489), sans le dépasser | règle un peu sévère pour RandomForest : son score sur l'entraînement est gonflé par construction, l'écart train - validation le juge mal |
+| RandomForest plus profond (profondeur 20 ou libre) | +0,003 à -0,001, dans le bruit | trop de capacité ne sert à rien |
+| CatBoost (profondeur 8 ou 10) | -0,015 à -0,018, perte (0 pli sur 5) | surapprentissage réel : la règle est indispensable |
+| MLP (256-128-64), sans arrêt anticipé | -0,05 à -0,06, perte (0 pli sur 5) ; précision de 19 à 20 %, à peine mieux que le hasard | surapprentissage réel : la règle est indispensable |
+| MLP (256-128-64), avec arrêt anticipé | -0,004, dans le bruit | — |
+
+**Conclusion** : aucun réglage poussé ne dépasse le meilleur modèle de `ml_11`. Le plateau des scénarios (score décisionnel F2 d'environ 0,48 à 0,49) ne vient pas d'un bridage des modèles, mais de l'information disponible dans les données. Seule suite, en phase finale (élargissement des réglages) : rouvrir la grille de RandomForest (profondeur de 8 à 16, feuilles de 10 à 100, `max_features`), avec un surapprentissage mesuré sur les clients qu'aucun arbre n'a vus (score hors du sac).
+
 ## 8. Ce qui est enregistré et affiché
 
 * **Matrices de confusion** au seuil du rappel minimal, et tableau de détection (seuil, clients signalés, défauts détectés, fausses alertes, défauts manqués, précision, rappel, part des clients signalés).
@@ -208,6 +220,7 @@ Lecture : de la v0 à la v3, la performance ne bouge pas (dans le bruit), mais l
 | 06/10/2026 | Remplacements de valeurs dans le pipeline (`remplacements`, `SimpleImputer` à valeur constante, une branche par colonne, tous types de colonnes) ; décisions validées pré-remplies (`ratio_PAY_BILL_global`, `ratio_PAY_BILL_median`, `ratio_PAY_BILL_regularite`) ; arrêt si une variable garde des vides sans remplacement décidé | Les colonnes créées ont des -1 et des vides voulus par leur définition ; la valeur de remplacement, décidée par le métier, part avec le modèle et s'applique au test. Socle inchangé (version de la méthode : v8) |
 | 06/10/2026 | Groupes « dans le bruit » à population faible (moins de 2 % des clients du train) : écartés pour l'instant, repris en phase finale avec une comparaison plus fine | Sous 2 %, même un effet parfait reste au niveau du bruit de la comparaison pli par pli ; une comparaison fine à chaque scénario coûterait trop de temps de calcul |
 | 06/10/2026 | Règle d'ajout précisée : un groupe est retenu sur un gain réel **meilleur contre meilleur** ; les gains réels d'autres modèles seuls ne suffisent pas | Règle ambiguë jusque-là ; le modèle final sera le meilleur, et six comparaisons rendent probable un gain réel par chance |
+| 06/10/2026 | Diagnostic de capacité (hors scénarios) : la règle de surapprentissage ne bride pas les modèles au point d'expliquer le plateau ; indispensable pour CatBoost et le MLP, un peu sévère pour RandomForest | Vérifier que le plateau vient des données et non de la méthode |
 
 ## 12. Pistes, au-delà du projet
 
