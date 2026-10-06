@@ -139,6 +139,8 @@ Le surapprentissage se mesure par l'**écart relatif** : l'écart train - val du
 
 **Conclusion** : aucun réglage poussé ne dépasse le meilleur modèle de `ml_11`. Le plateau des scénarios (score décisionnel F2 d'environ 0,48 à 0,49) ne vient pas d'un bridage des modèles, mais de l'information disponible dans les données. Seule suite, en phase finale (élargissement des réglages) : rouvrir la grille de RandomForest (profondeur de 8 à 16, feuilles de 10 à 100, `max_features`), avec un surapprentissage mesuré sur les clients qu'aucun arbre n'a vus (score hors du sac).
 
+**Encodage des `PAY_n` (06/10/2026, `diagnostic_encodage_pay.ipynb`)** : traiter les codifications comme des nombres (v6) impose une même échelle de risque de -2 à 8 et une seule pente à la régression logistique. Comparé pli par pli sur les colonnes de `ml_4`, à réglages figés : **F**, trois catégories par mois (« à jour » pour -2, -1 et 0, « 1 », « 2 et plus ») ; **G**, les mêmes avec `TYPE_USAGE` et `PAY_habituel` pour rendre la distinction comptant / crédit. Résultat : tout dans le bruit ; avec F, +0,002 pour la régression logistique et +0,007 pour le MLP, -0,001 à -0,003 pour les arbres et le KNN, +0,001 en meilleur contre meilleur ; G n'apporte rien de plus. **Conclusion** : l'encodage numérique de la v6 est conservé, il ne coûte rien. Même constat qu'en première itération (`S4`, clients à jour ramenés à 0 : gain pour la régression logistique, légère perte pour les arbres).
+
 ## 8. Ce qui est enregistré et affiché
 
 * **Matrices de confusion** au seuil du rappel minimal, et tableau de détection (seuil, clients signalés, défauts détectés, fausses alertes, défauts manqués, précision, rappel, part des clients signalés).
@@ -221,6 +223,7 @@ Lecture : de la v0 à la v3, la performance ne bouge pas (dans le bruit), mais l
 | 06/10/2026 | Groupes « dans le bruit » à population faible (moins de 2 % des clients du train) : écartés pour l'instant, repris en phase finale avec une comparaison plus fine | Sous 2 %, même un effet parfait reste au niveau du bruit de la comparaison pli par pli ; une comparaison fine à chaque scénario coûterait trop de temps de calcul |
 | 06/10/2026 | Règle d'ajout précisée : un groupe est retenu sur un gain réel **meilleur contre meilleur** ; les gains réels d'autres modèles seuls ne suffisent pas | Règle ambiguë jusque-là ; le modèle final sera le meilleur, et six comparaisons rendent probable un gain réel par chance |
 | 06/10/2026 | Diagnostic de capacité (hors scénarios) : la règle de surapprentissage ne bride pas les modèles au point d'expliquer le plateau ; indispensable pour CatBoost et le MLP, un peu sévère pour RandomForest | Vérifier que le plateau vient des données et non de la méthode |
+| 06/10/2026 | Encodage des `PAY_n` vérifié (hors scénarios) : catégories à jour / 1 / 2 et plus, dans le bruit ; encodage numérique de la v6 conservé | Vérifier que l'ordre imposé aux codifications ne bride pas la régression logistique |
 
 ## 12. Pistes, au-delà du projet
 
