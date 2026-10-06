@@ -77,9 +77,22 @@ La durée d'un passage au contentieux (6 mois, 2 à 5 mois, entrée en septembre
 
 ---
 
-## 4. Colonnes intermédiaires d'analyse (non exportées)
+## 4. Features créées pour le ML uniquement
 
-Colonnes créées pour un graphique, un tableau ou un essai, qui ne sortent pas du notebook. Plusieurs sont des brouillons des colonnes définitives des sections 1 à 3. Elles ne doivent pas être réutilisées comme features sans être d'abord définies dans les sections 1 à 3.
+Colonnes calculées seulement dans `lab_ML/creation_datasets_ML.ipynb`, client par client et avant le découpage : elles n'existent ni dans l'EDA ni dans le dataset de Streamlit. Elles ne contiennent **aucun vide** : une situation sans comparaison possible reçoit directement une valeur neutre, écrite dans la définition.
+
+| Colonne | Définition et calcul | Adaptation et usage ML |
+|---|---|---|
+| `BILL_evol_brut` | Hausse de l'encours en septembre par rapport à l'habitude du client, en NT$ : `BILL_AMT1 - moyenne(BILL_AMT2 à BILL_AMT6)`. Positive : la dette monte ; négative : elle baisse. Seul septembre est comparé : c'est la dette à payer au moment du défaut. Jamais vide | **Numérique** au logarithme signé (`ajout_log_signe` : peut être négative). Aucune adaptation. **Groupe de scénario** : rupture de comportement, les quatre colonnes de cette section, avec `FLAG_OUVERTURE`, `FLAG_DEGEL`, `MOIS_ACTIVATION` et `TYPE_USAGE`, qui repèrent les clients sans dette ou sans paiement avant (« Première facture », « Ne paie rien », payeurs au comptant avec un avoir) |
+| `PAYAMT_evol_brut` | Évolution des paiements récents par rapport à l'habitude du client, en NT$ : `moyenne(PAY_AMT1, PAY_AMT2) - moyenne(PAY_AMT3 à PAY_AMT6)`. Deux mois récents (août et septembre), parce qu'un paiement peut être enregistré avec un mois de retard. Négative : le client paie moins qu'avant. Jamais vide | **Numérique** au logarithme signé (`ajout_log_signe`). Aucune adaptation. **Groupe de scénario** : rupture de comportement, les quatre colonnes de cette section, avec `FLAG_OUVERTURE`, `FLAG_DEGEL`, `MOIS_ACTIVATION` et `TYPE_USAGE`, qui repèrent les clients sans dette ou sans paiement avant (« Première facture », « Ne paie rien », payeurs au comptant avec un avoir) |
+| `BILL_evol_relatif` | Même hausse, rapportée à l'habitude du client : `1 + (BILL_AMT1 - m) / |m|`, avec m = moyenne(BILL_AMT2 à BILL_AMT6). 1 = comme d'habitude, 2 = dette doublée, 0,5 = divisée par deux. La valeur absolue garde le sens d'une hausse quand m est négative (un avoir de -200 devenu une dette de 5 000 donne 27). **1** si m = 0 : pas de comparaison possible, comme d'habitude. Toujours positive ou nulle dans le périmètre du ML (`BILL_AMT1 > 0`). Jamais vide | **Numérique** au logarithme (`ajout_log`). Aucune adaptation. **Groupe de scénario** : rupture de comportement, les quatre colonnes de cette section, avec `FLAG_OUVERTURE`, `FLAG_DEGEL`, `MOIS_ACTIVATION` et `TYPE_USAGE`, qui repèrent les clients sans dette ou sans paiement avant (« Première facture », « Ne paie rien », payeurs au comptant avec un avoir) |
+| `PAYAMT_evol_relatif` | Même évolution des paiements, rapportée à l'habitude du client : `moyenne(PAY_AMT1, PAY_AMT2) / moyenne(PAY_AMT3 à PAY_AMT6)`. 1 = comme d'habitude, 0 = plus aucun paiement. **1** si aucun paiement d'avril à juillet : pas de comparaison possible, comme d'habitude. Jamais vide | **Numérique** au logarithme (`ajout_log`). Aucune adaptation. **Groupe de scénario** : rupture de comportement, les quatre colonnes de cette section, avec `FLAG_OUVERTURE`, `FLAG_DEGEL`, `MOIS_ACTIVATION` et `TYPE_USAGE`, qui repèrent les clients sans dette ou sans paiement avant (« Première facture », « Ne paie rien », payeurs au comptant avec un avoir) |
+
+---
+
+## 5. Colonnes intermédiaires d'analyse (non exportées)
+
+Colonnes créées pour un graphique, un tableau ou un essai, qui ne sortent pas du notebook. Plusieurs sont des brouillons des colonnes définitives des sections 1 à 4. Elles ne doivent pas être réutilisées comme features sans être d'abord définies dans les sections 1 à 4.
 
 | Colonne | Définition | Créée dans |
 |---|---|---|
@@ -106,11 +119,11 @@ Colonnes créées pour un graphique, un tableau ou un essai, qui ne sortent pas 
 
 ---
 
-## 5. Pistes de features ML
+## 6. Pistes de features ML
 
-Idées tirées des colonnes intermédiaires de la section 4. Ce ne sont pas encore des features : une piste retenue est d'abord définie dans les sections 1 à 3, puis calculée client par client dans `creation_datasets_ML.ipynb`, avant le découpage. Chaque piste se justifie par la logique métier, jamais par son lien avec `dpnm`.
+Idées tirées des colonnes intermédiaires de la section 5. Ce ne sont pas encore des features : une piste retenue est d'abord définie dans les sections 1 à 4, puis calculée client par client dans `creation_datasets_ML.ipynb`, avant le découpage. Chaque piste se justifie par la logique métier, jamais par son lien avec `dpnm`.
 
-| Piste | Source (section 4) | Idée | Point à trancher |
+| Piste | Source (section 5) | Idée | Point à trancher |
 |---|---|---|---|
 | Pire codification sur la période | `Max_PAY_6m` | Le retard le plus grave des 6 mois, en une seule valeur : un modèle linéaire ne sait pas calculer un maximum à partir de `PAY_1` à `PAY_6` | Calcul sur les `PAY_n` de `cleaned5` (corrigés) ; recouvrement avec `CUMUL_INCIDENT` et `NB_MOIS_CTX` |
 | Utilisation la plus forte du plafond | `ratio_max_client` | Le mois où le client a été le plus près de son plafond (ou au-dessus) | Recouvrement avec `ratio_BILL_LIMITn` |
