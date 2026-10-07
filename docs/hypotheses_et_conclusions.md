@@ -4,7 +4,7 @@ Ce document garde la trace des hypothèses formulées pendant le projet, des pre
 
 **Statuts** : ✅ confirmée (mesurée dans un notebook, avec la méthode du projet) · 🟡 probable (plusieurs indices concordants, pas de test dédié) · 🔎 à tester · ⚙️ décision de méthode.
 
-**Sources des chiffres** : chaque chiffre renvoie à son notebook. Les chiffres marqués *(contrôle rapide)* viennent d'un calcul ponctuel fait pendant la discussion du 07/10/2026, hors notebook : ils donnent un ordre de grandeur et sont **à recalculer dans un notebook** avant d'être cités ailleurs.
+**Sources des chiffres** : chaque chiffre renvoie à son notebook. Les contrôles faits à la volée pendant la discussion du 07/10/2026 ont été recalculés dans `lab_ML/controles_cible.ipynb` (notebook descriptif, aucun modèle entraîné) : ils y renvoient.
 
 ---
 
@@ -28,14 +28,14 @@ Les scores plafonnent hors contentieux, quelles que soient les variables, les r�
 ### H3. La cible `dpnm` suit le statut posé par la banque plutôt qu'un défaut de paiement observé 🟡
 
 La définition exacte de `dpnm` n'est pas documentée (`contexte.md`). Plusieurs indices vont dans ce sens :
-- **ne rien devoir protège à peine du défaut** : les clients sans dette en septembre font défaut à 18,2 % (1 649 clients, niveau 5), contre 21,7 % en moyenne ; sans aucune dette sur les six mois, 24 % (25 clients) *(contrôle rapide)* ;
-- **au contentieux, payer ne change rien** : les clients au contentieux qui ont payé en août et en septembre font défaut à 70,7 % (1 617 clients), autant que l'ensemble du contentieux (70,5 %) *(contrôle rapide)* ;
-- **une codification de retard posée sur une dette nulle annonce presque autant de défauts qu'un vrai retard** : jeu de base, `PAY_1` ≥ 2 avec une facture d'août nulle ou négative : 63,5 % de défaut (63 clients), contre 69,6 % pour tous les `PAY_1` ≥ 2 *(contrôle rapide)* ;
-- **même neutralisés au niveau 5, ces retards restent un signal** : faux retards (`FAUX_CODAGE`) 33,3 % de défaut (45 clients), retards sur compte endormi (`SURVEILLANCE_RECENTE`) 50,3 % (179 clients) *(contrôle rapide)*.
+- **ne rien devoir protège à peine du défaut** : les clients sans dette en septembre font défaut à 18,2 % (1 649 clients, niveau 5), contre 21,7 % en moyenne ; sans aucune dette sur les six mois, 24 % (25 clients) (`controles_cible.ipynb`) ;
+- **au contentieux, payer ne change rien** : les clients au contentieux qui ont payé en août et en septembre font défaut à 70,7 % (1 617 clients), autant que l'ensemble du contentieux (70,5 %) (`controles_cible.ipynb`) ;
+- **une codification de retard posée sur une dette nulle annonce presque autant de défauts qu'un vrai retard** : jeu de base, `PAY_1` ≥ 2 avec une facture d'août nulle ou négative : 63,5 % de défaut (63 clients), contre 69,6 % pour tous les `PAY_1` ≥ 2 (`controles_cible.ipynb`) ;
+- **même neutralisés au niveau 5, ces retards restent un signal** : faux retards (`FAUX_CODAGE`) 33,3 % de défaut (45 clients), retards sur compte endormi (`SURVEILLANCE_RECENTE`) 50,3 % (179 clients) (`controles_cible.ipynb`).
 
 **Conséquence** : le défaut tel qu'il est codé ne laisse aucune porte de sortie à un client que la banque a étiqueté, quel que soit son comportement de paiement. C'est probablement la source principale du plafond (H1) et des défauts imprévisibles (H2).
 
-**Tests possibles** : recalculer ces taux dans un notebook dédié, avec leurs effectifs ; vérifier si le défaut d'octobre se lit dans une codification d'octobre que l'on n'a pas (la cible serait alors la codification du mois suivant).
+**Tests possibles** : taux recalculés avec leurs effectifs dans `controles_cible.ipynb` (fait) ; vérifier si le défaut d'octobre se lit dans une codification d'octobre que l'on n'a pas (la cible serait alors la codification du mois suivant).
 
 ### H4. Les codifications de la banque ont du retard sur les paiements ❌ non confirmée
 
@@ -50,7 +50,7 @@ Un client qui recommence à payer peut garder une codification de retard pendant
 ### H5. Sur l'ensemble des clients, les codifications dominent parce qu'elles repèrent le contentieux ✅
 
 - Sur les 30 000 clients du jeu de base, les `PAY_n` portent 71 à 86 % de la perte de précision moyenne quand on les mélange, et d'abord `PAY_1` (`essai_jeu_de_base.ipynb`, section 5) ; même constat au niveau 5 (76 à 88 %, `essai_jeu_corrige.ipynb`).
-- Avec la règle marginale à 1 pour 1, environ 81 % des clients signalés sont au contentieux, et 96 % du contentieux est signalé ; hors contentieux, seuls environ 8 % des défauts sont détectés *(contrôle rapide, CatBoost à réglages fixes)*.
+- Avec un seul modèle sur le jeu de base et la règle marginale à 1 pour 1, 77,9 % des clients signalés sont au contentieux, et 96,2 % du contentieux est signalé (97,0 % de ses défauts détectés) ; hors contentieux, seuls 9,9 % des défauts sont détectés (`controles_cible.ipynb`, section 5).
 
 ### H6. Hors contentieux, le comportement du client porte le signal au moins autant que les codifications ✅
 
@@ -73,7 +73,7 @@ Sur les clients du train ML, plis des scénarios, score décisionnel F2 au rappe
 ### H8. Les colonnes construites aident la régression logistique, sans que le gain soit démontrable ✅
 
 - La régression logistique gagne avec les colonnes de `ml_11` (gain réel sur 5 plis face à `ml_4`, +0,007), mais ce gain ne résiste pas à la mesure fine (`duel_fin_ml14_ml15.ipynb` : +0,0054, 40 plis sur 50, t corrigé = 1,65).
-- Elle profite aussi de petits groupes que les arbres ne peuvent pas isoler : par exemple `EDUCATION` = 4, 306 clients du train avec 6,5 % de défaut *(contrôle rapide)*.
+- Elle profite aussi de petits groupes que les arbres ne peuvent pas isoler : par exemple `EDUCATION` = 4, 306 clients du train avec 6,5 % de défaut (`controles_cible.ipynb`).
 
 ### H9. Plus de variables ne fait pas un meilleur modèle : à score égal, le plus simple ✅
 
@@ -132,7 +132,7 @@ Niveaux de risque (règle, puis haut risque jusqu'à 30 % de rappel, puis risque
 
 ## 4. Décisions de méthode issues de ces réflexions ⚙️
 
-- **Rappel minimal de 60 % dans les scénarios** : choix de départ, qui juge tous les modèles au même point. À ce point, la précision marginale (les derniers clients signalés) n'est que d'environ 18 %, à peine plus que le hasard (16 %) *(contrôle rapide sur `ml_14`)* ; garder une précision de 50 % ne permettrait de détecter qu'environ 12 % des défauts *(contrôle rapide)*.
+- **Rappel minimal de 60 % dans les scénarios** : choix de départ, qui juge tous les modèles au même point. À ce point, la précision marginale (les derniers clients signalés) n'est que d'environ 18 %, à peine plus que le hasard (16 %) (18,5 %) ; garder une précision de 50 % ne permettrait de détecter que 12,0 % des défauts (`controles_cible.ipynb`, section 6).
 - **Comparatif global** :
   - critère des réglages : la précision moyenne, qui juge le tri sur tous les rappels ;
   - seuil de décision par la **règle marginale** : signaler un client tant que les derniers signalés valent la peine (gain net « défauts détectés − tolérance × bons clients signalés »). C'est la règle de décision à coûts fixés : elle ne dépend pas du taux de défaut, seulement du coût des erreurs ;
@@ -174,10 +174,10 @@ Niveaux de risque (règle, puis haut risque jusqu'à 30 % de rappel, puis risque
 
 | Test | Hypothèse | État |
 |---|---|---|
-| Recalculer dans un notebook les contrôles rapides (taux de défaut des clients sans dette, des clients du contentieux qui paient, des retards posés sans dette, part du contentieux parmi les signalés) | H3, H5 | à faire |
+| Recalculer dans un notebook les contrôles rapides (taux de défaut des clients sans dette, des clients du contentieux qui paient, des retards posés sans dette, part du contentieux parmi les signalés) | H3, H5 | fait (07/10) : `lab_ML/controles_cible.ipynb` |
 | Lire le contentieux dans `essai_jeu_corrige_deux_populations.ipynb` : variante « sans les `PAY_n` », importance par famille | H4, H10 | fait (07/10) |
 | Comparer la séparation du contentieux à celle de la banque (`PAY_1` ≥ 2), sur les clients communs | H12 | fait (07/10) : match nul |
-| Ajouter la stratégie « un seul ML » aux deux synthèses (cellules d'enregistrement des essais à un seul modèle, puis synthèse) | H10, H12 | à faire |
+| Ajouter la stratégie « un seul ML » aux deux synthèses (cellules d'enregistrement des essais à un seul modèle, puis synthèse) | H10, H12 | fait (07/10) |
 | Essai au périmètre du niveau 4 (`PAY_n` non corrigés) pour isoler l'effet des corrections | H7 | piste, non lancé |
 | Règle de verdict avec un gain minimal | méthode | à décider |
 | Mesurer la calibration à la manière de l'étude (lissage, régression probabilité estimée / « vraie », R²) sur les probabilités hors pli, éventuellement après calibration des modèles : comparaison sur leur objectif principal | section 5 | piste, non lancé |
