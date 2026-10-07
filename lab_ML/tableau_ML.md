@@ -60,3 +60,20 @@ Sur le test (4 840 clients, 771 défauts) : 469 défauts détectés, 1 191 fauss
 **Système complet** (test + 20 % du contentieux du périmètre, 5 441 clients) : règle seule, 35,5 % des défauts, précision 70,5 % ; règle + haut risque (30 % de rappel), 55,1 %, précision 56,8 % ; règle + modèle au rappel minimal, 74,7 %, précision 39,5 %, 41,6 % des clients signalés. Mêmes taux par niveau sur tout le périmètre du ML (27 202 clients : 35,4 %, 54,9 %, 74,3 %).
 
 **Décision** : version finale confirmée sur le test, dans l'intervalle de la validation ; plafond attribué à la cible (`methodologie_ML.md`, section 13).
+
+## 4. Notebooks hors scénarios
+
+Ces notebooks n'écrivent rien dans le fichier de résultats et n'enregistrent aucun modèle : ils diagnostiquent, tranchent un point de méthode ou décrivent. Ordre pour les relancer : `methodologie_ML.md`, section 0. Hypothèses et conclusions qu'ils soutiennent : `docs/hypotheses_et_conclusions.md`.
+
+| Notebook | But | Résultat | Décision |
+|---|---|---|---|
+| [`diagnostic_capacite`](diagnostic_capacite.ipynb) | La règle de surapprentissage bride-t-elle les modèles ? (modèles poussés sur les colonnes de `ml_11`) | Aucun réglage poussé ne dépasse `ml_11` : RandomForest profondeur 12 à égalité (0,489) ; CatBoost poussé -0,015 à -0,018 ; MLP sans arrêt anticipé -0,05 à -0,06 | Plateau attribué aux données ; règle de surapprentissage gardée (méthodologie, section 7) |
+| [`diagnostic_encodage_pay`](diagnostic_encodage_pay.ipynb) | Encoder les `PAY_n` en catégories (à jour / 1 / 2 et plus) plutôt qu'en nombres | Dans le bruit pour tous les modèles | Encodage numérique de la v6 conservé |
+| [`elagage_ml`](elagage_ml.ipynb) | Retirer les groupes de colonnes inutiles, à partir de `ml_11` | Seul le résumé des codifications est gardé ; démographie retirée ; perte cumulée -0,004, dans le bruit | Version élaguée reprise dans `ml_12` |
+| [`duel_fin_ml14_ml15`](duel_fin_ml14_ml15.ipynb) | Trancher finement le duel `ml_15` contre `ml_14` (5 plis × 10 répétitions, test t corrigé de Nadeau et Bengio) | Meilleur contre meilleur +0,0026 ± 0,0063, 31 plis sur 50, t = 0,79, dans le bruit | `ml_14` reste la version de base |
+| [`ml_16`](ml_16.ipynb) | Reprendre le groupe à population faible (traces des corrections, 0,7 % du train) avec la même mesure fine | Meilleur contre meilleur +0,0003, t = 0,33 ; régression logistique +0,0012, t = 1,24 ; dans le bruit | Groupe écarté définitivement (ligne de `ml_2`) ; version finale `ml_14` |
+| [`analyse_defauts_manques`](analyse_defauts_manques.ipynb) | Qui sont les défauts qu'aucun modèle ne détecte ? (25 % du train, découpage fixé avant) | 248 défauts sur 771 manqués par les 4 modèles de `ml_14`, indiscernables des bons clients non signalés (8 indicateurs sur 9) | Une part de la cible est imprévisible avec ces données ; aucune colonne construite (méthodologie, section 13) |
+| [`evaluation_finale_test`](evaluation_finale_test.ipynb) | Lire le test une seule fois | Section 3 de ce journal | Version finale confirmée |
+| [`controles_cible`](controles_cible.ipynb) | Recalculer les chiffres sur la cible cités dans les hypothèses ; rejuger les scénarios sur la précision moyenne | Clients sans dette en défaut à 18,2 % ; contentieux qui paie en défaut à 70,7 % ; aucun scénario ne dépasse le socle `ml_0` en précision moyenne (`ml_14` : 0,334 contre 0,337, dans le bruit) | Descriptif : renvois dans les hypothèses |
+| [`comparatif_global/`](comparatif_global/) | Essais sur le jeu de base, le jeu corrigé, séparés ou non par la règle du contentieux ou la codification de la banque (test du ML inclus : diagnostic seulement) | Hors contentieux, les montants seuls font jeu égal avec `ml_4` ; au contentieux, aucun client ne peut être sorti ; la règle du contentieux fait jeu égal avec la codification de la banque ; toutes les approches sur la même courbe de niveaux de risque | Réponse partielle à la problématique ; aucun effet sur la version finale |
+
