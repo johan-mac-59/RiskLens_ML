@@ -45,4 +45,18 @@ La méthode commune à tous les scénarios (données, étalon, validation, boucl
 
 ## 3. Évaluation finale (une seule fois, sur le test)
 
-*À faire quand le modèle sera figé.* Le système complet (la règle métier pour les clients au contentieux à M, le modèle pour les autres) sera comparé à la règle seule et à la première itération, en défauts détectés et en précision. Les modalités de la comparaison avec la première itération seront fixées à ce moment-là : son test n'est pas celui du ML actuel.
+**Fait le 07/10/2026** ([`evaluation_finale_test.ipynb`](evaluation_finale_test.ipynb)), test lu une seule fois, protocole commité avant la lecture. Version finale : `ml_14` (21 variables), modèle de décision CatBoost, seuil fixé sur les probabilités hors pli du train au rappel minimal de 60 %.
+
+| Mesure | Validation (train, hors pli) | Test | Intervalle à 95 % (test) |
+|---|---|---|---|
+| Rappel | 60,0 % | 60,8 % | 57,4 – 64,2 % |
+| Précision des défauts prédits | 27,3 % | 28,3 % | 26,1 – 30,4 % |
+| Clients signalés | 35,0 % | 34,3 % | 33,0 – 35,7 % |
+| Score décisionnel F2 | 0,484 | 0,494 | 0,467 – 0,521 |
+| ROC AUC | 0,705 | 0,710 | 0,690 – 0,730 |
+
+Sur le test (4 840 clients, 771 défauts) : 469 défauts détectés, 1 191 fausses alertes, 302 défauts manqués. Autres modèles, pour information (F2 test) : RandomForest 0,493, MLP 0,492, régression logistique 0,487. Au rappel de 44 % (repère de la première itération) : précision de 34,7 % sur le test, contre 38,5 % pour la première itération (indicatif : population et découpage différents).
+
+**Système complet** (test + 20 % du contentieux du périmètre, 5 441 clients) : règle seule, 35,5 % des défauts, précision 70,5 % ; règle + haut risque (30 % de rappel), 55,1 %, précision 56,8 % ; règle + modèle au rappel minimal, 74,7 %, précision 39,5 %, 41,6 % des clients signalés. Mêmes taux par niveau sur tout le périmètre du ML (27 202 clients : 35,4 %, 54,9 %, 74,3 %).
+
+**Décision** : version finale confirmée sur le test, dans l'intervalle de la validation ; plafond attribué à la cible (`methodologie_ML.md`, section 13).

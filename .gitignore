@@ -7,6 +7,7 @@ wheels/
 *.egg-info
 *.csv
 data/ML/source_datasets.json
+data/ML/lecture_test.txt
 *.log
 
 
