@@ -135,9 +135,10 @@ Chaque niveau appelle une réponse différente :
 """)
 
 st.markdown("""
-Du très haut risque au risque faible, le taux de défaut va de 5 à 1 : le modèle **classe** bien les clients. Mais même au très haut risque, un client sur deux paie : c'est un outil pour **prioriser** la surveillance, pas pour sanctionner un client. **Jusqu'où signaler est un choix de la banque**, selon ce que lui coûte une fausse alerte face à un défaut manqué.
+Un client du très haut risque fait défaut environ **cinq fois plus souvent** qu'un client du risque faible (51 % contre 10 %) : le modèle **classe** bien les clients. Mais même au très haut risque, un client sur deux paie : c'est un outil pour **prioriser** la surveillance, pas pour sanctionner un client. **Jusqu'où signaler est un choix de la banque**, selon ce que lui coûte une fausse alerte face à un défaut manqué.
 """)
 
 st.info("""
-**Ce qu'il faut retenir** : lu une seule fois, sur des clients jamais vus, le test confirme la validation : le modèle détecte environ 6 défauts sur 10 hors contentieux, et un client signalé sur quatre est réellement en défaut. Plus on cherche de défauts, plus chacun coûte de fausses alertes : le modèle s'utilise donc par niveaux de risque, du contentieux (sept défauts sur dix) au risque faible (un sur dix), et c'est à la banque de choisir jusqu'où elle signale.
+**Ce qu'il faut retenir** : lu une seule fois, le test valide le modèle : sur des clients jamais vus, il retrouve les résultats de la validation, sans surapprentissage caché. Sur toute la liste des clients hors contentieux, la précision forme un plateau en tête de liste, où environ la moitié des clients signalés font défaut, puis descend presque en ligne droite vers le hasard à mesure qu'on va chercher plus de défauts. Le modèle s'utilise donc par niveaux de risque, du très haut risque (la moitié des clients en défaut) au risque faible (un sur dix), à côté du contentieux confié à la règle métier ; jusqu'où signaler reste un choix de la banque.
 """)
+
