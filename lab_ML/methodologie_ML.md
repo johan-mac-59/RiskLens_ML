@@ -163,8 +163,16 @@ Le surapprentissage se mesure par l'**écart relatif** : l'écart train - val du
 
 ## 10. Évaluation finale (une seule fois, sur le test, à la toute fin du machine learning)
 
-* Le modèle est figé ; son seuil est fixé sur les probabilités hors pli du train pour atteindre le rappel minimal. Sur le test, le rappel tournera autour de la cible, sans la garantir exactement.
-* Le système complet (la règle métier pour les clients au contentieux à M, le modèle pour les autres) est comparé à la règle seule et à la première itération, en défauts détectés et en précision. Les modalités de la comparaison avec la première itération seront fixées à ce moment-là : son test n'est pas celui du ML actuel.
+**Faite le 07/10/2026** (`evaluation_finale_test.ipynb`), le notebook ayant été commité avant la lecture du test. Résultats détaillés : `tableau_ML.md`, section 3.
+
+**Protocole, fixé avant la lecture** :
+* **Modèle figé** : version finale `ml_14`, modèle de décision CatBoost (premier du podium), entraîné sur tout le train ; son seuil est fixé sur les probabilités hors pli du train pour atteindre le rappel minimal. Sur le test, le rappel tourne autour de la cible, sans la garantir exactement. Les trois autres modèles de `ml_14` sont affichés pour information, sans changer la décision.
+* **Mesures sur le test**, avec un intervalle à 95 % par rééchantillonnage, face à la validation : rappel, précision des défauts prédits, clients signalés, score décisionnel F2, ROC AUC, précision moyenne ; précision à plusieurs rappels, avec des seuils pris sur le train.
+* **Système complet** : la règle du contentieux pour les clients au contentieux à M, le modèle pour les autres, comparé à la règle seule. Le test ne contient pas de contentieux (retiré avant le découpage) : il est complété par 20 % du contentieux du même périmètre, tiré comme le test ; la règle n'apprend rien, il n'y a donc aucune fuite.
+* **Niveaux de risque**, bornes fixées sur le train : contentieux (règle), haut risque (jusqu'à 30 % de rappel), risque modéré (jusqu'au rappel minimal), risque faible ; sur le test, puis sur tout le périmètre du ML (train classé hors pli, test par le modèle final).
+* **Comparaison avec la première itération** : modalité retenue, la précision au rappel de 44 %, celui de la première itération sur la population laissée au ML ; indicative seulement, son test, sa population et son découpage n'étant pas ceux du ML actuel.
+
+**Résultat** : le test confirme la validation (toutes les mesures dans leur intervalle, un peu au-dessus) ; aucun surapprentissage caché. Au rappel minimal, environ un client signalé sur quatre est réellement en défaut ; les niveaux de risque gardent les mêmes taux de défaut sur le test et sur le train. Le résultat est présenté comme un outil de priorisation par niveaux de risque (section 13 pour le plafond).
 
 ## 11. Historique des changements de méthode
 
