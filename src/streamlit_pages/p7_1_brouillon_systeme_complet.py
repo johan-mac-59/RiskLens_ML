@@ -35,7 +35,8 @@ libelles = ["Contentieux<br>seul", "+ haut risque", "+ risque modéré<br>(rappe
 
 col_graphe, col_texte = st.columns(2, vertical_alignment="center")
 with col_graphe:
-    st.plotly_chart(figure_detection(libelles, [e[1] for e in etapes], [e[2] for e in etapes], [e[3] for e in etapes], taux_global),
+    st.plotly_chart(figure_detection(libelles, [e[1] for e in etapes], [e[2] for e in etapes], taux_global,
+                                     info_survol=("Clients signalés", [e[3] for e in etapes])),
                     width='stretch')
 with col_texte:
     st.markdown(f"""

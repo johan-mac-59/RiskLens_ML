@@ -23,7 +23,11 @@ _, test_ml = train_test_split(hors_ctx, test_size=0.2, stratify=hors_ctx["dpnm"]
 # classé par un modèle qui ne l'a jamais vu. (niveau, libellé, clients, défauts)
 NIVEAUX = [
     ("Contentieux", "retiré avant le machine learning, prédit en défaut par la règle", 3004, 2117),
-    ("Haut risque", "coût en fausses alertes moyen", 2809, 1161),
+    # Haut risque du notebook (2 809 clients, 1 161 défauts) coupé en deux par une borne ajoutée après la lecture du test
+    # (07/10/2026) : seuil qui détecte 10 % des défauts sur les probabilités hors pli de l'entraînement (0,7727), comme
+    # les bornes de 30 % et 60 %. Sur le test seul : 144 clients, 53,5 % de défaut (très haut) ; 416, 38,0 % (haut).
+    ("Très haut risque", "coût en fausses alertes faible", 752, 386),
+    ("Haut risque", "coût en fausses alertes moyen", 2057, 775),
     ("Risque modéré", "coût en fausses alertes élevé", 5628, 1158),
     ("Risque faible", "non prédit en défaut", 15761, 1536),
 ]
@@ -33,11 +37,21 @@ total_defauts = sum(n[3] for n in NIVEAUX)
 assert (len(s12), int(s12["dpnm"].sum())) == (total_clients, total_defauts)
 assert int(((s12["FLAG_CTX"] == 1) & (s12["MOIS_SORTIE_CTX"] == -1)).sum()) == NIVEAUX[0][2]
 
-# Section 3 du notebook : le modèle seul sur le test (hors contentieux), à plusieurs rappels, seuils fixés sur le train
-# (rappel visé, rappel obtenu sur le test, précision sur le test, clients signalés sur le test), en %
-RAPPELS_TEST = [(30, 30.5, 42.0, 11.6), (44, 44.4, 34.7, 20.4), (60, 60.8, 28.3, 34.3), (70, 69.6, 24.3, 45.6), (80, 78.5, 22.0, 56.9)]
-taux_hasard_test = test_ml["dpnm"].mean() * 100
-
+# Le modèle seul sur tous les clients hors contentieux (24 198), chacun classé par un modèle qui ne l'a jamais vu
+# (entraînement : probabilités hors pli ; test : modèle final), à partir de data/ML/comparatif_global/ml_14_global.csv
+# (enregistré par lab_ML/evaluation_finale_test.ipynb, section 6) : clients rangés du plus risqué au moins risqué,
+# puis coupés à chaque part de défauts détectés. (rappel, précision, clients signalés), en %
+# Points de 2 en 2 % jusqu'à 14 % (au-dessous, trop peu de clients pour une précision stable), puis de 5 en 5 % ;
+# à 0 %, personne n'est signalé et la précision n'existe pas
+RAPPELS_HORS_CTX = [(0, None, 0.0), (2, 53.4, 0.6), (4, 54.8, 1.2), (6, 50.8, 1.9), (8, 51.0, 2.5), (10, 51.3, 3.1),
+                    (12, 50.2, 3.8), (14, 49.0, 4.6), (20, 45.5, 7.0), (25, 44.0, 9.1), (30, 41.3, 11.6),
+                    (35, 38.4, 14.5), (40, 35.7, 17.9), (45, 33.2, 21.6), (50, 30.9, 25.8), (55, 29.1, 30.1), (60, 27.6, 34.7),
+                    (65, 25.4, 40.8), (70, 24.1, 46.3), (75, 23.1, 51.7), (80, 21.8, 58.5), (85, 20.2, 67.1), (90, 19.1, 75.0)]
+# Points dont la valeur est écrite sur le graphique (les autres au survol) : 10, 30, 60 et 90 %
+POINTS_ETIQUETES = [i for i, r in enumerate(RAPPELS_HORS_CTX) if r[0] in (10, 30, 60, 90)]
+# Contrôle en direct : la population hors contentieux du dataset doit retrouver celle du fichier (24 198 clients, 3 855 défauts)
+assert (len(hors_ctx), int(hors_ctx["dpnm"].sum())) == (24198, 3855)
+taux_hasard_hors_ctx = hors_ctx["dpnm"].mean() * 100
 
 entete_partie_6()
 st.markdown("---")
@@ -66,34 +80,41 @@ Les trois autres modèles, réentraînés pour information, restent au même niv
 
 # ------------------------------------------------------------------------------
 st.subheader("3. Le modèle seul : plus on cherche de défauts, plus chacun coûte", anchor="cout")
-col_graphe, col_texte = st.columns(2, vertical_alignment="center")
+col_graphe, col_texte = st.columns([3, 2], vertical_alignment="center")
 with col_graphe:
-    st.plotly_chart(figure_detection([f"{r[0]} %" + ("<br>(rappel minimal)" if r[0] == 60 else "") for r in RAPPELS_TEST],
-                                     [r[1] for r in RAPPELS_TEST], [r[2] for r in RAPPELS_TEST], [r[3] for r in RAPPELS_TEST],
-                                     taux_hasard_test), width='stretch')
+    # Abscisse : part des défauts détectés (rappel), par pas de 5 % ; deux courbes : clients signalés (le coût) et précision
+    fig = figure_detection([r[0] for r in RAPPELS_HORS_CTX],
+                                     [r[2] for r in RAPPELS_HORS_CTX], [r[1] for r in RAPPELS_HORS_CTX], taux_hasard_hors_ctx,
+                                     nom_barres="Part des clients signalés",
+                                     titre_x="Part des défauts détectés (rappel)", y_max=90, hauteur=580,
+                                     en_courbes=True, etiquetes=POINTS_ETIQUETES, axe_numerique=True)
+    fig.add_vline(x=60, line=dict(color=COULEURS["gris"], dash="dash", width=1),
+                  annotation_text="rappel minimal", annotation_position="top", annotation_font_size=TAILLE_ETIQUETTE)
+    st.plotly_chart(fig, width='stretch')
 with col_texte:
     st.markdown(f"""
 Le seuil du taux de rappel minimal n'est qu'un point parmi d'autres. En le déplaçant, on choisit la part des défauts à aller chercher, sur les seuls clients hors contentieux :
-- **30 % des défauts** : on ne signale que la tête de liste, environ un client sur dix, et **quatre signalés sur dix** sont en défaut ;
-- **44 %** : un client sur cinq est signalé, un sur trois est en défaut ;
+- **jusqu'à 10 % des défauts** : on ne signale que 3 % des clients, les plus risqués, et la précision reste stable autour de **un sur deux** : même tout en haut de la liste, rien n'est sûr ;
+- **30 %** : environ un client sur dix est signalé, et **quatre sur dix** sont en défaut ;
 - **60 %** (le taux de rappel minimal) : un client sur trois est signalé, et la précision tombe à **un sur quatre** ;
-- **70 % puis 80 %** : il faut signaler près de la moitié, puis plus de la moitié des clients, pour une précision qui se rapproche du hasard ({nombre_fr(taux_hasard_test, 0)} %, la ligne orange).
+- **80 % puis 90 %** : il faut signaler plus de la moitié, puis les trois quarts des clients, pour une précision qui se rapproche du hasard ({nombre_fr(taux_hasard_hors_ctx, 0)} %, la ligne orange).
 
-Chaque défaut supplémentaire coûte de plus en plus de bons clients signalés à tort.
+La précision forme donc un petit plateau en tête de liste, puis descend presque en ligne droite vers le hasard, pendant que la part des clients signalés grimpe de plus en plus vite : chaque défaut supplémentaire coûte de plus en plus de bons clients signalés à tort.
 """)
-st.caption(f"Test seul ({nombre_fr(len(test_ml))} clients hors contentieux). Pour chaque part de défauts visée, le seuil est fixé sur l'entraînement, puis appliqué au test. Source : [évaluation finale]({EVALUATION}), section 3.")
+st.caption(f"Tous les clients hors contentieux ({nombre_fr(len(hors_ctx))}), chacun classé par un modèle qui ne l'a jamais vu : probabilités hors pli pour l'entraînement, modèle final pour le test. Les clients sont rangés du plus risqué au moins risqué, puis la liste est coupée à chaque part de défauts. Le test seul donne les mêmes valeurs, à un point près. Source : [évaluation finale]({EVALUATION}), section 6 (notes de risque enregistrées).")
 st.markdown("""
-**Avec le recul, vouloir attraper 60 % des défauts restants était trop ambitieux.** L'objectif paraissait réaliste au départ : les meilleurs modèles l'atteignaient dès le premier essai, sans réglage particulier. Mais à ce niveau, un client signalé sur quatre seulement est en défaut, et les scénarios ont montré que les modèles tiraient déjà des données tout ce qu'elles pouvaient leur apprendre : aucune variable n'a relevé cette précision (page 6.3). Plutôt qu'un seul seuil, le résultat se présente donc **par niveaux de risque**, qui distinguent la tête de liste, où le modèle est fiable, du reste des clients signalés.
+**Avec le recul, vouloir attraper 60 % des défauts restants était trop ambitieux.** L'objectif paraissait réaliste au départ : les meilleurs modèles l'atteignaient dès le premier essai, sans réglage particulier. Mais à ce niveau, un client signalé sur quatre seulement est en défaut, et aucune des variables essayées n'a relevé cette précision (page 6.3). Plutôt qu'un seul seuil, le résultat se présente donc **par niveaux de risque**, qui distinguent la tête de liste, où le modèle est le plus précis, du reste des clients signalés.
 """)
 
 # ------------------------------------------------------------------------------
 st.subheader("4. Les niveaux de risque : la vraie façon d'utiliser le modèle", anchor="niveaux")
 st.markdown("""
-Les niveaux se lisent à partir du **taux de rappel minimal**. Le modèle prédit en défaut un client dont la probabilité dépasse le seuil qui détecte 60 % des défauts hors contentieux. Ces clients signalés sont coupés en deux :
-- la **tête de liste**, les clients les plus risqués, qui apportent la première moitié de ces défauts (30 % des défauts hors contentieux) : c'est le **haut risque** ;
-- le reste des clients signalés, qui apporte l'autre moitié (de 30 à 60 %) : c'est le **risque modéré**.
+Les niveaux se lisent à partir du **taux de rappel minimal**. Le modèle prédit en défaut un client dont la probabilité dépasse le seuil qui détecte 60 % des défauts hors contentieux. Ces clients signalés sont répartis selon la part des défauts qu'ils apportent, en suivant le graphique :
+- la **tête de liste**, les 10 premiers pourcents des défauts, où la précision forme un plateau : c'est le **très haut risque** ;
+- les clients suivants, jusqu'à 30 % des défauts : c'est le **haut risque** ;
+- le reste des clients signalés, de 30 à 60 % : c'est le **risque modéré**.
 
-En dessous du seuil, les clients ne sont pas prédits en défaut : c'est le **risque faible**, où se trouvent les 40 % de défauts que le modèle manque. Au-dessus de tout, les clients au contentieux restent confiés à la **règle métier** (partie 5). Les bornes ont été fixées sur l'entraînement.
+En dessous du seuil, les clients ne sont pas prédits en défaut : c'est le **risque faible**, où se trouvent les 40 % de défauts que le modèle manque. Au-dessus de tout, les clients au contentieux restent confiés à la **règle métier** (partie 5). Toutes les bornes sont fixées sur l'entraînement ; celles de 30 % et 60 % l'ont été avant la lecture du test, celle de 10 % après, au vu de la courbe, sans rien changer au modèle ni à son seuil. Le test la confirme : sur ses seuls clients, le très haut risque fait défaut à 53,5 %.
 """)
 lignes = []
 for niveau, precision_libelle, clients, defauts in NIVEAUX:
@@ -107,13 +128,14 @@ st.caption(f"Tout le périmètre du machine learning ({nombre_fr(total_clients)}
 st.markdown("""
 Chaque niveau appelle une réponse différente :
 - **contentieux** : sept clients sur dix font défaut, une action forte se justifie ;
-- **haut risque** : quatre sur dix, une surveillance renforcée ;
-- **risque modéré** : deux sur dix, à peine plus que la moyenne ; chaque défaut trouvé coûte environ quatre bons clients signalés, une simple vigilance ;
+- **très haut risque** : un client sur deux, environ 3 % des clients hors contentieux : une action prioritaire ;
+- **haut risque** : près de quatre sur dix, une surveillance renforcée ;
+- **risque modéré** : deux sur dix, à peine plus que la moyenne des clients hors contentieux (environ 16 %) ; chaque défaut trouvé coûte environ quatre bons clients signalés, une simple vigilance ;
 - **risque faible** : un sur dix, pas d'action.
 """)
 
 st.markdown("""
-Du haut risque au risque faible, le taux de défaut va de 1 à 4 : le modèle **classe** bien les clients. Mais même au haut risque, la majorité des clients paient : c'est un outil pour **prioriser** la surveillance, pas pour sanctionner un client. **Jusqu'où signaler est un choix de la banque**, selon ce que lui coûte une fausse alerte face à un défaut manqué.
+Du très haut risque au risque faible, le taux de défaut va de 5 à 1 : le modèle **classe** bien les clients. Mais même au très haut risque, un client sur deux paie : c'est un outil pour **prioriser** la surveillance, pas pour sanctionner un client. **Jusqu'où signaler est un choix de la banque**, selon ce que lui coûte une fausse alerte face à un défaut manqué.
 """)
 
 st.info("""

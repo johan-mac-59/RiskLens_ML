@@ -61,6 +61,8 @@ Sur le test (4 840 clients, 771 défauts) : 469 défauts détectés, 1 191 fauss
 
 **Décision** : version finale confirmée sur le test, dans l'intervalle de la validation ; plafond attribué à la cible (`methodologie_ML.md`, section 13).
 
+**Borne de 10 % ajoutée le 07/10/2026, après la lecture du test** : seuil qui détecte 10 % des défauts sur les probabilités hors pli du train (0,773), fixé comme les bornes de 30 % et 60 %, sans changement du modèle ni du seuil de décision ; elle coupe le haut risque en deux. Sur tout le périmètre du ML : très haut risque, 752 clients, 51,3 % de défaut ; haut risque, 2 057 clients, 37,7 % (test seul : 144 clients, 53,5 % ; 416 clients, 38,0 %). Choix d'une borne ronde, pas d'une borne cherchée pour garder la précision au-dessus de 50 %.
+
 ## 4. Notebooks hors scénarios
 
 Ces notebooks n'écrivent rien dans le fichier de résultats et n'enregistrent aucun modèle : ils diagnostiquent, tranchent un point de méthode ou décrivent. Ordre pour les relancer : `methodologie_ML.md`, section 0. Hypothèses et conclusions qu'ils soutiennent : `docs/hypotheses_et_conclusions.md`.

@@ -477,25 +477,47 @@ def entete_partie_6():
 # ==============================================================================
 # GRAPHIQUE DE DÉTECTION (6.4, et section mise de côté pour la 7.1) : défauts détectés, précision, hasard
 # ==============================================================================
-def figure_detection(libelles, detectes, precisions, signales, hasard):
-    """Barres : part des défauts détectés ; courbe : précision des défauts prédits ; ligne : précision au hasard."""
+def figure_detection(libelles, barres, precisions, hasard, nom_barres="Part des défauts détectés", titre_x=None, info_survol=None, y_max=100, hauteur=480,
+                     en_courbes=False, etiquetes=None, axe_numerique=False):
+    """Barres : une part en % (défauts détectés ou clients signalés) ; courbe : précision des défauts prédits ;
+    ligne : précision au hasard. info_survol : (libellé, valeurs) ajouté au survol des barres.
+    en_courbes : la première mesure en courbe plutôt qu'en barres (beaucoup de points) ;
+    etiquetes : positions (index) des points dont la valeur est écrite, toutes par défaut ;
+    axe_numerique : abscisses en nombres (parts en %, de 0 à 100) plutôt qu'en catégories."""
+    def textes(valeurs, gras=False):
+        return [(f"<b>{nombre_fr(v, 0)} %</b>" if gras else f"{nombre_fr(v, 0)} %") if v is not None and (etiquetes is None or i in etiquetes) else ""
+                for i, v in enumerate(valeurs)]
     fig = go.Figure()
-    # Barres claires, étiquettes en bas des barres (loin de la courbe, pour ne pas se superposer) ; courbe foncée et épaisse, étiquettes au-dessus : deux mesures bien distinctes
-    fig.add_trace(go.Bar(x=libelles, y=detectes, name="Part des défauts détectés", marker_color=COULEURS["bleu_pale"],
-                         width=0.5, text=[f"{nombre_fr(v, 0)} %" for v in detectes], textposition="inside", insidetextanchor="start",
-                         textfont=dict(size=TAILLE_ETIQUETTE, color="black"), customdata=signales,
-                         hovertemplate="%{x}<br>Défauts détectés : %{y:.1f} %<br>Clients signalés : %{customdata:.1f} %<extra></extra>"))
+    # Barres claires, étiquettes au-dessus des barres ; courbe foncée et épaisse, étiquettes au-dessus : deux mesures bien distinctes
+    x_survol = "%{x} % des défauts détectés" if axe_numerique else "%{x}"
+    survol = f"{x_survol}<br>{nom_barres} : %{{y:.1f}} %"
+    if info_survol:
+        survol += f"<br>{info_survol[0]} : %{{customdata:.1f}} %"
+    if en_courbes:
+        fig.add_trace(go.Scatter(x=libelles, y=barres, name=nom_barres, mode="lines+markers+text",
+                                 line=dict(color=COULEURS["bleu_pale"], width=4), marker_size=5,
+                                 text=textes(barres), textposition="top left", textfont=dict(size=TAILLE_ETIQUETTE),
+                                 customdata=info_survol[1] if info_survol else None, hovertemplate=survol + "<extra></extra>"))
+    else:
+        fig.add_trace(go.Bar(x=libelles, y=barres, name=nom_barres, marker_color=COULEURS["bleu_pale"],
+                             width=0.5, text=textes(barres), textposition="outside", cliponaxis=False,
+                             textfont=dict(size=TAILLE_ETIQUETTE), customdata=info_survol[1] if info_survol else None,
+                             hovertemplate=survol + "<extra></extra>"))
     fig.add_trace(go.Scatter(x=libelles, y=precisions, name="Précision des défauts prédits", mode="lines+markers+text",
-                             line=dict(color=COULEURS["bordeaux"], width=4), marker_size=10,
-                             text=[f"<b>{nombre_fr(v, 0)} %</b>" for v in precisions], textposition="top center",
+                             line=dict(color=COULEURS["bordeaux"], width=4), marker_size=5 if en_courbes else 10,
+                             text=textes(precisions, gras=True), textposition="top center",
                              textfont=dict(size=TAILLE_ETIQUETTE, color=COULEURS["bordeaux"]),
-                             hovertemplate="%{x}<br>Précision : %{y:.1f} %<extra></extra>"))
+                             hovertemplate=x_survol + "<br>Précision : %{y:.1f} %<extra></extra>"))
     # Précision d'un tirage au hasard (taux de défaut de la population) : ligne sur toute la largeur,
     # une trace vide la fait figurer dans la légende
     fig.add_hline(y=hasard, line=dict(color=COULEURS["orange"], dash="dot", width=2))
     fig.add_trace(go.Scatter(x=[None], y=[None], name=f"Au hasard ({nombre_fr(hasard, 0)} %)",
                              mode="lines", line=dict(color=COULEURS["orange"], dash="dot", width=2)))
     # Axe des abscisses en catégories : sinon Plotly lit « 30 % » comme un nombre et écarte les libellés sur deux lignes
-    fig.update_layout(xaxis_type="category", yaxis_title="%", yaxis_range=[0, 100], height=480, separators=", ",
+    if axe_numerique:
+        fig.update_xaxes(type="linear", range=[0, 100], dtick=10, ticksuffix=" %")
+    else:
+        fig.update_xaxes(type="category")
+    fig.update_layout(xaxis_title=titre_x, yaxis_title="%", yaxis_range=[0, y_max], height=hauteur, separators=", ",
                       legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0))
     return fig
