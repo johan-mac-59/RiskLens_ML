@@ -66,7 +66,9 @@ La méthode ne s'est pas écrite d'un trait : elle s'est construite en relançan
 Au seuil de 0,5, le SVM, les plus proches voisins (KNN) et le réseau de neurones ne trouvaient presque aucun défaut, alors qu'ils rangeaient les clients du plus sûr au plus risqué presque aussi bien que les meilleurs modèles. Leurs probabilités restaient simplement basses : peu de clients passaient au-dessus de 0,5. Le seuil commun les jugeait mal. **On ne juge donc plus les modèles au même seuil, mais à la même part de défauts trouvés** : chaque modèle a son propre seuil.
 
 **Quelle part des défauts viser ?**
-On fixe un **taux de rappel minimal** : la part des défauts que la banque exige au moins de repérer. C'est une **exigence métier**, pas un réglage cherché pour flatter les résultats. Sa valeur de départ est le niveau que les meilleurs modèles atteignaient déjà au premier essai, sans être réglés pour ça ; elle a vocation à être relevée. Viser plus haut a un prix, à arbitrer selon ce que la banque peut suivre : plus de défauts trouvés, mais plus de clients signalés à tort. À l'extrême, le réglage qui maximise le F2 score signalait la majorité des clients.
+On fixe un **taux de rappel minimal** : la part des défauts que la banque exige au moins de repérer. C'est une **exigence métier**, pas un réglage cherché pour flatter les résultats. Il a été fixé à **60 % des défauts hors contentieux** : c'est le niveau que les meilleurs modèles (CatBoost et RandomForest) atteignaient déjà au premier essai sur cette nouvelle base, au seuil de 0,5, sans être réglés pour ça. L'objectif paraissait donc réaliste, et il avait vocation à être relevé si les performances le permettaient. Il ne l'a jamais été : la page 6.3 montre pourquoi. Viser plus haut a un prix, à arbitrer selon ce que la banque peut suivre : plus de défauts trouvés, mais plus de clients signalés à tort. À l'extrême, le réglage qui maximise le F2 score signalait la majorité des clients.
+
+**Le but est alors fixé : à ce taux de rappel tenu, faire monter la précision des défauts prédits**, c'est-à-dire signaler le moins possible de bons clients pour trouver ces 60 % de défauts. C'est ce que cherchent les scénarios (page 6.3).
 
 **Comment apprendre une logique, et non le dataset, sans empêcher d'apprendre ?**
 Un modèle qui réussit beaucoup mieux sur les clients qu'il a vus que sur les autres apprend par cœur. La boucle limite donc l'écart entre les deux et, quand il est trop grand, simplifie le modèle au tour suivant. Mais trop simplifier mène à l'excès inverse : un modèle qui ne fait plus mieux que le hasard. **Un plancher l'empêche** : un réglage doit battre le hasard pour compter. Entre les deux bornes, le modèle apprend une logique, pas le dataset.
@@ -76,24 +78,24 @@ Certains modèles ne savent pas s'arrêter pile au taux de rappel minimal : beau
 """)
 
 # ------------------------------------------------------------------------------
-st.subheader("4. La suite : enrichir le socle, scénario par scénario", anchor="scenarios")
+st.subheader("4. Enrichir le socle, scénario par scénario", anchor="scenarios")
 st.markdown("""
 **La méthode a d'abord été éprouvée sur un socle** : les seules variables d'origine du dataset. Le meilleur modèle, CatBoost, n'y a pas progressé : il garde la performance de l'ajustement à la main, mais **sans surapprentissage**, donc avec un score enfin crédible. Ce qui a changé, ce sont les autres modèles. Jugés au même taux de rappel minimal, puis nourris de variables mises en forme (codifications traitées comme des nombres, paiements et factures passés au logarithme), ils l'ont tous rejoint : **les six modèles sont à égalité**, et la régression logistique, le plus simple et le plus explicable, fait jeu égal avec le plus complexe.
 
-**La méthode est fiable, rigoureuse et reproductible, et elle met chaque modèle en pleine possession de ses moyens, sans en désavantager aucun.** Elle est désormais figée : elle ne changera plus d'un scénario à l'autre. Le socle a donné ce que ses variables permettaient ; pour monter plus haut, il faut de nouvelles informations.
+**La méthode est fiable, rigoureuse et reproductible, et elle met chaque modèle en pleine possession de ses moyens, sans en désavantager aucun.** Elle a alors été figée : elle n'a plus changé d'un scénario à l'autre. Le socle a donné ce que ses variables permettaient ; pour monter plus haut, il faut de nouvelles informations.
 
-**Les scénarios enrichissent ensuite ce socle, petit groupe de variables par petit groupe.** Ces variables viennent en grande partie de l'**exploration déjà réalisée**, qui les a construites et en a montré le lien avec le risque :
+**Les scénarios ont ensuite enrichi ce socle, petit groupe de variables par petit groupe.** Ces variables venaient en grande partie de l'**exploration déjà réalisée**, qui les a construites et en a montré le lien avec le risque :
 - l'**utilisation du plafond**, mois par mois (page 4.2) ;
 - les **ratios de paiement** et le **type d'usage de la carte**, du paiement comptant au crédit qui ne se rembourse pas (page 4.3), avec la régularité du comportement de paiement ;
 - la **codification habituelle** du client, hors retards ;
 - la **vie du compte** : ouverture ou réveil pendant la période (page 4.4) ;
 - l'**historique des retards** : leur nombre, leur durée, la sortie d'un retard (pages 4.6 et 5.3).
 
-D'autres variables pourront être créées si les résultats le suggèrent.
+D'autres variables ont été créées au fil des résultats, comme des signaux de rupture de comportement.
 
-**Chaque groupe doit faire ses preuves** : il n'est gardé que s'il apporte un **gain réel** par rapport au scénario de référence, mesuré pli par pli, et non un gain dans le bruit. Tous les scénarios sont mesurés avec la même méthode et le même taux de rappel minimal : ils se comparent directement. Une fois toutes les variables utiles ajoutées, celles qui n'apportent plus rien seront retirées, pour un modèle plus simple ; le test ne sera lu qu'à ce moment-là, une seule fois. Les modèles comparés et le modèle retenu sont présentés en 6.3.
+**Chaque groupe devait faire ses preuves** : il n'était gardé que s'il apportait un **gain réel** par rapport au scénario de référence, régulier d'une mesure à l'autre, et non un effet du hasard. Tous les scénarios ont été mesurés avec la même méthode et le même taux de rappel minimal : ils se comparent directement. Une fois toutes les variables essayées, celles qui n'apportaient rien ont été retirées, pour un modèle plus simple ; le test n'a été lu qu'à ce moment-là, une seule fois. Les scénarios et le modèle retenu sont présentés en 6.3, le test en 6.4.
 """)
 
 st.info("""
-**Ce qu'il faut retenir** : le machine learning reprend sur les seuls clients en gestion normale, le contentieux étant confié à la règle métier. La méthode devient automatique et reproductible : chaque modèle doit atteindre un taux de rappel minimal, exigence métier, et il est réglé pour être le plus précis possible à ce point, sans apprendre le dataset par cœur ni cesser d'apprendre, puis classé par un score décisionnel F2. Chaque choix répond à une question concrète posée par les premiers résultats. Sur le socle, elle met les six modèles à égalité, sans en désavantager aucun : elle est prête pour les nouvelles variables. Les scénarios enrichissent ensuite le socle, groupe de variables par groupe de variables, chacun gardé seulement s'il apporte un gain réel.
+**Ce qu'il faut retenir** : le machine learning reprend sur les seuls clients en gestion normale, le contentieux étant confié à la règle métier. La méthode devient automatique et reproductible : chaque modèle doit atteindre un taux de rappel minimal, exigence métier, et il est réglé pour être le plus précis possible à ce point, sans apprendre le dataset par cœur ni cesser d'apprendre, puis classé par un score décisionnel F2. Chaque choix répond à une question concrète posée par les premiers résultats. Sur le socle, elle a mis les six modèles à égalité, sans en désavantager aucun. Les scénarios ont ensuite enrichi le socle, groupe de variables par groupe de variables, chacun gardé seulement s'il apportait un gain réel.
 """)

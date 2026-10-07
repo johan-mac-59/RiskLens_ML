@@ -472,3 +472,30 @@ def entete_partie_6():
     st.markdown("""
     Le but du machine learning est de prédire le défaut de paiement d'octobre 2005 à partir des six mois d'historique de chaque client, et de faire mieux que l'étude de référence de 2009. Cette partie raconte d'abord la première tentative, puis la démarche reprise une fois la population contentieuse définie.
     """)
+
+
+# ==============================================================================
+# GRAPHIQUE DE DÉTECTION (6.4, et section mise de côté pour la 7.1) : défauts détectés, précision, hasard
+# ==============================================================================
+def figure_detection(libelles, detectes, precisions, signales, hasard):
+    """Barres : part des défauts détectés ; courbe : précision des défauts prédits ; ligne : précision au hasard."""
+    fig = go.Figure()
+    # Barres claires, étiquettes en bas des barres (loin de la courbe, pour ne pas se superposer) ; courbe foncée et épaisse, étiquettes au-dessus : deux mesures bien distinctes
+    fig.add_trace(go.Bar(x=libelles, y=detectes, name="Part des défauts détectés", marker_color=COULEURS["bleu_pale"],
+                         width=0.5, text=[f"{nombre_fr(v, 0)} %" for v in detectes], textposition="inside", insidetextanchor="start",
+                         textfont=dict(size=TAILLE_ETIQUETTE, color="black"), customdata=signales,
+                         hovertemplate="%{x}<br>Défauts détectés : %{y:.1f} %<br>Clients signalés : %{customdata:.1f} %<extra></extra>"))
+    fig.add_trace(go.Scatter(x=libelles, y=precisions, name="Précision des défauts prédits", mode="lines+markers+text",
+                             line=dict(color=COULEURS["bordeaux"], width=4), marker_size=10,
+                             text=[f"<b>{nombre_fr(v, 0)} %</b>" for v in precisions], textposition="top center",
+                             textfont=dict(size=TAILLE_ETIQUETTE, color=COULEURS["bordeaux"]),
+                             hovertemplate="%{x}<br>Précision : %{y:.1f} %<extra></extra>"))
+    # Précision d'un tirage au hasard (taux de défaut de la population) : ligne sur toute la largeur,
+    # une trace vide la fait figurer dans la légende
+    fig.add_hline(y=hasard, line=dict(color=COULEURS["orange"], dash="dot", width=2))
+    fig.add_trace(go.Scatter(x=[None], y=[None], name=f"Au hasard ({nombre_fr(hasard, 0)} %)",
+                             mode="lines", line=dict(color=COULEURS["orange"], dash="dot", width=2)))
+    # Axe des abscisses en catégories : sinon Plotly lit « 30 % » comme un nombre et écarte les libellés sur deux lignes
+    fig.update_layout(xaxis_type="category", yaxis_title="%", yaxis_range=[0, 100], height=480, separators=", ",
+                      legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0))
+    return fig
