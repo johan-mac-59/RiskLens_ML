@@ -106,6 +106,23 @@ Sur les mêmes 28 851 clients du niveau 5 (`essai_jeu_de_base_deux_populations.i
 - La codification de la banque attrape un peu plus de défauts, au prix d'un peu plus de fausses alertes : à la marge, ces clients supplémentaires ne sont en défaut qu'environ une fois sur deux. Taux d'erreur et ratio d'aire identiques.
 - **La valeur de la définition 2 n'est pas le score** : elle est justifiée et explicable (deux retards d'affilée, faux retards neutralisés), là où `PAY_1` ≥ 2 retient aussi des retards isolés et des faux retards. La comparaison mêle la règle et le nettoyage : elle répond à « tout le travail fait-il mieux que la codification de la banque ? ».
 
+### H13. Toutes les approches tombent sur la même courbe de niveaux de risque ✅
+
+Niveaux de risque (règle, puis haut risque jusqu'à 30 % de rappel, puis risque modéré jusqu'à 60 %), sur les 27 202 clients communs au périmètre du ML (`comparatif_global/niveaux_de_risque_global.ipynb`, classement hors pli ou par le modèle final) :
+
+| Approche | Règle seule | + haut risque | + risque modéré |
+|---|---|---|---|
+| Version finale `ml_14` | 35,4 % des défauts, précision 70,5 % | 54,9 %, 56,4 % | 74,3 %, 38,8 % |
+| Contentieux + ML, 23 colonnes | 35,4 %, 70,5 % | 55,7 %, 56,3 % | 73,4 %, 39,3 % |
+| Contentieux + ML sans les `PAY_n` | 35,4 %, 70,5 % | 55,2 %, 53,4 % | 73,4 %, 38,4 % |
+| Banque (`PAY_1` ≥ 2) + ML, 23 colonnes | 36,3 %, 69,5 % | 54,2 %, 58,4 % | 71,3 %, 41,4 % |
+| Banque + ML sans les `PAY_n` | 36,3 %, 69,5 % | 53,3 %, 56,2 % | 71,6 %, 40,3 % |
+
+- **Le travail sur les variables n'a pas déplacé la courbe** : la version finale fait comme les modèles sur les 23 colonnes brutes, à chaque niveau (H1, H7).
+- **La séparation du contentieux et celle de la banque se valent** : la banque signale un peu moins de clients au niveau modéré, attrape un peu moins de défauts avec une précision un peu plus haute : un autre point de la même courbe (H12).
+- **Le comportement seul fait presque aussi bien** : sans aucune codification, le modèle ne perd qu'environ 3 points de précision sur le haut risque, rien sur la part des défauts. Une fois le contentieux mis à part par la règle, les montants portent l'essentiel de ce qui est prévisible (H6).
+- **Évaluation finale** : sur le test, jamais vu, les taux par niveau sont les mêmes que sur le train hors pli (haut risque 42,0 % contre 41,2 %, modéré 21,3 % contre 20,4 %, faible 9,5 % contre 9,8 %) : la courbe est celle du portefeuille (`evaluation_finale_test.ipynb`).
+
 ### H11. Le contentieux gonfle les scores des jeux qui le contiennent ✅
 
 - ROC AUC d'environ 0,78 sur les jeux avec contentieux, contre environ 0,71 hors contentieux.
