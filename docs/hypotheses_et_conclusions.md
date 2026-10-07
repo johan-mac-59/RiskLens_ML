@@ -123,6 +123,13 @@ Niveaux de risque (règle, puis haut risque jusqu'à 30 % de rappel, puis risque
 - **Le comportement seul fait presque aussi bien** : sans aucune codification, le modèle ne perd qu'environ 3 points de précision sur le haut risque, rien sur la part des défauts. Une fois le contentieux mis à part par la règle, les montants portent l'essentiel de ce qui est prévisible (H6).
 - **Évaluation finale** : sur le test, jamais vu, les taux par niveau sont les mêmes que sur le train hors pli (haut risque 42,0 % contre 41,2 %, modéré 21,3 % contre 20,4 %, faible 9,5 % contre 9,8 %) : la courbe est celle du portefeuille (`evaluation_finale_test.ipynb`).
 
+### H14. Les corrélations de l'EDA sont réelles, mais elles distinguent des groupes, pas des individus ✅
+
+- L'EDA montre de vrais écarts de taux de défaut entre groupes (type d'usage, utilisation du plafond, retards, démographie) ; le modèle les retrouve : du risque faible (environ 10 % de défaut) au haut risque (environ 41 %), un écart de 1 à 4, stable du train au test (H13).
+- Mais même un groupe à 41 % de défaut compte une majorité de clients qui paient : les corrélations rangent bien les clients par niveau de risque, sans désigner lequel fera défaut. Fort entre groupes, faible au client près : le cas classique du risque de crédit.
+- Les colonnes construites n'ont pas amélioré le score parce que leur information était déjà dans les montants bruts, que les modèles combinent eux-mêmes ; elles restent utiles pour **expliquer** le risque. La démographie a un lien réel mais faible et redondant avec le comportement : l'élagage l'a retirée sans perte.
+- **Réponse à la problématique** : le comportement du client explique une partie du défaut, à l'échelle des groupes ; il ne suffit pas à prédire le défaut de chaque client avec certitude.
+
 ### H11. Le contentieux gonfle les scores des jeux qui le contiennent ✅
 
 - ROC AUC d'environ 0,78 sur les jeux avec contentieux, contre environ 0,71 hors contentieux.
@@ -160,7 +167,15 @@ Niveaux de risque (règle, puis haut risque jusqu'à 30 % de rappel, puis risque
 
 ---
 
-## 6. Ce qui manque pour aller plus loin (ouverture)
+## 6. Ce que je referais autrement (leçons de méthode)
+
+La méthode a été rigoureuse (aucune règle ni seuil optimisé sur la cible, test lu une seule fois et confirmant la validation, tout tracé et reproductible) et le résultat de fond n'aurait sans doute pas changé. Le chemin aurait pu être plus court :
+1. **Estimer tôt le bruit qui reste dans le périmètre retenu.** Le bruit visible de la cible (des clients sans dette comptés en défaut) a été écarté dès le départ, par le périmètre à encours positif. Ce qui n'a été mesuré qu'à la fin, c'est la part de défauts imprévisibles **restant** dans ce périmètre (environ un tiers, H2) : l'estimer dès les premiers scénarios aurait annoncé le plafond.
+2. **Calculer ce que la comparaison peut détecter avant d'ajouter les colonnes une à une.** Avec 5 plis, le bruit des gains était d'environ 0,006 en score décisionnel F2 : presque tous les ajouts sont tombés dans le bruit. Commencer par le scénario complet puis élaguer, ou mesurer finement (validation croisée répétée) dès le départ, aurait été plus rapide.
+3. **Comparer sur une mesure sans seuil, décider du point de fonctionnement à la fin.** Rejugés sur la précision moyenne, aucun scénario ne dépasse le socle `ml_0` (23 variables d'origine) ; la version finale est même un peu en dessous, dans le bruit (`controles_cible.ipynb`, section 7 ; réserve : modèles réglés sur une autre mesure). Les essais réglés directement sur la précision moyenne tombent sur la même courbe (H13). Comparer ainsi dès le départ aurait montré plus tôt que les colonnes construites n'apportent rien au score. La règle de décision (rappel minimal, règle marginale, niveaux de risque) se choisit ensuite, avec la banque ; la règle « 1 pour 1 », qui signale très peu de clients hors contentieux, aurait été une mauvaise mesure de comparaison (trop bruitée).
+4. **La calibration**, objectif principal de l'étude d'origine, n'a pas été traitée : mise de côté (probabilité personnalisée par client : piste, section 8).
+
+## 7. Ce qui manque pour aller plus loin (ouverture)
 
 - **La définition exacte de `dpnm`** : défaut de paiement observé ou statut posé par la banque (H3).
 - **Les vrais encours** : `BILL_AMT` est le montant du relevé, pas la dette réelle. Avec l'encours réel, on saurait si les clients « sans dette » l'étaient vraiment, et si leur défaut est du bruit de la cible ou une dette invisible dans les relevés.
@@ -170,7 +185,7 @@ Niveaux de risque (règle, puis haut risque jusqu'à 30 % de rappel, puis risque
 
 ---
 
-## 7. Tests à mener (issus de ces hypothèses)
+## 8. Tests à mener (issus de ces hypothèses)
 
 | Test | Hypothèse | État |
 |---|---|---|
