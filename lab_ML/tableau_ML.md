@@ -57,7 +57,7 @@ La méthode commune à tous les scénarios (données, étalon, validation, boucl
 
 Sur le test (4 840 clients, 771 défauts) : 469 défauts détectés, 1 191 fausses alertes, 302 défauts manqués. Autres modèles, pour information (F2 test) : RandomForest 0,493, MLP 0,492, régression logistique 0,487. Au rappel de 44 % (repère de la première itération) : précision de 34,7 % sur le test, contre 38,5 % pour la première itération (indicatif : population et découpage différents).
 
-**Système complet** (test + 20 % du contentieux du périmètre, 5 441 clients) : règle seule, 35,5 % des défauts, précision 70,5 % ; règle + haut risque (30 % de rappel), 55,1 %, précision 56,8 % ; règle + modèle au rappel minimal, 74,7 %, précision 39,5 %, 41,6 % des clients signalés. Mêmes taux par niveau sur tout le périmètre du ML (27 202 clients : 35,4 %, 54,9 %, 74,3 %).
+**Système complet** (test + 20 % du contentieux du périmètre, 5 441 clients) : règle seule, 35,5 % des défauts, précision 70,5 % ; règle + haut risque (30 % de rappel), 55,1 %, précision 56,8 % ; règle + modèle au rappel minimal, 74,7 %, précision 39,5 %, 41,6 % des clients signalés. Mêmes taux par niveau sur tout le périmètre du ML (27 202 clients : 35,4 %, 54,9 %, 74,3 %). Ces niveaux sont ceux de l'évaluation, à quatre niveaux ; le découpage en cinq niveaux est décrit plus bas (borne de 10 %).
 
 **Décision** : version finale confirmée sur le test, dans l'intervalle de la validation ; plafond attribué à la cible (`methodologie_ML.md`, section 13).
 

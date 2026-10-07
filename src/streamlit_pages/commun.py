@@ -470,7 +470,7 @@ def entete_partie_6():
     """En-tête de la partie 6, repris sur toutes ses pages."""
     st.title("🤖 6. Le machine learning")
     st.markdown("""
-    Le but du machine learning est de prédire le défaut de paiement d'octobre 2005 à partir des six mois d'historique de chaque client, et de faire mieux que l'étude de référence de 2009. Cette partie raconte d'abord la première tentative, puis la démarche reprise une fois la population contentieuse définie.
+    Le but du machine learning est de prédire le défaut de paiement d'octobre 2005 à partir des six mois d'historique de chaque client, et de faire mieux que l'étude de référence de 2009. Cette partie raconte la première tentative, puis la démarche reprise une fois la population contentieuse définie : les scénarios, le modèle retenu et son évaluation sur le test, ce qui limite ses performances, et les risques du projet.
     """)
 
 
@@ -478,12 +478,14 @@ def entete_partie_6():
 # GRAPHIQUE DE DÉTECTION (6.4, et section mise de côté pour la 7.1) : défauts détectés, précision, hasard
 # ==============================================================================
 def figure_detection(libelles, barres, precisions, hasard, nom_barres="Part des défauts détectés", titre_x=None, info_survol=None, y_max=100, hauteur=480,
-                     en_courbes=False, etiquetes=None, axe_numerique=False):
+                     en_courbes=False, etiquetes=None, axe_numerique=False,
+                     etiquettes_barres_dedans=False):
     """Barres : une part en % (défauts détectés ou clients signalés) ; courbe : précision des défauts prédits ;
     ligne : précision au hasard. info_survol : (libellé, valeurs) ajouté au survol des barres.
     en_courbes : la première mesure en courbe plutôt qu'en barres (beaucoup de points) ;
     etiquetes : positions (index) des points dont la valeur est écrite, toutes par défaut ;
-    axe_numerique : abscisses en nombres (parts en %, de 0 à 100) plutôt qu'en catégories."""
+    axe_numerique : abscisses en nombres (parts en %, de 0 à 100) plutôt qu'en catégories ;
+    etiquettes_barres_dedans : valeurs des barres écrites en haut, à l'intérieur (quand la courbe passe juste au-dessus)."""
     def textes(valeurs, gras=False):
         return [(f"<b>{nombre_fr(v, 0)} %</b>" if gras else f"{nombre_fr(v, 0)} %") if v is not None and (etiquetes is None or i in etiquetes) else ""
                 for i, v in enumerate(valeurs)]
@@ -500,7 +502,8 @@ def figure_detection(libelles, barres, precisions, hasard, nom_barres="Part des 
                                  customdata=info_survol[1] if info_survol else None, hovertemplate=survol + "<extra></extra>"))
     else:
         fig.add_trace(go.Bar(x=libelles, y=barres, name=nom_barres, marker_color=COULEURS["bleu_pale"],
-                             width=0.5, text=textes(barres), textposition="outside", cliponaxis=False,
+                             width=0.5, text=textes(barres), cliponaxis=False,
+                             textposition="inside" if etiquettes_barres_dedans else "outside", insidetextanchor="end",
                              textfont=dict(size=TAILLE_ETIQUETTE), customdata=info_survol[1] if info_survol else None,
                              hovertemplate=survol + "<extra></extra>"))
     fig.add_trace(go.Scatter(x=libelles, y=precisions, name="Précision des défauts prédits", mode="lines+markers+text",

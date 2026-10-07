@@ -14,7 +14,8 @@ df = load_data()
 s12 = df[(df["BILL_AMT1"] > 0) & (df["LIMIT_BAL"] <= 500000)]
 NIVEAUX = [
     ("Contentieux", "retiré avant le machine learning, prédit en défaut par la règle", 3004, 2117),
-    ("Haut risque", "coût en fausses alertes moyen", 2809, 1161),
+    ("Très haut risque", "coût en fausses alertes faible", 752, 386),
+    ("Haut risque", "coût en fausses alertes moyen", 2057, 775),
     ("Risque modéré", "coût en fausses alertes élevé", 5628, 1158),
     ("Risque faible", "non prédit en défaut", 15761, 1536),
 ]
@@ -27,24 +28,25 @@ taux_global = total_defauts / total_clients * 100
 st.subheader("Jusqu'où signaler, contentieux compris", anchor="jusqu-ou")
 cumul_clients, cumul_defauts, etapes = 0, 0, []
 # Le risque faible n'est pas signalé : on s'arrête au seuil du taux de rappel minimal
-for niveau, _, clients, defauts in NIVEAUX[:3]:
+for niveau, _, clients, defauts in NIVEAUX[:4]:
     cumul_clients += clients
     cumul_defauts += defauts
     etapes.append((niveau, cumul_defauts / total_defauts * 100, cumul_defauts / cumul_clients * 100, cumul_clients / total_clients * 100))
-libelles = ["Contentieux<br>seul", "+ haut risque", "+ risque modéré<br>(rappel minimal)"]
+libelles = ["Contentieux<br>seul", "+ très haut<br>risque", "+ haut risque", "+ risque modéré<br>(rappel minimal)"]
 
 col_graphe, col_texte = st.columns(2, vertical_alignment="center")
 with col_graphe:
     st.plotly_chart(figure_detection(libelles, [e[1] for e in etapes], [e[2] for e in etapes], taux_global,
-                                     info_survol=("Clients signalés", [e[3] for e in etapes])),
+                                     info_survol=("Clients signalés", [e[3] for e in etapes]), etiquettes_barres_dedans=True),
                     width='stretch')
 with col_texte:
     st.markdown(f"""
 Sur tout le portefeuille, on signale d'abord le contentieux, puis on descend d'un niveau à la fois.
 
 - **Le contentieux seul** trouve environ **un tiers des défauts**, avec une précision de **sept sur dix**, en signalant {nombre_fr(etapes[0][3], 0)} % des clients.
+- **Avec le très haut risque**, la tête de liste du modèle, {nombre_fr(etapes[1][1], 0)} % des défauts sont trouvés, avec une précision encore de {nombre_fr(etapes[1][2], 0)} %.
 - **Avec le haut risque**, plus de la moitié des défauts sont trouvés, et plus d'un client signalé sur deux est en défaut.
-- **Avec le risque modéré** (le seuil du taux de rappel minimal), environ **trois quarts des défauts** sont trouvés, mais en signalant {nombre_fr(etapes[2][3], 0)} % des clients : la précision tombe à environ quatre sur dix.
+- **Avec le risque modéré** (le seuil du taux de rappel minimal), environ **trois quarts des défauts** sont trouvés, mais en signalant {nombre_fr(etapes[3][3], 0)} % des clients : la précision tombe à environ quatre sur dix.
 - **Le risque faible n'est pas signalé** : il garde environ un quart des défauts, que le modèle ne sait pas repérer. Aller les chercher demanderait de signaler bien plus de clients, pour une précision qui se rapproche du hasard (page 6.4, section 3).
 
 Chaque niveau ajouté rapporte de moins en moins de défauts par client signalé. **Jusqu'où signaler est un choix de la banque**, selon ce que lui coûte une fausse alerte face à un défaut manqué.
