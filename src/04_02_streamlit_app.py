@@ -108,6 +108,7 @@ pages = {
         st.Page("streamlit_pages/p6_2_demarche.py", title="6.2 La nouvelle démarche : séparer le contentieux du reste", icon=":material/route:"),
         st.Page("streamlit_pages/p6_3_scenarios.py", title="6.3 Les scénarios : les variables de l'exploration n'apportent presque rien de plus", icon=":material/show_chart:"),
         st.Page("streamlit_pages/p6_4_test.py", title="6.4 Le modèle retenu, jugé sur le test : un outil pour classer les clients par niveau de risque", icon=":material/fact_check:"),
+        st.Page("streamlit_pages/p6_5_plafond.py", title="6.5 Pourquoi le modèle plafonne : une part des défauts ne s'annonce pas dans les données", icon=":material/block:"),
     ],
 }
 # Menu automatique masqué : il se placerait au-dessus du logo et du titre.
