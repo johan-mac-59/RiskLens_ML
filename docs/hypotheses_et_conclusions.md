@@ -136,6 +136,11 @@ Sur les mêmes 28 851 clients du niveau 5 (`essai_jeu_de_base_deux_populations.i
 - **Sans modèle**, la règle « tout le contentieux en défaut » donne déjà un taux d'erreur de 0,175 sur le niveau 5 (`essai_jeu_corrige_deux_populations.ipynb`, section 6) ; sur le fichier brut, la règle de la banque (`PAY_1` ≥ 2) donne 0,180, et règle + ML : taux d'erreur 0,180, ratio d'aire 0,564, **sur le même périmètre que l'étude** (`essai_jeu_de_base_deux_populations.ipynb`, section 5).
 - L'article contient des incohérences (25 000 observations annoncées pour 30 000 dans le fichier ; 22,12 % de défauts puis 87,88 % de clients sans risque).
 
+**À dire dans la conclusion, avant tout chiffre** : la comparaison avec l'étude ne peut pas être exacte, pour trois raisons.
+- **Leur objectif n'était pas le nôtre.** L'étude cherche d'abord à **bien estimer la probabilité de défaut** (sa méthode de lissage, *Sorting Smoothing Method*, et la régression entre probabilité estimée et « vraie » probabilité, R² de 0,965 pour le réseau de neurones) et à **bien trier** les clients (ratio d'aire). Elle ne cherche pas à **détecter** un maximum de défauts à un seuil choisi : elle ne publie ni rappel ni précision, et son taux d'erreur suppose un seuil qu'elle ne décrit pas. Nos modèles sont réglés pour détecter (précision au rappel de 60 %, ou règle marginale) et pondèrent les défauts : leurs probabilités sont décalées vers le haut, donc mal calibrées au sens de l'étude.
+- **Les modèles ont progressé depuis.** Le réseau de neurones de l'étude est un réseau à rétropropagation de 2009 ; les modèles de boosting d'arbres utilisés ici (CatBoost, comme XGBoost et LightGBM) sont apparus après (années 2016 à 2018), avec la validation croisée et la recherche automatique de réglages devenues courantes. Que notre meilleur modèle trie un peu mieux (ratio d'aire) est attendu ; que l'écart reste faible confirme que la limite vient des données (H1).
+- **Nos traitements diffèrent des leurs, sans que l'on connaisse les leurs en détail** : un seul découpage chez eux (proportions non précisées, environ la moitié des clients en validation d'après leurs courbes de gain), une validation croisée à 5 plis ici ; réglages, mise à l'échelle et traitement du déséquilibre non décrits chez eux ; ici, logarithme des montants, pondération des défauts, contrôle du surapprentissage, retrait du contentieux (version finale) ou séparation par la règle (comparatif global).
+
 ---
 
 ## 6. Ce qui manque pour aller plus loin (ouverture)
@@ -158,3 +163,4 @@ Sur les mêmes 28 851 clients du niveau 5 (`essai_jeu_de_base_deux_populations.i
 | Ajouter la stratégie « un seul ML » aux deux synthèses (cellules d'enregistrement des essais à un seul modèle, puis synthèse) | H10, H12 | à faire |
 | Essai au périmètre du niveau 4 (`PAY_n` non corrigés) pour isoler l'effet des corrections | H7 | piste, non lancé |
 | Règle de verdict avec un gain minimal | méthode | à décider |
+| Mesurer la calibration à la manière de l'étude (lissage, régression probabilité estimée / « vraie », R²) sur les probabilités hors pli, éventuellement après calibration des modèles : comparaison sur leur objectif principal | section 5 | piste, non lancé |
