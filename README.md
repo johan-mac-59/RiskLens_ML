@@ -7,8 +7,6 @@
 ![Scikit-Learn](https://img.shields.io/badge/Library-Scikit--Learn-orange.svg)
 ![Streamlit](https://img.shields.io/badge/UI-Streamlit-red.svg)
 
-####  *🚧 Projet en cours de développement dans le cadre de ma formation Data & IA (Évolution active vers l'intégration du Machine Learning).*
-
 ## 📌 Présentation de mon projet de fin de bootcamp
 **RiskLens ML** est une mission Data & IA complète visant à transformer des données transactionnelles historiques en un outil d'aide à la décision pour la gestion du risque crédit.
 Durée prévue : 7 semaines à partir du 30 août  
@@ -20,8 +18,8 @@ Le projet suit un cycle de vie data complet : du diagnostic initial et la struct
 
 L'enjeu est de déterminer si les habitudes de paiement et l'utilisation du crédit ainsi que les informations de bases d'un client sont des indicateurs suffisamment robustes pour anticiper un défaut, sans avoir accès à des données macro-économiques ou des scores de crédit externes.
 
-Ce dataset est la base de données publique qui résulte de l'[étude scientifique de I-Cheng Yeh et Che-hui Lien (2009)](/docs/DefaultCreditCardClients_yeh_2009.pdf) (traduit en français [ici](/docs/traduction_DefaultCreditCardClients_yeh_2009.md)). Cette étude comparait plusieurs modèles pour repérer les clients à risque. Le meilleur, un réseau de neurones, obtenait un score de 0.54, ce qui correspond à un **AUC de 0.77**. L'AUC mesure la capacité d'un modèle à distinguer les bons payeurs des futurs défaillants. Mon but est de dépasser ce score.
-Ma démarche adopte un prisme résolument **orienté métier**. En combinant une compréhension approfondie du jeu de données (le fonctionnement de la banque, de ses codifications et des paiements de l'époque), un nettoyage rigoureux fondé sur des règles métier et un pilotage par un score de décision (moyenne du ROC AUC et du F2 score, qui privilégie le Recall), je cherche à optimiser la détection réelle des risques de défaut, garantissant ainsi une performance robuste et réellement actionnable pour la gestion des risques bancaires.
+Ce dataset est la base de données publique qui résulte de l'[étude scientifique de I-Cheng Yeh et Che-hui Lien (2009)](/docs/DefaultCreditCardClients_yeh_2009.pdf) (traduit en français [ici](/docs/traduction_DefaultCreditCardClients_yeh_2009.md)). Cette étude comparait plusieurs modèles pour repérer les clients à risque. Le meilleur, un réseau de neurones, obtenait un score de 0.54, ce qui correspond à un **AUC de 0.77**. L'AUC mesure la capacité d'un modèle à distinguer les bons payeurs des futurs défaillants. Mon but était de dépasser ce score. Sur le même fichier, mes modèles trient un peu mieux (score de 0,567, soit un AUC d'environ 0,78), mais la comparaison reste indicative : l'étude cherchait surtout à bien estimer la probabilité de défaut, pas à détecter un maximum de défauts, et ne publie ni rappel ni précision ([détail](/docs/hypotheses_et_conclusions.md)).
+Ma démarche adopte un prisme résolument **orienté métier**. En combinant une compréhension approfondie du jeu de données (le fonctionnement de la banque, de ses codifications et des paiements de l'époque), un nettoyage rigoureux fondé sur des règles métier et un pilotage par la **précision des défauts prédits** à un taux de détection fixé (le rappel minimal), je cherche à optimiser la détection réelle des risques de défaut. Le résultat est présenté par **niveaux de risque**, pour une gestion des risques bancaires réellement actionnable.
 
 
 #### 🕵️‍♂️ Pour aller plus loin : Les coulisses de la donnée
@@ -29,6 +27,16 @@ Ma démarche adopte un prisme résolument **orienté métier**. En combinant une
 Si la problématique pose le cadre quantitatif, ce dataset est né d'un séisme financier bien réel : **la crise des cartes de crédit à Taïwan en 2005** (la crise des *"Card Monsters"*). 
 
 Pour découvrir comment des détails logistiques de l'époque (comme les règlements en espèces dans les supérettes 7-Eleven créant des décalages sur la variable `PAY_1`) ou les parallèles avec le **Buy Now, Pay Later (BNPL)** actuel éclairent ce projet d'un point de vue purement métier : 📖 **[Consulter l'analyse complète du contexte historique et technique](docs/contexte.md)**
+
+
+## 🏁 Résultats en bref
+
+*   **Une règle métier avant tout modèle** : les clients au contentieux (deux codifications de retard d'affilée, soit au moins 90 jours) représentent environ 10 % des clients et un tiers des défauts, avec 7 prédictions justes sur 10, sans aucun modèle. Un modèle dédié à cette population a été essayé : avec l'exigence de la banque (ne sortir un client du contentieux que s'il a au moins 9 chances sur 10 de payer), il ne sait sortir personne. La règle reste la décision.
+*   **Le machine learning pour les autres clients** : la version finale, confirmée sur un jeu de test jamais vu, classe les clients par niveau de risque : environ 4 sur 10 font défaut en **haut risque**, 2 sur 10 en **risque modéré**, 1 sur 10 en **risque faible**. Règle et modèle ensemble repèrent environ trois quarts des défauts en signalant environ 4 clients sur 10 : un outil de **priorisation**, pas de sanction.
+*   **Une limite mesurée** : environ un tiers des défauts ne s'annonce pas dans le comportement des six mois. La cible semble suivre le statut posé par la banque plutôt qu'un défaut de paiement observé ; c'est elle qui fixe le plafond des modèles.
+*   **Réponse à la problématique** : oui, en partie. Le comportement de paiement explique une partie du défaut, à l'échelle des groupes de clients, mais pas au client près ; une fois le contentieux mis à part, les montants (factures, paiements, plafond) portent l'essentiel de ce qui est prévisible.
+
+Détails : [journal du machine learning](/lab_ML/tableau_ML.md), [méthodologie](/lab_ML/methodologie_ML.md), [hypothèses et conclusions](/docs/hypotheses_et_conclusions.md).
 
 
 ## 🚀 Roadmap & Étapes du Projet
@@ -58,16 +66,12 @@ Pour découvrir comment des détails logistiques de l'époque (comme les règlem
 *   Dashboard interactif sous **Streamlit**, construit au fil de l'analyse : chaque graphique et chaque chiffre est recalculé en direct sur les données.
 *   Restitution en ligne : [accéder au site Streamlit](https://risklens-ml.streamlit.app/)
 
-### ⚖️ Étape intermédiaire : Isoler la population contentieuse par une règle métier
-*   Définition d'une population contentieuse par une règle métier explicable : deux codifications de retard d'affilée, soit au moins 90 jours : [EDA contentieux](/src/05_02_EDA_contentieux.ipynb)
-*   Correction des codifications incohérentes et création d'indicateurs pour le Machine Learning, inscrites au nettoyage : [nettoyage](/src/02_01_nettoyage.ipynb)
-*   Résultat : environ 10 % des clients, un tiers des défauts, 7 prédictions justes sur 10, sans aucun modèle.
-
 ### 🧠 Étape 6 : Machine Learning & Risques
-*   Entraînement et comparaison d'au moins 2 modèles via **GridSearch**, sur le dataset **nettoyé de sa population contentieuse**. Première itération, sur le dataset complet : [journal des expérimentations](/lab_ML/1ere_iteration/tableau_ML.md).
-*   Sélection du modèle optimal sur un **score de décision** combinant ROC AUC et F2 score (le F2 privilégie le Recall : minimisation des faux négatifs).
-*   Évaluation du **système complet** (règle contentieux + modèle) sur le même jeu de test, comparée à la règle seule, aux premiers modèles et à l'étude de référence.
-*   **Évaluation des risques :** Analyse des biais, éthique et limites du modèle.
+*   Modèles entraînés sur les clients à encours positif, **sans la population contentieuse** (traitée par la règle métier), avec un découpage entraînement / test propre au machine learning : [création des jeux](/lab_ML/creation_datasets_ML.ipynb).
+*   Six modèles comparés (régression logistique, SVM, KNN, réseau de neurones, RandomForest, CatBoost), puis les quatre meilleurs gardés pour la phase finale (régression logistique, réseau de neurones, RandomForest, CatBoost), réglés par une **boucle automatique de GridSearch** sous contrainte de surapprentissage, en validation croisée à 5 plis ; réglage sur la **précision des défauts prédits** au rappel minimal (60 % des défauts), classement par le score décisionnel F2.
+*   Variables ajoutées par scénarios, puis élaguées ; chaque scénario comparé à sa référence pli par pli, les écarts serrés tranchés par une validation croisée répétée : [journal des scénarios](/lab_ML/tableau_ML.md).
+*   **Version finale** : 21 variables, aucune donnée démographique, CatBoost ; lue **une seule fois** sur le jeu de test, qui confirme la validation : [évaluation finale](/lab_ML/evaluation_finale_test.ipynb).
+*   **Limites** : analyse des défauts que les modèles manquent et de la cible elle-même : [méthodologie, section 13](/lab_ML/methodologie_ML.md).
 
 ### 🎙️ Étape 7 : Storytelling & Restitution
 *   Synthèse finale et présentation orale adaptée à un public non technique.
@@ -115,5 +119,7 @@ Le projet est entièrement déployé dans le cloud selon une architecture décou
 * **Front-end / UI :** Streamlit Cloud
 
 ## 🔭 Axes d'amélioration
-*   **Modéliser la population contentieuse comme une sous-population spécifique** : les clients au contentieux sont aujourd'hui écartés du ML et traités par une règle métier, car un client déjà au contentieux relève du recouvrement et non de la prévention du défaut. Un modèle dédié à cette sous-population serait techniquement possible (par exemple pour distinguer les clients qui régularisent de ceux qui restent en défaut), mais il répondrait à une autre question que celle du projet.
-*   **Départager les PAY_1 = 1 après un retard** : au dernier mois observé, la banque code 1 des clients dont on ne sait pas encore s'ils sortent du retard (statut d'attente). Hors dette soldée ou absence totale de paiement, aucune règle métier ne permet de trancher ; un modèle combinant la durée du retard, les paiements et l'évolution du solde pourrait en départager une partie.
+*   **Obtenir la définition exacte de la cible (`dpnm`)** : elle n'est pas documentée, et ne semble pas être un simple défaut de paiement observé (des clients sans dette sont comptés en défaut). C'est la condition de toute amélioration.
+*   **Obtenir les vrais encours et la liste réelle des clients en incident** (recouvrement, contentieux) : le montant du relevé n'est pas la dette réelle, et la population contentieuse est ici reconstruite à partir des codifications.
+*   **Départager les PAY_1 = 1 après un retard par un modèle** : au dernier mois observé, la banque codifie 1 des clients dont on ne sait pas encore s'ils sortent du retard (statut d'attente). Hors dette soldée ou absence totale de paiement, aucune règle métier ne permet de trancher ; un modèle combinant la durée du retard, les paiements et l'évolution du solde pourrait en départager une partie, mais ce travail dépend fortement de la définition réelle de la cible.
+*   **Estimer une probabilité de défaut par client** (calibration), l'objectif principal de l'étude d'origine, au lieu d'un taux par niveau de risque.
