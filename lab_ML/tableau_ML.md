@@ -9,7 +9,7 @@
 La méthode commune à tous les scénarios (données, étalon, validation, boucle d'optimisation, raisons d'arrêt, alertes, fichiers enregistrés, évaluation finale) est décrite dans [`methodologie_ML.md`](methodologie_ML.md). En bref :
 
 * **Données** : périmètre S12 sans les clients au contentieux à M, découpage 80/20 propre au ML ([`creation_datasets_ML.ipynb`](creation_datasets_ML.ipynb)) ; le test n'est lu qu'une seule fois, à la toute fin du machine learning, une fois tous les scénarios faits et le modèle final figé (jamais dans un notebook de scénario).
-* **Étalon** : la **précision des défauts prédits, au taux de rappel minimal** (60 % pour commencer, objectif 70 %), en validation croisée à 5 plis sur le train, avec son écart-type ; un gain plus petit que l'écart-type n'est pas retenu. Elle se compare au taux de défaut du train (environ 16 %), précision d'un tri au hasard.
+* **Étalon** : la **précision des défauts prédits, au taux de rappel minimal** (objectif : détecter 60 % des défauts hors contentieux ; bilan de l'évaluation finale : objectif trop ambitieux en précision, environ un client signalé sur quatre réellement en défaut, d'où une présentation finale par niveaux de risque), en validation croisée à 5 plis sur le train, avec son écart-type ; un gain plus petit que l'écart-type n'est pas retenu. Elle se compare au taux de défaut du train (environ 16 %), précision d'un tri au hasard.
 * **Hyperparamètres** : boucle automatique de GridSearch, sous contrainte de surapprentissage, jusqu'à stabilisation du modèle.
 * **Un notebook par scénario** : `ml_0`, `ml_1`… Chaque scénario part du précédent retenu et ajoute un petit groupe de colonnes.
 
