@@ -475,6 +475,41 @@ def entete_partie_6():
 
 
 # ==============================================================================
+# DÉMOS (menu « Tests ») : légende des niveaux de risque, du plus risqué au moins risqué
+# ==============================================================================
+NIVEAUX_DEMO = {
+    "Retiré par le nettoyage": (COULEURS["gris"], "white", "paiement géant, compte inactif ou plafond de plus de 500 000 NT$ : hors du système"),
+    "Sans encours en septembre": ("#BBBBBB", "black", "rien à rembourser fin septembre : hors du périmètre"),
+    "Contentieux (règle)": (COULEURS["bordeaux"], "white", "deux retards de deux mois ou plus d'affilée, sans sortie"),
+    "Très haut risque": (COULEURS["rouge_pale"], "white", "score du modèle au-dessus du seuil de 10 % des défauts"),
+    "Haut risque": (COULEURS["orange"], "black", "score entre les seuils de 10 % et 30 % des défauts"),
+    "Risque modéré": (COULEURS["jaune"], "black", "score entre les seuils de 30 % et 60 % des défauts"),
+    "Risque faible": (COULEURS["turquoise"], "white", "score sous le seuil de 60 % des défauts"),
+}
+# Niveaux du modèle signalés selon la part des défauts visée (clé du seuil dans bornes_niveaux.json)
+SIGNALES_DEMO = {"tres_haut_risque": ["Très haut risque"], "haut_risque": ["Très haut risque", "Haut risque"],
+                 "risque_modere": ["Très haut risque", "Haut risque", "Risque modéré"]}
+
+
+def legende_niveaux(taux, seuil_choisi):
+    """Tableau coloré des niveaux de risque des démos ; taux : {niveau: taux de défaut réel en %}, seuls ces niveaux sont affichés ;
+    seuil_choisi : clé du seuil sélectionné, qui décide des niveaux signalés par le modèle."""
+    def decision(nom):
+        if nom == "Contentieux (règle)":
+            return ("<b>prédit en défaut par la règle</b>", "")
+        if nom in NIVEAUX_DEMO and nom in SIGNALES_DEMO["risque_modere"] + ["Risque faible"]:
+            return ("<b>signalé</b>", "background: rgba(204, 102, 119, 0.25);") if nom in SIGNALES_DEMO[seuil_choisi] else ("non signalé", "")
+        return ("hors du système", "")
+    st.markdown("**Les niveaux de risque, avec le seuil choisi**")
+    tableau_html(["Niveau", "Comment le client y arrive", "Décision", "Défaut réel"],
+                 [[(f"<b>{nom}</b>", f"background: {fond}; color: {texte};"), definition, decision(nom), f"{nombre_fr(taux[nom], 1)} %"]
+                  for nom, (fond, texte, definition) in NIVEAUX_DEMO.items() if nom in taux],
+                 largeurs=[26, 38, 20, 16])
+    st.caption("Défaut réel : part des clients du niveau réellement en défaut de paiement en octobre 2005, sur toute la réserve de la démo. "
+               "Seuils fixés sur le jeu d'entraînement.")
+
+
+# ==============================================================================
 # GRAPHIQUE DE DÉTECTION (6.4, et section mise de côté pour la 7.1) : défauts détectés, précision, hasard
 # ==============================================================================
 def figure_detection(libelles, barres, precisions, hasard, nom_barres="Part des défauts détectés", titre_x=None, info_survol=None, y_max=100, hauteur=480,

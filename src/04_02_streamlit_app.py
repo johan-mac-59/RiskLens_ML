@@ -111,6 +111,10 @@ pages = {
         st.Page("streamlit_pages/p6_5_plafond.py", title="6.5 Pourquoi le modèle plafonne : une part des défauts ne s'annonce pas dans les données", icon=":material/block:"),
         st.Page("streamlit_pages/p6_6_risques.py", title="6.6 L'évaluation des risques : ce qui peut tromper, et comment le limiter", icon=":material/warning:"),
     ],
+    "🪣 Tests": [
+        st.Page("streamlit_pages/demo_1_systeme_complet.py", title="Démo 1 : le système complet en direct", icon=":material/science:"),
+        st.Page("streamlit_pages/demo_2_fichier_origine.py", title="Démo 2 : test grandeur nature, à partir du fichier d'origine", icon=":material/science:"),
+    ],
 }
 # Menu automatique masqué : il se placerait au-dessus du logo et du titre.
 # Le menu est reconstruit ci-dessous avec st.page_link, sous le logo et le titre.
