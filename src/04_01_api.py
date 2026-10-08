@@ -81,6 +81,10 @@ class HistoriqueUpdateRequest(BaseModel):
     montant_paye: Optional[int] = Field(default=None, description="Nouveau montant payé", ge=0)
     code_statut_paiement: Optional[int] = Field(default=None, description="Nouveau code statut de paiement : de -2 à 9", ge=STATUT_PAIEMENT_MIN, le=STATUT_PAIEMENT_MAX)
     
+class LotClientsRequest(BaseModel):
+    """Modèle de la lecture par lot : une liste d'identifiants de clients."""
+    ids: list[int] = Field(..., description="Identifiants des clients à lire (client_id), sans limite de nombre", min_length=1)
+
 class ClientUpdateRequest(BaseModel):
     """Modèle pour la mise à jour partielle d'un client."""
     age: Optional[int] = Field(default=None, description="Âge du client", ge=AGE_MIN, le=AGE_MAX)
@@ -306,6 +310,66 @@ def lire_historique_client(client_id: int):
             conn.close()
     
     
+# Route Post : Lire un lot de clients (fiche + historique mensuel) en un seul appel
+# Créée pour la démo du système complet (règle du contentieux puis modèle) : elle lit des milliers de clients d'un coup,
+# là où les routes GET demandent deux appels par client (fiche, puis historique)
+@app.post("/clients/lot", tags=["Lecture par lot"])
+def lire_un_lot_de_clients(lot: LotClientsRequest):
+    """
+    Lit plusieurs clients en un seul appel : pour chaque identifiant envoyé, la **fiche** du client
+    (mêmes champs que `GET /client/{client_id}`) et son **historique mensuel** (mêmes champs que
+    `GET /historique_mensuel/{client_id}`).
+
+    - **Pourquoi cette route** : la démo du système complet traite des lots de plusieurs milliers de clients ;
+      avec les routes GET, il faut deux appels par client.
+    - **Aucune limite de nombre** : les identifiants sont lus par paquets dans la base.
+    - **Ordre** : les clients sont renvoyés dans l'ordre des identifiants envoyés (doublons ignorés).
+    - **Identifiants absents de la base** (client supprimé entre-temps, identifiant inconnu) : renvoyés dans la liste
+      `introuvables`, sans faire échouer l'appel.
+    """
+    ids = list(dict.fromkeys(lot.ids))      # doublons retirés, ordre conservé
+    TAILLE_PAQUET = 900                     # sous la limite de variables par requête des anciennes versions de SQLite (999)
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        fiches, historiques = {}, {}
+        for debut in range(0, len(ids), TAILLE_PAQUET):
+            paquet = ids[debut:debut + TAILLE_PAQUET]
+            marqueurs = ", ".join("?" * len(paquet))
+            cursor.execute(f"SELECT * FROM client WHERE client_id IN ({marqueurs})", paquet)
+            for row in cursor.fetchall():
+                fiches[row["client_id"]] = dict(row)
+            cursor.execute(f"""
+                SELECT h.client_id, d.mois, d.annee, h.montant_encours, h.montant_paye, h.code_statut_paiement
+                FROM historique_mensuel h
+                JOIN dim_date d ON h.date_id = d.date_id
+                WHERE h.client_id IN ({marqueurs})
+                ORDER BY h.client_id, d.annee DESC, d.mois ASC
+            """, paquet)
+            for row in cursor.fetchall():
+                historiques.setdefault(row["client_id"], []).append({
+                    "date_complexe": {"mois_num": row["mois"], "annee": row["annee"]},
+                    "montant_encours": row["montant_encours"],
+                    "montant_paye": row["montant_paye"],
+                    "code_statut_paiement": row["code_statut_paiement"],
+                })
+
+        clients = [{"client": fiches[i], "historique": historiques.get(i, [])} for i in ids if i in fiches]
+        return {
+            "nombre_demandes": len(ids),
+            "nombre_trouves": len(clients),
+            "clients": clients,
+            "introuvables": [i for i in ids if i not in fiches],
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.get("/historique_mensuel/{client_id}/{mois}/{annee}", tags=["Gestion historique"])
 def lire_historique_mensuel(client_id: int, mois: MoisEnum, annee: int):
     """
