@@ -47,8 +47,10 @@ with tab_clients:
                     with col2:
                         st.metric("Plafond", f"{client_data.get('plafond', 'N/A')} NT$")
                     with col3:
+                        # Défaut constaté en octobre 2005 : libellé lu dans les tables de correspondance (Non défaillant / Défaillant)
                         statut_defaut = client_data.get('code_statut_defaut', 0)
-                        st.metric("Statut Défaut", "⚠️ Risqué" if statut_defaut == 1 else "✅ Sûr")
+                        libelle_defaut = mappings.get("statut_defaut", {}).get(statut_defaut, statut_defaut)
+                        st.metric("Statut de défaut", f"{'⚠️' if statut_defaut == 1 else '✅'} {libelle_defaut}")
                     
                     st.markdown("#### 📋 Détails complets")
                     df_client = pd.DataFrame([client_data])

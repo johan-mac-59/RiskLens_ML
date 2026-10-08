@@ -237,7 +237,6 @@ def lire_et_noter(id_client):
     except requests.exceptions.RequestException as e:
         prediction = {"erreur": str(e)}
     st.session_state.client_3 = {"ligne": pd.DataFrame([ligne]), "reponses": reponses, "prediction": prediction}
-    st.session_state.revele_3 = False
 
 
 tirage = st.button("🎲 Un client au hasard : lire dans la base et noter", type="primary", key="tirage_3")
@@ -252,47 +251,68 @@ if c2.button("📡 Lire ce client dans la base et le noter", key="lecture_api_3"
 if "client_3" in st.session_state:
     brut = st.session_state.client_3["ligne"]
     b = brut.iloc[0]
-    score = noter(brut)
+    fiche = st.session_state.client_3["reponses"][0]
+    score = noter(brut)                                   # calcul en direct, par le modèle du pli qui n'a pas vu le client
     k = int(classer(score)[0])
-    st.markdown(f"#### Client n° {int(b['ID'])}, plafond de crédit : {nombre_fr(b['LIMIT_BAL'])} NT$")
-    with st.expander("Voir les réponses de l'API (JSON)"):
-        st.json({"GET /client": st.session_state.client_3["reponses"][0], "GET /historique_mensuel": st.session_state.client_3["reponses"][1]})
+    prediction = st.session_state.client_3.get("prediction", {})
+    p = prediction["predictions"][0] if prediction.get("predictions") else None   # prédiction enregistrée dans la base
+    en_defaut = fiche["code_statut_defaut"] == 1
+    declare = k >= classe_min                             # décision au seuil choisi plus haut
+
+    # Fiche du client, telle qu'un conseiller la consulterait : identité, niveau de risque et statut de défaut, historique
+    libelles = load_mappings()
+    if declare and en_defaut:
+        verdict = "le modèle avait vu juste : un défaut détecté"
+    elif declare:
+        verdict = "c'est une fausse alerte : le client a payé"
+    elif en_defaut:
+        verdict = "c'est un défaut que le modèle n'a pas détecté"
+    else:
+        verdict = "le modèle avait vu juste : un client qui a payé"
+    couleur = COULEURS_CLASSES.get(k, BLEU_INFO)
+    st.markdown(f"<div style='border-bottom: 3px solid {couleur}; padding-bottom: 6px; margin: 1rem 0;'>"
+                f"<span style='font-size: 1.6rem; font-weight: 700;'>🗂️ Fiche client n° {int(b['ID'])}</span></div>", unsafe_allow_html=True)
+    col_identite, col_risque = st.columns([3, 2])
+    with col_identite:
+        st.markdown("**Identité et crédit**")
+        c1, c2 = st.columns(2)
+        carte_chiffre(c1, "Âge", f"{fiche['age']} ans", "#262730")
+        carte_chiffre(c2, "Plafond de crédit", f"{nombre_fr(fiche['plafond'])} NT$", "#262730")
+        carte_chiffre(c1, "Genre", libelles.get("genre", {}).get(fiche["code_genre"], fiche["code_genre"]), "#262730")
+        carte_chiffre(c2, "Statut marital", libelles.get("statut_marital", {}).get(fiche["code_marital"], fiche["code_marital"]), "#262730")
+        carte_chiffre(c1, "Niveau d'études", libelles.get("niveau_scolaire", {}).get(fiche["code_scolaire"], fiche["code_scolaire"]), "#262730")
+    with col_risque:
+        st.markdown("**Risque et défaut**")
+        carte_chiffre(st, "Niveau de risque (prévision du modèle)", p["description_classe"] if p else f"Niveau risque {k}/9", couleur)
+        carte_chiffre(st, "Statut de défaut (octobre 2005)", f"{'⚠️' if en_defaut else '✅'} {libelles.get('statut_defaut', {}).get(fiche['code_statut_defaut'], fiche['code_statut_defaut'])}", "#B2182B" if en_defaut else BLEU_INFO)
+        st.markdown(f"Le **niveau de risque** est la prévision du modèle à partir des six mois d'avril à septembre 2005 : les clients de ce niveau "
+                    f"font défaut à {nombre_fr(TAUX_CLASSE[k], 1)} %. Au seuil choisi plus haut ({choix}), ce client est "
+                    f"**{'déclaré' if declare else 'non déclaré'} en défaut**. Le **statut de défaut** est ce qui s'est réellement passé : "
+                    f"**{verdict}**.")
+
+    st.markdown("**Historique des six derniers mois**")
     tableau_html(["", *[m for _, m in MOIS_CHRONO]], [
-        ["<b>Codification du mois (PAY_n)</b>", *[cellule_codif(b[f"PAY_{n}"]) for n, _ in MOIS_CHRONO]],
+        ["<b>Codification de paiement</b>", *[cellule_codif(b[f"PAY_{n}"]) for n, _ in MOIS_CHRONO]],
         ["<b>Facture en fin de mois (NT$)</b>", *[nombre_fr(b[f"BILL_AMT{n}"]) for n, _ in MOIS_CHRONO]],
         ["<b>Paiement du mois (NT$)</b>", *[nombre_fr(b[f"PAY_AMT{n}"]) for n, _ in MOIS_CHRONO]],
     ], largeurs=[28] + [12] * 6)
-    st.caption("Les données brutes, telles qu'elles sont dans la base : le modèle de cette démonstration ne reçoit aucune correction.")
-    # Décision selon le seuil choisi plus haut : elle ne dépend que du niveau de risque
-    declare = k >= classe_min
-    encadre_couleur(COULEURS_CLASSES.get(k, BLEU_INFO), f"🤖 Le modèle place ce client en **niveau risque {k}/9**. Client **{'déclaré' if declare else 'non déclaré'} "
-                                                          f"en défaut par le modèle** au seuil de {choix} (seuil choisi plus haut).")
-    st.markdown(f"Sur tout le dataset, le taux de défaut constaté des clients de ce niveau est de **{nombre_fr(TAUX_CLASSE[k], 1)} %**.")
-    # La prédiction enregistrée dans la base, face au calcul en direct
-    prediction = st.session_state.client_3.get("prediction", {})
-    if prediction.get("predictions"):
-        p = prediction["predictions"][0]
-        identique = p["classe_risque"] == k and abs(p["score"] - float(score.iloc[0])) < 1e-9
-        st.markdown(f"📦 **Prédiction enregistrée dans la base** (calcul de {p['periode']['mois_num']:02d}/{p['periode']['annee']}, route `GET /prediction`) : "
-                    f"**{p['description_classe']}**, taux de défaut constaté de ce niveau {nombre_fr(p['taux_defaut_constate_classe'], 1)} %. "
-                    + ("✅ Identique au calcul en direct." if identique else "⚠️ **Différente du calcul en direct** : la base n'est plus à jour."))
-        with st.expander("Voir la réponse de l'API (JSON)"):
-            st.json(prediction)
-    else:
-        st.caption("📦 Prédiction enregistrée dans la base : indisponible pour ce client"
-                   + (f" ({prediction['erreur']})." if prediction.get("erreur") else "."))
-    regle, place = regle_metier(brut)
-    st.markdown(f"Pour comparer, **la règle métier du projet** : {place.iloc[0].lower()}"
-                + (", donc déclaré en défaut par la règle." if regle.iloc[0] else "."))
-    st.caption("Le modèle ne donne pas une probabilité fiable pour un client seul (les défauts ont plus de poids pendant l'apprentissage) : "
-               "on affiche son niveau de risque, et le taux de défaut constaté dans ce niveau.")
-    if st.button("🔍 Révéler ce qui s'est passé en octobre 2005", key="revele_bouton_3"):
-        st.session_state.revele_3 = True
-    if st.session_state.get("revele_3"):
-        if b["dpnm"] == 1:
-            st.error("Le client a été **en défaut de paiement** en octobre 2005.")
+
+    with st.expander("Détails techniques : origine des données, contrôle, comparaison avec la règle métier"):
+        if p:
+            identique = p["classe_risque"] == k and abs(p["score"] - float(score.iloc[0])) < 1e-9
+            st.markdown(f"- **Niveau de risque** lu dans la base (table `prediction`, calcul de {p['periode']['mois_num']:02d}/{p['periode']['annee']}, "
+                        f"route `GET /prediction`) : " + ("✅ identique au calcul en direct par le modèle." if identique
+                                                          else "⚠️ différent du calcul en direct : la base n'est plus à jour."))
         else:
-            st.success("Le client **n'a pas été en défaut de paiement** en octobre 2005.")
+            st.markdown("- **Niveau de risque** calculé en direct : la prédiction enregistrée dans la base est indisponible"
+                        + (f" ({prediction['erreur']})." if prediction.get("erreur") else "."))
+        regle, place = regle_metier(brut)
+        st.markdown(f"- **Règle métier du projet**, pour comparer : {place.iloc[0].lower()}"
+                    + (", donc déclaré en défaut par la règle." if regle.iloc[0] else "."))
+        st.markdown("- **Données** : brutes, telles qu'elles sont dans la base ; le modèle de cette démonstration ne reçoit aucune correction. "
+                    "Le modèle ne donne pas une probabilité fiable pour un client seul (les défauts ont plus de poids pendant l'apprentissage) : "
+                    "on affiche son niveau de risque, et le taux de défaut constaté dans ce niveau.")
+        st.json({"GET /client": fiche, "GET /historique_mensuel": st.session_state.client_3["reponses"][1], "GET /prediction": prediction})
 
 # ==============================================================================
 # 3. FACE À LA RÈGLE MÉTIER DU PROJET
