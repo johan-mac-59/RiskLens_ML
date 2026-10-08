@@ -310,6 +310,46 @@ def lire_historique_client(client_id: int):
             conn.close()
     
     
+# Route Get : Lire les prédictions d'un client (niveau de risque)
+@app.get("/prediction/{client_id}", tags=["Prédictions"])
+def lire_predictions_client(client_id: int):
+    """
+    Renvoie les prédictions enregistrées pour un client : pour chaque modèle et chaque période de calcul, son **score**
+    et sa **classe de risque** (1 = la moins risquée ; le chiffre augmente avec le risque), avec la description de la classe
+    et le **taux de défaut constaté** de ses clients.
+
+    La décision « déclaré en défaut » n'est pas enregistrée : elle dépend du seuil choisi par la banque, et se déduit de la classe.
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM client WHERE client_id = ?", (client_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Le client n'existe pas.")
+        cursor.execute("""
+            SELECT p.date_id, d.mois, d.annee, m.description AS modele, p.score, p.code_classe_risque,
+                   c.description AS classe, c.taux_defaut_constate
+            FROM prediction p
+            JOIN dim_date d ON p.date_id = d.date_id
+            JOIN modele m ON p.code_modele = m.code_modele
+            JOIN classe_risque c ON p.code_modele = c.code_modele AND p.code_classe_risque = c.code_classe_risque
+            WHERE p.client_id = ?
+            ORDER BY p.date_id DESC, p.code_modele
+        """, (client_id,))
+        predictions = [{"periode": {"mois_num": r["mois"], "annee": r["annee"]}, "modele": r["modele"], "score": r["score"],
+                        "classe_risque": r["code_classe_risque"], "description_classe": r["classe"],
+                        "taux_defaut_constate_classe": r["taux_defaut_constate"]} for r in cursor.fetchall()]
+        return {"client_id": client_id, "nombre_predictions": len(predictions), "predictions": predictions}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur BDD : {str(e)}")
+    finally:
+        if conn:
+            conn.close()
+
+
 # Route Post : Lire un lot de clients (fiche + historique mensuel) en un seul appel
 # Créée pour la démo du système complet (règle du contentieux puis modèle) : elle lit des milliers de clients d'un coup,
 # là où les routes GET demandent deux appels par client (fiche, puis historique)
@@ -722,6 +762,7 @@ def supprimer_un_client(client_id: int):
 
         # 2. Nettoyage : Supprimer l'historique lié (si on ne veut pas de CASCADE en BDD)
         cursor.execute("DELETE FROM historique_mensuel WHERE client_id = ?", (client_id,))
+        cursor.execute("DELETE FROM prediction WHERE client_id = ?", (client_id,))   # prédictions du client
         
         # 3. Suppression du client
         cursor.execute("DELETE FROM client WHERE client_id = ?", (client_id,))

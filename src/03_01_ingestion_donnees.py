@@ -15,6 +15,8 @@ CSV_PATH = os.path.join(root_dir, 'data', 'creditcard_pret_ingestion.csv')
 JSON_PATH = os.path.join(root_dir, 'data', 'correspondances.json')
 DB_PATH = os.path.join(root_dir, 'database', 'creditcard.db')
 SCHEMA_PATH = os.path.join(root_dir, 'src', '03_02_creation_tables.sql')
+# Prédictions du modèle de la démo 3 (produites par lab_ML/demo_ML/creation_demo_3.ipynb, étapes 9 et 10)
+PREDICTIONS_DIR = os.path.join(root_dir, 'data', 'predictions')
 
 
 def creer_tables(db_path: str | Path, schema_path: str | Path) -> None:
@@ -175,6 +177,33 @@ def ingerer_dataset_csv(db_path: Path, csv_path: Path) -> None:
     )
     
 
+def peupler_predictions(db_path: str | Path, dossier: str | Path) -> None:
+    """Remplit la table prediction à partir du fichier de la démo 3 (les tables modele et classe_risque viennent de
+    correspondances.json, comme les autres tables de correspondance).
+
+    Fichier attendu dans `dossier` : demo_3_predictions.csv (ID, score, classe_risque). S'il manque, la base est créée sans prédictions et un message
+    le signale : les autres tables restent utilisables.
+    """
+    dossier = Path(dossier)
+    fichier_predictions = dossier / "demo_3_predictions.csv"
+    if not fichier_predictions.exists():
+        print(f"⚠️  Prédictions absentes ({dossier}) : base créée sans les tables de prédiction remplies.")
+        return
+
+    predictions = pd.read_csv(fichier_predictions)
+    CODE_MODELE = 1        # modèle de la démo 3 (table modele, correspondances.json)
+    DATE_CALCUL = 200509   # données d'avril à septembre 2005 : prédiction du défaut d'octobre 2005
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA foreign_keys = ON;")
+    cursor.executemany("INSERT INTO prediction (client_id, date_id, code_modele, score, code_classe_risque) VALUES (?, ?, ?, ?, ?)",
+                       [(int(r.ID), DATE_CALCUL, CODE_MODELE, float(r.score), int(r.classe_risque)) for r in predictions.itertuples()])
+    conn.commit()
+    conn.close()
+    print(f"✓ Table 'prediction' : {len(predictions)} prédictions insérées.")
+
+
 def executer_pipeline(
     db_path: str | Path,
     schema_path: str | Path,
@@ -222,6 +251,7 @@ def executer_pipeline(
     creer_tables(db_path=db_path, schema_path=schema_path)
     peupler_dimensions(db_path=db_path, json_path=json_path)
     ingerer_dataset_csv(db_path=db_path, csv_path=csv_path)
+    peupler_predictions(db_path=db_path, dossier=PREDICTIONS_DIR)
     print("\n--- INGESTION TERMINÉE AVEC SUCCÈS ---")
 
 
