@@ -44,14 +44,14 @@
     {"code_modele": 1, "description": "CatBoost sur les données d'origine (démo 3) : 5 modèles de plis, chaque client noté par celui qui ne l'a pas vu"}
   ],
   "classe_risque": [
-    {"code_classe_risque": 9, "code_modele": 1, "description": "Classe 9 : de 0 à 15 % des défauts détectés", "rappel_min": 0, "rappel_max": 15, "seuil_score": 0.894349, "taux_defaut_constate": 77.09},
-    {"code_classe_risque": 8, "code_modele": 1, "description": "Classe 8 : de 15 à 25 % des défauts détectés", "rappel_min": 15, "rappel_max": 25, "seuil_score": 0.853631, "taux_defaut_constate": 66.7},
-    {"code_classe_risque": 7, "code_modele": 1, "description": "Classe 7 : de 25 à 35 % des défauts détectés", "rappel_min": 25, "rappel_max": 35, "seuil_score": 0.796588, "taux_defaut_constate": 59.55},
-    {"code_classe_risque": 6, "code_modele": 1, "description": "Classe 6 : de 35 à 40 % des défauts détectés", "rappel_min": 35, "rappel_max": 40, "seuil_score": 0.737887, "taux_defaut_constate": 49.26},
-    {"code_classe_risque": 5, "code_modele": 1, "description": "Classe 5 : de 40 à 45 % des défauts détectés", "rappel_min": 40, "rappel_max": 45, "seuil_score": 0.682516, "taux_defaut_constate": 44.5},
-    {"code_classe_risque": 4, "code_modele": 1, "description": "Classe 4 : de 45 à 50 % des défauts détectés", "rappel_min": 45, "rappel_max": 50, "seuil_score": 0.630207, "taux_defaut_constate": 37.36},
-    {"code_classe_risque": 3, "code_modele": 1, "description": "Classe 3 : de 50 à 55 % des défauts détectés", "rappel_min": 50, "rappel_max": 55, "seuil_score": 0.584057, "taux_defaut_constate": 33.91},
-    {"code_classe_risque": 2, "code_modele": 1, "description": "Classe 2 : de 55 à 60 % des défauts détectés", "rappel_min": 55, "rappel_max": 60, "seuil_score": 0.53004, "taux_defaut_constate": 27.42},
-    {"code_classe_risque": 1, "code_modele": 1, "description": "Classe 1 : clients sains, non déclarés en défaut (au-delà de 60 % des défauts)", "rappel_min": 60, "rappel_max": 100, "seuil_score": null, "taux_defaut_constate": 12.01}
+    {"code_classe_risque": 9, "code_modele": 1, "description": "Niveau risque 9/9", "rappel_min": 0, "rappel_max": 15, "seuil_score": 0.894349, "taux_defaut_constate": 77.09},
+    {"code_classe_risque": 8, "code_modele": 1, "description": "Niveau risque 8/9", "rappel_min": 15, "rappel_max": 25, "seuil_score": 0.853631, "taux_defaut_constate": 66.7},
+    {"code_classe_risque": 7, "code_modele": 1, "description": "Niveau risque 7/9", "rappel_min": 25, "rappel_max": 35, "seuil_score": 0.796588, "taux_defaut_constate": 59.55},
+    {"code_classe_risque": 6, "code_modele": 1, "description": "Niveau risque 6/9", "rappel_min": 35, "rappel_max": 40, "seuil_score": 0.737887, "taux_defaut_constate": 49.26},
+    {"code_classe_risque": 5, "code_modele": 1, "description": "Niveau risque 5/9", "rappel_min": 40, "rappel_max": 45, "seuil_score": 0.682516, "taux_defaut_constate": 44.5},
+    {"code_classe_risque": 4, "code_modele": 1, "description": "Niveau risque 4/9", "rappel_min": 45, "rappel_max": 50, "seuil_score": 0.630207, "taux_defaut_constate": 37.36},
+    {"code_classe_risque": 3, "code_modele": 1, "description": "Niveau risque 3/9", "rappel_min": 50, "rappel_max": 55, "seuil_score": 0.584057, "taux_defaut_constate": 33.91},
+    {"code_classe_risque": 2, "code_modele": 1, "description": "Niveau risque 2/9", "rappel_min": 55, "rappel_max": 60, "seuil_score": 0.53004, "taux_defaut_constate": 27.42},
+    {"code_classe_risque": 1, "code_modele": 1, "description": "Niveau risque 1/9", "rappel_min": 60, "rappel_max": 100, "seuil_score": null, "taux_defaut_constate": 12.01}
   ]
 }
