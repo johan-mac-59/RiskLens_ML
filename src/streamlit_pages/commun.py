@@ -551,15 +551,20 @@ def figure_entonnoir(etapes, hauteur):
 
 def figure_recipient(groupes, couleur_modele, hauteur):
     """Récipient des clients déclarés en défaut (contentieux + signalés par le modèle), rempli par les défauts constatés :
-    en bas les vrais défauts (règle, puis modèle), au-dessus les fausses alertes. groupes : {nom: (clients, défauts)}."""
+    en bas les vrais défauts (règle, puis modèle), au-dessus les fausses déclarations. groupes : {nom: (clients, défauts)}."""
     ctx_n, ctx_d = groupes["Contentieux (règle)"]
     sig_n, sig_d = groupes["Signalés par le modèle"]
-    declares, vrais = ctx_n + sig_n, ctx_d + sig_d
+    return figure_recipient_parts([("Vrais défauts, règle du contentieux", ctx_d, NIVEAUX_DEMO["Contentieux (règle)"][0]),
+                                   ("Vrais défauts, modèle", sig_d, couleur_modele)], ctx_n + sig_n, hauteur)
+
+
+def figure_recipient_parts(vrais_defauts, declares, hauteur):
+    """Récipient des clients déclarés en défaut : en bas les vrais défauts, en une ou plusieurs parts (nom, nombre, couleur),
+    au-dessus les fausses déclarations ; declares : nombre de clients déclarés en défaut."""
+    vrais = sum(v for _, v, _ in vrais_defauts)
     fausses = declares - vrais
-    morceaux = [("Vrais défauts, règle du contentieux", ctx_d, NIVEAUX_DEMO["Contentieux (règle)"][0], None, f"<b>{nombre_fr(ctx_d)}</b>"),
-                ("Vrais défauts, modèle", sig_d, couleur_modele, None, f"<b>{nombre_fr(sig_d)}</b>"),
-                ("Fausses déclarations (pas en défaut)", fausses, "#E6E6E6", "/",
-                 f"<b>{nombre_fr(fausses)}</b><br>fausses déclarations")]
+    morceaux = [(nom, valeur, couleur, None, f"<b>{nombre_fr(valeur)}</b>") for nom, valeur, couleur in vrais_defauts]
+    morceaux.append(("Fausses déclarations (pas en défaut)", fausses, "#E6E6E6", "/", f"<b>{nombre_fr(fausses)}</b><br>fausses déclarations"))
     fig = go.Figure()
     for nom, valeur, couleur, motif, texte in morceaux:
         # Largeur du contenu = écart entre les parois (± 0,38) : le contenu touche les bords du récipient
@@ -611,9 +616,12 @@ def tableau_performance(groupes):
 
 
 def encadre_niveau(nom, texte):
-    """Encadré d'un client (fiche des démos), à la couleur de son niveau dans le tableau des niveaux de risque.
-    texte : Markdown simple (le gras **…** est traduit en HTML)."""
-    couleur = NIVEAUX_DEMO[nom][0]
+    """Encadré d'un client (fiche des démos), à la couleur de son niveau dans le tableau des niveaux de risque."""
+    encadre_couleur(NIVEAUX_DEMO[nom][0], texte)
+
+
+def encadre_couleur(couleur, texte):
+    """Encadré à la couleur donnée ; texte : Markdown simple (le gras **…** est traduit en HTML)."""
     html = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", texte)
     st.markdown(f"<div style='border-left: 8px solid {couleur}; background: {couleur}26; padding: 12px 16px; "
                 f"border-radius: 6px; margin-bottom: 1rem;'>{html}</div>", unsafe_allow_html=True)
