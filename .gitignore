@@ -33,3 +33,6 @@ ecole/
 #dataset synchronisé de mon EDA pour Streamlit
 !dataset_streamlit.csv
 !entonnoir_nettoyage.csv
+
+#démo du ML (clients de la démo ; modèle et bornes non ignorés)
+!lab_ML/demo_ML/*.csv
