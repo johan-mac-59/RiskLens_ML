@@ -13,6 +13,7 @@ L'application ne lit jamais la base directement : elle passe par une **API REST*
 - **Consultation** : structure des tables, correspondances des codifications (genre, statut marital, etc.) ;
 - **Gestion des clients** : consulter, créer, modifier, supprimer un client (GET, POST, PATCH, DELETE) ;
 - **Gestion de l'historique** : les mêmes opérations sur un mois d'historique, ou sur tout l'historique d'un client ;
+- **Lecture par lot** : la fiche et tout l'historique de plusieurs clients en un seul appel, sans limite de nombre ; les identifiants absents de la base sont signalés à part. Route créée pour la démo du système complet, qui traite des milliers de clients d'un coup (sinon, deux appels par client) ;
 - **Analyse** : taux de défaut d'un profil (âge, genre, niveau d'études, statut marital), utilisé par le simulateur de risque ;
 - **Administration** : export complet de la base, protégé par identifiant et mot de passe.
 

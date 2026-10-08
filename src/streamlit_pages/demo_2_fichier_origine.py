@@ -14,6 +14,7 @@ DOSSIER_DEMO = BASE_DIR / "lab_ML" / "demo_ML"
 GH_RACINE = "https://github.com/johan-mac-59/RiskLens_ML/blob/main"
 PREPARATION = f"{GH_RACINE}/lab_ML/demo_ML/creation_demo_ML.ipynb"
 NETTOYAGE = f"{GH_RACINE}/src/02_01_nettoyage.ipynb"
+EVALUATION = f"{GH_RACINE}/lab_ML/evaluation_finale_test.ipynb"
 PAUSE = 0.6   # secondes entre deux étapes affichées, pour que le public suive (les temps de calcul affichés sont réels)
 PAY = [f"PAY_{i}" for i in range(1, 7)]
 BILL = [f"BILL_AMT{i}" for i in range(1, 7)]
@@ -222,7 +223,7 @@ def classer(lot):
 
 @st.cache_data
 def taux_par_groupe(date_modification):
-    """Groupe de chaque client de la réserve et taux de défaut réel de chaque groupe (réserve entière)."""
+    """Groupe de chaque client de la réserve et taux de défaut constaté de chaque groupe (réserve entière)."""
     groupe, _ = classer(reserve)
     taux = reserve.set_index("ID")["dpnm"].groupby(groupe).mean().mul(100).to_dict()
     return groupe, taux
@@ -230,26 +231,47 @@ def taux_par_groupe(date_modification):
 
 groupe_reserve, taux_groupe = taux_par_groupe(CHEMIN_BRUTS.stat().st_mtime)
 
-def lire_client_api(id_client, session):
-    """Lit un client par l'API (GET /client puis GET /historique_mensuel) et reconstruit sa ligne au format du fichier
-    d'origine ; session : requests ou une requests.Session (connexion gardée ouverte entre deux clients)."""
-    res_client = session.get(f"{API_URL}/client/{id_client}", timeout=API_TIMEOUT)
-    res_historique = session.get(f"{API_URL}/historique_mensuel/{id_client}", timeout=API_TIMEOUT)
-    if res_client.status_code != 200 or res_historique.status_code != 200:
-        raise ValueError(f"L'API a refusé la lecture du client {id_client} : "
-                         f"{message_erreur_api(res_client if res_client.status_code != 200 else res_historique)}")
-    fiche, historique = res_client.json(), res_historique.json()["historique"]
-    # Le mois m de 2005 correspond à PAY_(10 - m) (septembre = 1)
+def ligne_depuis_api(fiche, historique):
+    """Reconstruit la ligne d'un client au format du fichier d'origine, à partir de sa fiche et de son historique lus par l'API."""
     ligne = {"ID": fiche["client_id"], "LIMIT_BAL": fiche["plafond"], "SEX": fiche["code_genre"], "EDUCATION": fiche["code_scolaire"],
              "MARRIAGE": fiche["code_marital"], "AGE": fiche["age"]}
-    mois = {10 - h["date_complexe"]["mois_num"]: h for h in historique if h["date_complexe"]["annee"] == 2005}
+    # Seuls les six mois étudiés sont lus (avril à septembre 2005) : le mois m correspond à PAY_(10 - m) (septembre = 1) ;
+    # les autres mois éventuels de la base sont ignorés
+    mois = {10 - h["date_complexe"]["mois_num"]: h for h in historique
+            if h["date_complexe"]["annee"] == 2005 and 4 <= h["date_complexe"]["mois_num"] <= 9}
     if sorted(mois) != list(range(1, 7)):
-        raise ValueError(f"Historique incomplet dans la base pour le client {id_client}.")
+        raise ValueError(f"client {fiche['client_id']} : il manque un ou plusieurs mois d'avril à septembre 2005 dans la base")
     ligne |= {f"PAY_{n}": mois[n]["code_statut_paiement"] for n in range(1, 7)}
     ligne |= {f"BILL_AMT{n}": mois[n]["montant_encours"] for n in range(1, 7)}
     ligne |= {f"PAY_AMT{n}": mois[n]["montant_paye"] for n in range(1, 7)}
     ligne["dpnm"] = fiche["code_statut_defaut"]
-    return ligne, (fiche, res_historique.json())
+    return ligne
+
+
+def lire_client_api(id_client):
+    """Un client : GET /client puis GET /historique_mensuel (fiche « un client à la fois »)."""
+    res_client = requests.get(f"{API_URL}/client/{id_client}", timeout=API_TIMEOUT)
+    res_historique = requests.get(f"{API_URL}/historique_mensuel/{id_client}", timeout=API_TIMEOUT)
+    if res_client.status_code != 200 or res_historique.status_code != 200:
+        raise ValueError(f"L'API a refusé la lecture du client {id_client} : "
+                         f"{message_erreur_api(res_client if res_client.status_code != 200 else res_historique)}")
+    return ligne_depuis_api(res_client.json(), res_historique.json()["historique"]), (res_client.json(), res_historique.json())
+
+
+def lire_lot_api(ids):
+    """Un lot : POST /clients/lot, un seul appel pour tous les clients (fiche et historique de chacun).
+    Renvoie les lignes reconstruites, les identifiants introuvables dans la base et les clients illisibles."""
+    res = requests.post(f"{API_URL}/clients/lot", json={"ids": [int(i) for i in ids]}, timeout=API_TIMEOUT)
+    if res.status_code != 200:
+        raise ValueError(f"L'API a refusé la lecture du lot : {message_erreur_api(res)}")
+    reponse = res.json()
+    lignes, illisibles = [], []
+    for c in reponse["clients"]:
+        try:
+            lignes.append(ligne_depuis_api(c["client"], c["historique"]))
+        except ValueError as e:
+            illisibles.append(str(e))
+    return lignes, reponse["introuvables"], illisibles
 
 
 def ecarts_base_fichier(lignes):
@@ -281,9 +303,11 @@ with col_lot:
     taille = c1.select_slider("Nombre de clients injectés", TAILLES, value=TAILLES[0],
                               format_func=lambda t: f"{nombre_fr(t)} (toute la réserve)" if t == len(reserve) else nombre_fr(t))
     choix = c2.radio("Part des défauts que la banque veut détecter (seuils fixés sur le jeu d'entraînement ; 60 % : seuil retenu pour l'apprentissage)", list(CHOIX), index=2)
-    SOURCES = ["Fichier d'origine (CSV)", "Base de données (API, client par client)"]
-    source = st.radio("Où lire les clients", SOURCES, horizontal=True,
-                      help="Par l'API, chaque client demande deux appels (fiche, puis historique) : la lecture d'un gros lot peut être longue.")
+    SOURCES = ["Base de données (API)", "Fichier d'origine (CSV), en secours si l'API ne répond pas"]
+    col_source, _ = st.columns([1, 2])
+    source = col_source.selectbox("Où lire les clients", SOURCES, index=0,
+                      help="Par l'API, tout le lot est lu dans la base en un seul appel (POST /clients/lot). "
+                           "Le fichier d'origine contient les mêmes clients : il sert de secours si l'API ne répond pas.")
 
     if "historique_lots_2" not in st.session_state:
         st.session_state.historique_lots_2 = []
@@ -294,28 +318,25 @@ with col_lot:
         with st.status(f"Traitement du lot n° {numero}…", expanded=True) as statut:
             lot = reserve.sample(n=taille, random_state=numero) if taille < len(reserve) else reserve
             duree_lecture, ecarts, erreurs = None, None, []
-            if source == SOURCES[1]:
-                # Lecture client par client dans la base, par l'API : seuls les identifiants viennent de la réserve
-                lignes, debut_lecture = [], time.perf_counter()
-                barre = st.progress(0.0, text="Lecture dans la base par l'API…")
-                with requests.Session() as session:
-                    for i, id_client in enumerate(lot["ID"], start=1):
-                        try:
-                            lignes.append(lire_client_api(int(id_client), session)[0])
-                        except (requests.exceptions.RequestException, ValueError) as e:
-                            erreurs.append(f"{id_client} : {e}")
-                        if i % 10 == 0 or i == len(lot):
-                            ecoule = time.perf_counter() - debut_lecture
-                            barre.progress(i / len(lot), text=f"Lecture dans la base par l'API : {nombre_fr(i)} / {nombre_fr(len(lot))} clients, "
-                                                              f"{nombre_fr(ecoule, 1)} s ({nombre_fr(ecoule / i * 1000, 0)} ms par client)")
+            if source == SOURCES[0]:
+                # Lecture du lot dans la base, par l'API, en un seul appel : seuls les identifiants viennent de la réserve
+                debut_lecture = time.perf_counter()
+                try:
+                    with st.spinner("Lecture du lot dans la base par l'API (le premier appel peut prendre jusqu'à une minute si le serveur est en veille)…"):
+                        lignes, introuvables, erreurs = lire_lot_api(lot["ID"])
+                except (requests.exceptions.RequestException, ValueError) as e:
+                    statut.update(label=f"Lot n° {numero} : lecture impossible", state="error")
+                    st.error(f"Lecture par l'API impossible : {e}. Choisissez le fichier d'origine (secours) et relancez le lot.")
+                    st.stop()
                 duree_lecture = time.perf_counter() - debut_lecture
+                erreurs += [f"client {i} : introuvable dans la base" for i in introuvables]
                 lot = pd.DataFrame(lignes, columns=reserve.columns)
                 ecarts = ecarts_base_fichier(lot) if len(lot) else 0
-                st.write(f"📡 **{nombre_fr(len(lot))} clients lus dans la base par l'API** (tirage n° {numero}), "
-                         f"en {nombre_fr(duree_lecture, 1)} s, soit {nombre_fr(duree_lecture / max(len(lot), 1) * 1000, 0)} ms par client"
-                         + (f" ; {nombre_fr(len(erreurs))} lectures en échec, clients écartés" if erreurs else "") + ".")
+                st.write(f"📡 **{nombre_fr(len(lot))} clients lus dans la base par l'API**, en un seul appel (`POST /clients/lot`, "
+                         f"tirage n° {numero}), en {nombre_fr(duree_lecture, 1)} s"
+                         + ((" ; 1 client non reçu ou illisible, écarté" if len(erreurs) == 1 else f" ; {nombre_fr(len(erreurs))} clients non reçus ou illisibles, écartés") if erreurs else "") + ".")
                 if erreurs:
-                    with st.expander("Voir les lectures en échec"):
+                    with st.expander("Voir les clients non reçus"):
                         st.markdown("\n".join(f"- {e}" for e in erreurs[:50]))
             else:
                 st.write(f"📥 **{nombre_fr(len(lot))} clients lus dans le fichier d'origine**, tirés au hasard dans la réserve (tirage n° {numero}).")
@@ -348,7 +369,7 @@ with col_lot:
             signale = proba >= seuil
             st.write(f"🚩 **Décision** (seuil {nombre_fr(seuil, 3)}, {choix}) : {nombre_fr(signale.sum())} clients signalés, {nombre_fr((~signale).sum())} écartés.")
             time.sleep(PAUSE)
-            st.write("🔍 **Vérification** : comparaison avec le défaut réel d'octobre 2005.")
+            st.write("🔍 **Vérification** : comparaison avec le défaut constaté en octobre 2005.")
             statut.update(label=f"Lot n° {numero} traité", state="complete", expanded=False)
 
         groupes = {"Retirés par le nettoyage": pd.concat([geants, inactifs, plafonds]), "Sans encours en septembre": sans_encours,
@@ -360,19 +381,23 @@ with col_lot:
         st.session_state.historique_lots_2.append({
             "Lot": numero, "Clients": len(lot), "Part visée": choix, "Source": "API" if duree_lecture is not None else "Fichier",
             "Lecture par l'API (s)": round(duree_lecture, 1) if duree_lecture is not None else None,
-            **{f"{n} : taux réel (%)": (round(g["dpnm"].mean() * 100, 1) if len(g) else None) for n, g in groupes.items()}})
+            **{f"{n} : taux constaté (%)": (round(g["dpnm"].mean() * 100, 1) if len(g) else None) for n, g in groupes.items()},
+            "Défauts manqués, parmi les écartés (%)": round(groupes["Écartés par le modèle"]["dpnm"].sum() / lot["dpnm"].sum() * 100, 1)})
 
     if "dernier_lot_2" in st.session_state:
         dernier = st.session_state.dernier_lot_2
         total_clients, total_defauts = dernier["total"]
         st.markdown(f"**Résultat du lot n° {dernier['numero']}** ({dernier['choix']}) : {nombre_fr(total_clients)} clients, "
-                    f"taux de défaut réel de tout le lot {nombre_fr(total_defauts / total_clients * 100, 1)} %")
-        couleurs = [COULEURS["gris"], COULEURS["jaune"], COULEURS["bordeaux"], COULEURS["rouge_pale"], COULEURS["turquoise"]]
+                    f"taux de défaut constaté de tout le lot {nombre_fr(total_defauts / total_clients * 100, 1)} %")
+        couleurs = [NIVEAUX_DEMO["Retiré par le nettoyage"][0], NIVEAUX_DEMO["Sans encours en septembre"][0], NIVEAUX_DEMO["Contentieux (règle)"][0],
+                    couleur_signales(CHOIX[dernier["choix"]]), NIVEAUX_DEMO["Risque faible"][0]]
         for col, (nom, (clients, defauts)), couleur in zip(st.columns(5), dernier["groupes"].items(), couleurs):
             col.markdown(f"<div style='border-left: 6px solid {couleur}; padding-left: 10px; min-height: 3em;'><b>{nom}</b></div>", unsafe_allow_html=True)
-            col.metric("Clients", nombre_fr(clients))
-            col.metric("Taux de défaut réel", f"{nombre_fr(defauts / clients * 100, 1)} %" if clients else "–")
-            col.metric("Défauts du groupe", nombre_fr(defauts))
+            carte_chiffre(col, "Clients", nombre_fr(clients), couleur)
+            carte_chiffre(col, "Taux de défaut constaté", f"{nombre_fr(defauts / clients * 100, 1)} %" if clients else "–", couleur,
+                          aide="Part des clients du groupe en défaut constaté en octobre 2005.")
+            carte_chiffre(col, "Part des défauts du lot", f"{nombre_fr(defauts)} sur {nombre_fr(total_defauts)}, soit {nombre_fr(defauts / total_defauts * 100, 0)} %", couleur,
+                          aide="Défauts constatés dans ce groupe, sur tous les défauts constatés du lot.")
 
         clients_sans_encours, defauts_sans_encours = dernier["groupes"]["Sans encours en septembre"]
         if clients_sans_encours:
@@ -381,16 +406,13 @@ with col_lot:
     """)
 
         noms = list(dernier["groupes"])
-        restants = [total_clients]
+        restants, defauts_restants = [total_clients], [total_defauts]
         for nom in noms[:3]:
             restants.append(restants[-1] - dernier["groupes"][nom][0])
-        fig = go.Figure(go.Funnel(
-            y=["Clients lus dans le fichier d'origine", "Après le nettoyage", "Avec un encours en septembre (périmètre)",
-               "Hors contentieux, vers le modèle", "Signalés par le modèle"],
-            x=restants + [dernier["groupes"]["Signalés par le modèle"][0]], texttemplate="<b>%{value:,}</b>", textfont=dict(size=13), connector=dict(visible=False),
-            marker_color=[COULEURS["bleu_pale"], COULEURS["gris"], COULEURS["jaune"], COULEURS["turquoise"], COULEURS["rouge_pale"]]))
-        fig.update_layout(height=380, separators=", ", margin=dict(t=20, b=20))
-        st.plotly_chart(fig, width='stretch')
+            defauts_restants.append(defauts_restants[-1] - dernier["groupes"][nom][1])
+        noms_etapes = ["Clients lus", "Après le nettoyage", "Avec un encours en septembre (périmètre)", "Hors contentieux, vers le modèle"]
+        fig = figure_entonnoir([(nom, n, d, COULEURS["bleu_pale"]) for nom, n, d in zip(noms_etapes, restants, defauts_restants)]
+                               + [("Déclarés sains par le modèle", *dernier["groupes"]["Écartés par le modèle"], NIVEAUX_DEMO["Risque faible"][0])], 440)
 
         # Contrôle client par client : le traitement en direct redonne le jeu de données du projet (et donc la démo 1)
         reference = load_data().set_index("ID")
@@ -406,20 +428,31 @@ with col_lot:
                        + ("identiques à celles" if dernier["ecarts_base"] == 0 else f"**différentes pour {nombre_fr(dernier['ecarts_base'])} clients** de celles")
                        + " du fichier d'origine (hors catégories inconnues d'éducation et de statut marital, regroupées au chargement de la base).")
 
-    if st.session_state.historique_lots_2:
-        st.subheader("Les lots déjà injectés", anchor="historique")
-        st.dataframe(pd.DataFrame(st.session_state.historique_lots_2), hide_index=True, width='stretch')
-        if st.button("Effacer les lots"):
-            st.session_state.historique_lots_2 = []
-            st.session_state.pop("dernier_lot_2", None)
-            st.rerun()
-
-    # ==============================================================================
-    # 2. UN CLIENT À LA FOIS
-    # ==============================================================================
 # Légende remplie après le choix du seuil (colonne de droite)
 with col_legende:
     legende_niveaux(taux_groupe, CHOIX[choix])
+
+# Entonnoir, récipient et performance du dernier lot : toute la largeur de la page
+if "dernier_lot_2" in st.session_state:
+    col_entonnoir, col_recipient = st.columns([3, 2])
+    col_entonnoir.plotly_chart(fig, width='stretch')
+    col_recipient.plotly_chart(figure_recipient(dernier["groupes"], couleur_signales(CHOIX[dernier["choix"]]), 440), width='stretch')
+    tableau_performance(dernier["groupes"])
+
+if st.session_state.historique_lots_2:
+    st.subheader("Les lots déjà injectés", anchor="historique")
+    st.markdown("""
+Relancez plusieurs lots de **200 clients**, puis de **toute la réserve** : sur un petit lot, les taux de défaut constatés changent beaucoup d'un tirage à l'autre, car chaque groupe ne compte que quelques dizaines de clients, parfois moins. Sur toute la réserve, ceux du système (contentieux, signalés, écartés) retrouvent ceux de la démo 1 et de l'[évaluation finale]({}). **Un taux ne veut rien dire sans assez de clients derrière.**
+""".format(EVALUATION))
+    st.dataframe(pd.DataFrame(st.session_state.historique_lots_2), hide_index=True, width='stretch')
+    if st.button("Effacer les lots"):
+        st.session_state.historique_lots_2 = []
+        st.session_state.pop("dernier_lot_2", None)
+        st.rerun()
+
+# ==============================================================================
+# 2. UN CLIENT À LA FOIS
+# ==============================================================================
 
 st.header("2. Un client à la fois", anchor="client")
 ORIGINES = {"Tous les clients de la réserve": GROUPES, "Parmi les clients retirés par le nettoyage": GROUPES[:1],
@@ -437,7 +470,7 @@ def lire_dans_la_base(id_client):
     """Lecture de la fiche, avec message en cas d'erreur."""
     try:
         with st.spinner("Lecture dans la base par l'API (le premier appel peut prendre jusqu'à une minute si le serveur est en veille)…"):
-            ligne, reponses = lire_client_api(id_client, requests)
+            ligne, reponses = lire_client_api(id_client)
     except requests.exceptions.RequestException as e:
         st.error(f"API injoignable : {e}")
         return
@@ -493,17 +526,20 @@ if "lu_api_2" in st.session_state:
         inactif = (b[BILL] <= 0).all() and (b[PAY_AMT[:5]] == 0).all()
         raison = ("un paiement de plus d'un million de NT$" if (b[PAY_AMT] > 1000000).any() else
                   "un compte inactif sur les six mois" if inactif else "un plafond de plus de 500 000 NT$")
-        st.info(f"🧹 **Retiré par le nettoyage** : {raison}. Le client n'entre pas dans le système.")
+        encadre_niveau(groupe_client, f"🧹 **Retiré par le nettoyage** : {raison}. Le client n'entre pas dans le système.")
     elif groupe_client == GROUPES[1]:
-        st.info(f"🎯 Nettoyage passé. **Écarté au périmètre** : encours de {nombre_fr(b['BILL_AMT1'])} NT$ fin septembre, rien à rembourser en octobre.")
+        encadre_niveau(groupe_client, f"🎯 Nettoyage passé. **Écarté au périmètre** : encours de {nombre_fr(b['BILL_AMT1'])} NT$ fin septembre, rien à rembourser en octobre.")
     elif groupe_client == GROUPES[2]:
-        st.error(f"⚖️ Nettoyage et périmètre passés. **Au contentieux** : retard de deux mois ou plus pendant au moins deux mois d'affilée, "
-                 f"sans sortie constatée ({int(nettoye.iloc[0]['NB_MOIS_CTX'])} mois au contentieux). Prédit en défaut par la règle, sans passer par le modèle.")
+        encadre_niveau(groupe_client, f"⚖️ Nettoyage et périmètre passés. **Au contentieux** : retard de deux mois ou plus pendant au moins deux mois d'affilée, "
+                       f"sans sortie constatée ({int(nettoye.iloc[0]['NB_MOIS_CTX'])} mois au contentieux). Prédit en défaut par la règle, sans passer par le modèle.")
     else:
-        signale = GROUPES.index(groupe_client) <= 5
-        (st.warning if signale else st.info)(f"🤖 Nettoyage, périmètre et règle du contentieux passés. Le modèle le classe en **{groupe_client}** : "
-                                             + ("client signalé au seuil de 60 % des défauts." if signale else "client non signalé."))
-    st.markdown(f"Dans la réserve, les clients de ce groupe sont réellement en défaut de paiement à **{nombre_fr(taux_groupe[groupe_client], 1)} %**.")
+        signale = groupe_client in SIGNALES_DEMO[CHOIX[choix]]
+        encadre_niveau(groupe_client, f"🤖 Nettoyage, périmètre et règle du contentieux passés. Le modèle le classe en **{groupe_client}**. "
+                                      f"Client **{'déclaré' if signale else 'non déclaré'} en défaut par le modèle** "
+                                      f"au seuil de {choix} (seuil choisi plus haut).")
+    st.markdown(f"Dans la réserve, le taux de défaut constaté des clients de ce groupe est de **{nombre_fr(taux_groupe[groupe_client], 1)} %**.")
+    st.caption("Le modèle ne donne pas une probabilité fiable pour un client seul (les défauts ont plus de poids pendant l'apprentissage) : "
+               "on affiche le niveau de risque, et le taux de défaut constaté dans ce niveau.")
 
     if st.button("🔍 Révéler ce qui s'est passé en octobre 2005", key="revele_bouton_2"):
         st.session_state.revele_2 = True

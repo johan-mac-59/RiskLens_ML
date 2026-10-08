@@ -46,7 +46,7 @@ def niveau_de_risque(d, proba):
 
 @st.cache_data
 def taux_par_niveau():
-    """Taux de défaut réel de chaque niveau, sur tous les clients de la démo (ce sont ceux du test)."""
+    """Taux de défaut constaté de chaque niveau, sur tous les clients de la démo (ce sont ceux du test)."""
     hors = ~au_contentieux(reserve)
     proba = np.full(len(reserve), np.nan)
     proba[hors] = enregistre["modele"].predict_proba(reserve.loc[hors, VARIABLES])[:, 1]
@@ -57,7 +57,7 @@ st.title("🧪 Démo : le système complet en direct")
 st.markdown(f"""
 Le système construit dans le projet tourne ici **en direct**, en deux étapes : la **règle métier du contentieux** (partie 5), puis le **modèle de machine learning** (partie 6) pour les autres clients.
 
-Les clients injectés viennent d'une réserve de **{nombre_fr(len(reserve))} clients** que le modèle n'a **jamais vus** : le jeu de test du machine learning, et 20 % des clients au contentieux du même périmètre, tirés de la même façon. Leurs données sont celles du projet, nettoyées, avec les colonnes créées pendant l'exploration. Leur défaut réel en octobre 2005 n'est jamais montré au modèle : il ne sert qu'à vérifier, après coup.
+Les clients injectés viennent d'une réserve de **{nombre_fr(len(reserve))} clients** que le modèle n'a **jamais vus** : le jeu de test du machine learning, et 20 % des clients au contentieux du même périmètre, tirés de la même façon. Leurs données sont celles du projet, nettoyées, avec les colonnes créées pendant l'exploration. Leur défaut constaté en octobre 2005 n'est jamais montré au modèle : il ne sert qu'à vérifier, après coup.
 """)
 
 
@@ -96,7 +96,7 @@ with col_lot:
             signale = proba >= seuil
             st.write(f"🚩 **Décision** (seuil {nombre_fr(seuil, 3)}, {choix}) : {nombre_fr(signale.sum())} clients signalés, {nombre_fr((~signale).sum())} écartés.")
             time.sleep(PAUSE)
-            st.write("🔍 **Vérification** : comparaison avec le défaut réel d'octobre 2005.")
+            st.write("🔍 **Vérification** : comparaison avec le défaut constaté en octobre 2005.")
             statut.update(label=f"Lot n° {numero} traité", state="complete", expanded=False)
 
         groupes = {"Contentieux (règle)": lot[regle], "Signalés par le modèle": hors_ctx[signale], "Écartés par le modèle": hors_ctx[~signale]}
@@ -106,7 +106,7 @@ with col_lot:
                                         "total": (len(lot), int(lot["dpnm"].sum()))}
         st.session_state.historique_lots.append({
             "Lot": numero, "Clients": len(lot), "Part visée": choix,
-            **{f"Taux réel, {n.split(' ')[0].lower()} (%)": round(t, 1) for n, t in taux.items()},
+            **{f"Taux constaté, {n.split(' ')[0].lower()} (%)": round(t, 1) for n, t in taux.items()},
             "Défauts détectés, système complet (%)": round(detectes / lot["dpnm"].sum() * 100, 1),
             "Défauts manqués, parmi les écartés (%)": round(groupes["Écartés par le modèle"]["dpnm"].sum() / lot["dpnm"].sum() * 100, 1)})
 
@@ -114,38 +114,44 @@ with col_lot:
         dernier = st.session_state.dernier_lot
         st.markdown(f"**Résultat du lot n° {dernier['numero']}** ({dernier['choix']})")
         noms = list(dernier["groupes"])
-        couleurs = [COULEURS["bordeaux"], COULEURS["rouge_pale"], COULEURS["turquoise"]]
+        couleurs = [NIVEAUX_DEMO["Contentieux (règle)"][0], couleur_signales(CHOIX[dernier["choix"]]), NIVEAUX_DEMO["Risque faible"][0]]
         colonnes = st.columns(3)
         for col, nom, couleur in zip(colonnes, noms, couleurs):
             clients, defauts = dernier["groupes"][nom]
             col.markdown(f"<div style='border-left: 6px solid {couleur}; padding-left: 10px;'><b>{nom}</b></div>", unsafe_allow_html=True)
-            col.metric("Clients", nombre_fr(clients))
-            col.metric("Taux de défaut réel", f"{nombre_fr(defauts / clients * 100, 1)} %" if clients else "–",
-                       help="Part des clients du groupe réellement en défaut en octobre 2005.")
-            col.metric("Défauts du groupe", f"{nombre_fr(defauts)}, soit {nombre_fr(defauts / dernier['total'][1] * 100, 0)} % de tous les défauts",
-                       help="Nombre de clients du groupe réellement en défaut, et leur part dans tous les défauts du lot.")
+            carte_chiffre(col, "Clients", nombre_fr(clients), couleur)
+            carte_chiffre(col, "Taux de défaut constaté", f"{nombre_fr(defauts / clients * 100, 1)} %" if clients else "–", couleur,
+                          aide="Part des clients du groupe en défaut constaté en octobre 2005.")
+            carte_chiffre(col, "Part des défauts du lot", f"{nombre_fr(defauts)} sur {nombre_fr(dernier['total'][1])}, soit {nombre_fr(defauts / dernier['total'][1] * 100, 0)} %", couleur,
+                          aide="Défauts constatés dans ce groupe, sur tous les défauts constatés du lot.")
         total_clients, total_defauts = dernier["total"]
-        fig = go.Figure(go.Funnel(
-            y=["Clients injectés", "Hors contentieux, vers le modèle", "Signalés par le modèle"],
-            x=[total_clients, total_clients - dernier["groupes"][noms[0]][0], dernier["groupes"][noms[1]][0]],
-            texttemplate="<b>%{value:,}</b>", textfont=dict(size=13), connector=dict(visible=False), marker_color=[COULEURS["bleu_pale"], COULEURS["turquoise"], COULEURS["rouge_pale"]]))
-        fig.update_layout(height=300, separators=", ", margin=dict(t=20, b=20))
-        st.plotly_chart(fig, width='stretch')
-        st.caption(f"Taux de défaut réel de tout le lot : {nombre_fr(total_defauts / total_clients * 100, 1)} % (ce que donnerait un tirage au hasard).")
+        ctx_n, ctx_d = dernier["groupes"][noms[0]]
+        fig = figure_entonnoir([("Clients injectés", total_clients, total_defauts, COULEURS["bleu_pale"]),
+                                ("Hors contentieux, vers le modèle", total_clients - ctx_n, total_defauts - ctx_d, COULEURS["bleu_pale"]),
+                                ("Déclarés sains par le modèle", *dernier["groupes"]["Écartés par le modèle"], NIVEAUX_DEMO["Risque faible"][0])], 380)
+        st.caption(f"Taux de défaut constaté de tout le lot : {nombre_fr(total_defauts / total_clients * 100, 1)} % (ce que donnerait un tirage au hasard).")
 
-    if st.session_state.historique_lots:
-        st.subheader("Les lots déjà injectés", anchor="historique")
-        st.markdown("""
-    Relancez plusieurs lots de **200 clients**, puis de **toute la réserve** : sur un petit lot, les taux de défaut réels changent beaucoup d'un tirage à l'autre, car chaque groupe ne compte que quelques dizaines de clients, parfois moins. Sur toute la réserve, ils retrouvent ceux de l'[évaluation finale]({}). **Un taux ne veut rien dire sans assez de clients derrière.**
-    """.format(EVALUATION))
-        st.dataframe(pd.DataFrame(st.session_state.historique_lots), hide_index=True, width='stretch')
-        if st.button("Effacer les lots"):
-            st.session_state.historique_lots = []
-            st.session_state.pop("dernier_lot", None)
-            st.rerun()
 # Légende remplie après le choix du seuil (colonne de droite)
 with col_legende:
     legende_niveaux(taux_par_niveau(), CHOIX[choix])
+
+# Entonnoir, récipient et performance du dernier lot : toute la largeur de la page
+if "dernier_lot" in st.session_state:
+    col_entonnoir, col_recipient = st.columns([3, 2])
+    col_entonnoir.plotly_chart(fig, width='stretch')
+    col_recipient.plotly_chart(figure_recipient(dernier["groupes"], couleur_signales(CHOIX[dernier["choix"]]), 380), width='stretch')
+    tableau_performance(dernier["groupes"])
+
+if st.session_state.historique_lots:
+    st.subheader("Les lots déjà injectés", anchor="historique")
+    st.markdown("""
+Relancez plusieurs lots de **200 clients**, puis de **toute la réserve** : sur un petit lot, les taux de défaut constatés changent beaucoup d'un tirage à l'autre, car chaque groupe ne compte que quelques dizaines de clients, parfois moins. Sur toute la réserve, ils retrouvent ceux de l'[évaluation finale]({}). **Un taux ne veut rien dire sans assez de clients derrière.**
+""".format(EVALUATION))
+    st.dataframe(pd.DataFrame(st.session_state.historique_lots), hide_index=True, width='stretch')
+    if st.button("Effacer les lots"):
+        st.session_state.historique_lots = []
+        st.session_state.pop("dernier_lot", None)
+        st.rerun()
 
 # ==============================================================================
 # 2. UN CLIENT À LA FOIS
@@ -175,18 +181,19 @@ if "client_id" in st.session_state:
     st.markdown("**Étape 1, règle du contentieux**")
     if au_contentieux(client).iloc[0]:
         niveau = NIVEAUX[0]
-        st.error(f"⚖️ Client **au contentieux** : retard de deux mois ou plus pendant au moins deux mois d'affilée, sans sortie constatée "
-                 f"({int(c['NB_MOIS_CTX'])} mois au contentieux). Il est prédit en défaut par la règle, sans passer par le modèle.")
+        encadre_niveau(niveau, f"⚖️ Client **au contentieux** : retard de deux mois ou plus pendant au moins deux mois d'affilée, sans sortie constatée "
+                       f"({int(c['NB_MOIS_CTX'])} mois au contentieux). Il est prédit en défaut par la règle, sans passer par le modèle.")
     else:
-        st.success("✅ Pas au contentieux : le client passe au modèle.")
+        st.markdown("✅ Pas au contentieux : le client passe au modèle.")
         st.markdown("**Étape 2, le modèle**")
         proba = enregistre["modele"].predict_proba(client[VARIABLES])[:, 1]
         niveau = niveau_de_risque(client, proba)[0]
-        signale = proba[0] >= bornes["risque_modere"]
-        (st.warning if signale else st.info)(f"🤖 Niveau de risque : **{niveau}**" + (" : client signalé au seuil de 60 % des défauts." if signale else " : client non signalé."))
-    st.markdown(f"Dans la réserve, les clients de ce niveau sont réellement en défaut à **{nombre_fr(taux_par_niveau()[niveau], 1)} %**.")
+        signale = niveau in SIGNALES_DEMO[CHOIX[choix]]
+        encadre_niveau(niveau, f"🤖 Niveau de risque : **{niveau}**. Client **{'déclaré' if signale else 'non déclaré'} en défaut par le modèle** "
+                               f"au seuil de {choix} (seuil choisi plus haut).")
+    st.markdown(f"Dans la réserve, le taux de défaut constaté des clients de ce niveau est de **{nombre_fr(taux_par_niveau()[niveau], 1)} %**.")
     st.caption("Le modèle ne donne pas une probabilité fiable pour un client seul (les défauts ont plus de poids pendant l'apprentissage) : "
-               "on affiche le niveau de risque, et le taux de défaut réel observé dans ce niveau.")
+               "on affiche le niveau de risque, et le taux de défaut constaté dans ce niveau.")
 
     if st.button("🔍 Révéler ce qui s'est passé en octobre 2005"):
         st.session_state.revele = True

@@ -174,10 +174,14 @@ _plotly_chart_streamlit = st.plotly_chart
 
 
 def _plotly_chart_style_commun(figure, *args, **kwargs):
-    """Applique les tailles communes aux axes de tout graphique Plotly avant son affichage."""
+    """Applique les tailles communes aux axes de tout graphique Plotly avant son affichage
+    (sauf si le graphique fixe lui-même une taille, comme l'entonnoir des démos)."""
     if isinstance(figure, go.Figure):
-        figure.update_xaxes(tickfont_size=TAILLE_GRADUATIONS, title_font_size=TAILLE_TITRES_AXES)
-        figure.update_yaxes(tickfont_size=TAILLE_GRADUATIONS, title_font_size=TAILLE_TITRES_AXES)
+        for axe in list(figure.select_xaxes()) + list(figure.select_yaxes()):
+            if axe.tickfont.size is None:
+                axe.tickfont.size = TAILLE_GRADUATIONS
+            if axe.title.font.size is None:
+                axe.title.font.size = TAILLE_TITRES_AXES
     return _plotly_chart_streamlit(figure, *args, **kwargs)
 
 
@@ -477,6 +481,8 @@ def entete_partie_6():
 # ==============================================================================
 # DÉMOS (menu « Tests ») : légende des niveaux de risque, du plus risqué au moins risqué
 # ==============================================================================
+# Bleu des encadrés d'information de Streamlit (st.info) : le risque faible a la même couleur que le message « client non signalé »
+BLEU_INFO = "#1C83E1"
 NIVEAUX_DEMO = {
     "Retiré par le nettoyage": (COULEURS["gris"], "white", "paiement géant, compte inactif ou plafond de plus de 500 000 NT$ : hors du système"),
     "Sans encours en septembre": ("#BBBBBB", "black", "rien à rembourser fin septembre : hors du périmètre"),
@@ -484,15 +490,137 @@ NIVEAUX_DEMO = {
     "Très haut risque": (COULEURS["rouge_pale"], "white", "score du modèle au-dessus du seuil de 10 % des défauts"),
     "Haut risque": (COULEURS["orange"], "black", "score entre les seuils de 10 % et 30 % des défauts"),
     "Risque modéré": (COULEURS["jaune"], "black", "score entre les seuils de 30 % et 60 % des défauts"),
-    "Risque faible": (COULEURS["turquoise"], "white", "score sous le seuil de 60 % des défauts"),
+    "Risque faible": (BLEU_INFO, "white", "score sous le seuil de 60 % des défauts"),
 }
 # Niveaux du modèle signalés selon la part des défauts visée (clé du seuil dans bornes_niveaux.json)
 SIGNALES_DEMO = {"tres_haut_risque": ["Très haut risque"], "haut_risque": ["Très haut risque", "Haut risque"],
                  "risque_modere": ["Très haut risque", "Haut risque", "Risque modéré"]}
 
 
+def couleur_signales(seuil_choisi):
+    """Couleur du groupe « Signalés par le modèle » : celle du dernier niveau signalé avec le seuil choisi."""
+    return NIVEAUX_DEMO[SIGNALES_DEMO[seuil_choisi][-1]][0]
+
+
+def couleur_texte(couleur):
+    """Couleur lisible sur fond blanc : les couleurs claires (jaune, gris clair, bleu pâle) sont assombries."""
+    r, g, b = (int(couleur[i:i + 2], 16) for i in (1, 3, 5))
+    if 0.299 * r + 0.587 * g + 0.114 * b > 150:
+        r, g, b = (int(v * 0.6) for v in (r, g, b))
+    return f"#{r:02X}{g:02X}{b:02X}"
+
+
+def carte_chiffre(conteneur, libelle, valeur, couleur, aide=None):
+    """Carte d'un chiffre (même allure que st.metric), valeur écrite à la couleur de son groupe ; aide : texte au survol."""
+    titre = f" title=\"{aide}\"" if aide else ""
+    conteneur.markdown(
+        f"<div{titre} style='background: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); "
+        f"margin-bottom: 1rem;'><div style='color: #262730; font-size: 15px;'>{libelle}</div>"
+        f"<div style='color: {couleur_texte(couleur)}; font-size: 1.35rem; font-weight: 700; margin-top: 6px;'>{valeur}</div></div>",
+        unsafe_allow_html=True)
+
+
+COULEUR_DEFAUT = COULEURS["violet"]   # part des clients en défaut constaté, dans l'entonnoir des démos
+
+
+def figure_entonnoir(etapes, hauteur):
+    """Entonnoir des démos en barres centrées : au centre de chaque barre, la part des clients en défaut constaté
+    (COULEUR_DEFAUT), de part et d'autre les clients pas en défaut, à la couleur de l'étape. Nombre de clients et taux de
+    défaut écrits au centre de la barre. etapes : liste de (nom, clients, défauts, couleur)."""
+    noms = [e[0] for e in etapes][::-1]                        # première étape en haut
+    clients = [e[1] for e in etapes][::-1]
+    defauts = [e[2] for e in etapes][::-1]
+    couleurs = [e[3] for e in etapes][::-1]
+    sains = [(n - d) / 2 for n, d in zip(clients, defauts)]  # clients pas en défaut, de chaque côté
+    fig = go.Figure()
+    fig.add_trace(go.Bar(y=noms, x=sains, base=[-n / 2 for n in clients], orientation="h", name="Pas en défaut",
+                         marker_color=couleurs, width=0.75, hoverinfo="skip"))
+    fig.add_trace(go.Bar(y=noms, x=defauts, base=[-d / 2 for d in defauts], orientation="h", name="En défaut constaté",
+                         marker_color=COULEUR_DEFAUT, width=0.75, hovertemplate="%{y} : %{x} clients en défaut constaté<extra></extra>"))
+    fig.add_trace(go.Bar(y=noms, x=sains, base=[d / 2 for d in defauts], orientation="h", name="Pas en défaut",
+                         marker_color=couleurs, width=0.75, showlegend=False, hoverinfo="skip"))
+    for nom, n, d in zip(noms, clients, defauts):
+        fig.add_annotation(y=nom, x=0, showarrow=False, font=dict(size=17, color="#262730"), bgcolor="rgba(255, 255, 255, 0.8)", borderpad=3,
+                           text=f"<b>{nombre_fr(n)}</b> · {nombre_fr(d / n * 100, 1)} % en défaut" if n else "<b>0</b>")
+    demi = max(clients) / 2 if clients else 1
+    fig.update_layout(barmode="overlay", height=hauteur, separators=", ", margin=dict(t=20, b=10, l=10, r=10),
+                      xaxis=dict(visible=False, range=[-demi * 1.02, demi * 1.02]), yaxis=dict(tickfont=dict(size=17)),
+                      legend=dict(orientation="h", yanchor="top", y=-0.02, xanchor="center", x=0.5, font=dict(size=14)))
+    return fig
+
+
+def figure_recipient(groupes, couleur_modele, hauteur):
+    """Récipient des clients déclarés en défaut (contentieux + signalés par le modèle), rempli par les défauts constatés :
+    en bas les vrais défauts (règle, puis modèle), au-dessus les fausses alertes. groupes : {nom: (clients, défauts)}."""
+    ctx_n, ctx_d = groupes["Contentieux (règle)"]
+    sig_n, sig_d = groupes["Signalés par le modèle"]
+    declares, vrais = ctx_n + sig_n, ctx_d + sig_d
+    fausses = declares - vrais
+    morceaux = [("Vrais défauts, règle du contentieux", ctx_d, NIVEAUX_DEMO["Contentieux (règle)"][0], None, f"<b>{nombre_fr(ctx_d)}</b>"),
+                ("Vrais défauts, modèle", sig_d, couleur_modele, None, f"<b>{nombre_fr(sig_d)}</b>"),
+                ("Fausses déclarations (pas en défaut)", fausses, "#E6E6E6", "/",
+                 f"<b>{nombre_fr(fausses)}</b><br>fausses déclarations")]
+    fig = go.Figure()
+    for nom, valeur, couleur, motif, texte in morceaux:
+        # Largeur du contenu = écart entre les parois (± 0,38) : le contenu touche les bords du récipient
+        fig.add_trace(go.Bar(x=[0], y=[valeur], name=nom, width=0.76,
+                             marker=dict(color=couleur, line_width=0, pattern=dict(shape=motif, bgcolor="#E6E6E6", fgcolor="#B0B0B0", fgopacity=0.5, solidity=0.15) if motif else None),
+                             text=[texte] if valeur else [""], textposition="inside", insidetextanchor="middle",
+                             textfont=dict(size=17, color="#262730" if motif else "white"),
+                             hovertemplate=f"{nom} : %{{y}}<extra></extra>"))
+    # Parois du récipient (ouvert en haut), un peu plus hautes que son contenu
+    haut = declares * 1.12
+    for x0, y0, x1, y1 in ((-0.38, 0, -0.38, haut), (0.38, 0, 0.38, haut), (-0.38, 0, 0.38, 0)):
+        fig.add_shape(type="line", x0=x0, y0=y0, x1=x1, y1=y1, line=dict(color="#888888", width=5))
+    fig.add_annotation(x=0, y=haut, yshift=18, showarrow=False, font=dict(size=17),
+                       text=f"<b>{nombre_fr(declares)} déclarés en défaut</b><br>dont {nombre_fr(vrais / declares * 100 if declares else 0, 0)} % de vrais défauts")
+    fig.update_layout(barmode="stack", height=hauteur, showlegend=True, separators=", ", margin=dict(t=70, b=10, l=10, r=10),
+                      legend=dict(orientation="h", yanchor="top", y=-0.02, xanchor="center", x=0.5, font=dict(size=14)),
+                      xaxis=dict(visible=False, range=[-0.6, 0.6]), yaxis=dict(visible=False, range=[0, haut * 1.05]))
+    return fig
+
+
+def tableau_performance(groupes):
+    """Performance d'un lot des démos : règle du contentieux, modèle, système complet (et, s'il y a des clients écartés avant
+    le système, système complet sur tout le lot). groupes : {nom du groupe: (clients, défauts constatés)}."""
+    ctx_n, ctx_d = groupes["Contentieux (règle)"]
+    sig_n, sig_d = groupes["Signalés par le modèle"]
+    eca_n, eca_d = groupes["Écartés par le modèle"]
+    avant = [v for n, v in groupes.items() if n in ("Retirés par le nettoyage", "Sans encours en septembre")]
+    perim_n, perim_d = ctx_n + sig_n + eca_n, ctx_d + sig_d + eca_d
+
+    def ligne(nom, perimetre, detectes, defauts, declares, clients):
+        rappel = detectes / defauts if defauts else 0
+        precision = detectes / declares if declares else 0
+        f2 = 5 * precision * rappel / (4 * precision + rappel) if precision + rappel else 0
+        return [f"<b>{nom}</b>", perimetre, f"{nombre_fr(detectes)} sur {nombre_fr(defauts)}", f"{nombre_fr(rappel * 100, 1)} %",
+                f"{nombre_fr(precision * 100, 1)} %", f"{nombre_fr(declares / clients * 100, 1)} %" if clients else "–", nombre_fr(f2, 3)]
+
+    lignes = [ligne("Règle du contentieux", "périmètre", ctx_d, perim_d, ctx_n, perim_n),
+              ligne("Modèle", "clients hors contentieux", sig_d, sig_d + eca_d, sig_n, sig_n + eca_n),
+              ligne("Système complet (règle + modèle)", "périmètre", ctx_d + sig_d, perim_d, ctx_n + sig_n, perim_n)]
+    if avant:
+        tous_n, tous_d = perim_n + sum(v[0] for v in avant), perim_d + sum(v[1] for v in avant)
+        lignes.append(ligne("Système complet, sur tout le lot", "tous les clients lus (écartés avant le système : non détectés)",
+                            ctx_d + sig_d, tous_d, ctx_n + sig_n, tous_n))
+    st.markdown("**Performance sur ce lot**")
+    tableau_html(["", "Clients pris en compte", "Défauts détectés", "Taux de rappel", "Précision des défauts prédits",
+                  "Clients déclarés en défaut", "Score décisionnel F2"], lignes, largeurs=[20, 20, 13, 11, 13, 12, 11])
+    st.caption("Taux de rappel : part des défauts constatés que l'étape déclare en défaut. Précision des défauts prédits : part des clients "
+               "déclarés en défaut qui le sont vraiment dans les données. Score décisionnel F2 : combine les deux, en donnant plus de poids au rappel.")
+
+
+def encadre_niveau(nom, texte):
+    """Encadré d'un client (fiche des démos), à la couleur de son niveau dans le tableau des niveaux de risque.
+    texte : Markdown simple (le gras **…** est traduit en HTML)."""
+    couleur = NIVEAUX_DEMO[nom][0]
+    html = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", texte)
+    st.markdown(f"<div style='border-left: 8px solid {couleur}; background: {couleur}26; padding: 12px 16px; "
+                f"border-radius: 6px; margin-bottom: 1rem;'>{html}</div>", unsafe_allow_html=True)
+
+
 def legende_niveaux(taux, seuil_choisi):
-    """Tableau coloré des niveaux de risque des démos ; taux : {niveau: taux de défaut réel en %}, seuls ces niveaux sont affichés ;
+    """Tableau coloré des niveaux de risque des démos ; taux : {niveau: taux de défaut constaté en %}, seuls ces niveaux sont affichés ;
     seuil_choisi : clé du seuil sélectionné, qui décide des niveaux signalés par le modèle."""
     def decision(nom):
         if nom == "Contentieux (règle)":
@@ -501,11 +629,11 @@ def legende_niveaux(taux, seuil_choisi):
             return ("<b>signalé</b>", "background: rgba(204, 102, 119, 0.25);") if nom in SIGNALES_DEMO[seuil_choisi] else ("non signalé", "")
         return ("hors du système", "")
     st.markdown("**Les niveaux de risque, avec le seuil choisi**")
-    tableau_html(["Niveau", "Comment le client y arrive", "Décision", "Défaut réel"],
+    tableau_html(["Niveau", "Comment le client y arrive", "Décision", "Défaut constaté"],
                  [[(f"<b>{nom}</b>", f"background: {fond}; color: {texte};"), definition, decision(nom), f"{nombre_fr(taux[nom], 1)} %"]
                   for nom, (fond, texte, definition) in NIVEAUX_DEMO.items() if nom in taux],
                  largeurs=[26, 38, 20, 16])
-    st.caption("Défaut réel : part des clients du niveau réellement en défaut de paiement en octobre 2005, sur toute la réserve de la démo. "
+    st.caption("Défaut constaté : part des clients du niveau en défaut de paiement en octobre 2005 dans les données (cible `dpnm`), sur toute la réserve de la démo. "
                "Seuils fixés sur le jeu d'entraînement.")
 
 
