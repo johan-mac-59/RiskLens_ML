@@ -112,8 +112,10 @@ pages = {
         st.Page("streamlit_pages/p6_6_risques.py", title="6.6 L'évaluation des risques : ce qui peut tromper, et comment le limiter", icon=":material/warning:"),
     ],
     "7. Le déploiement du modèle : du fichier de la banque à la décision": [
+        st.Page("streamlit_pages/p7_1_architecture.py", title="7.1 L'architecture : de la base de données à la décision", icon=":material/account_tree:"),
         st.Page("streamlit_pages/p7_2_demo_donnees_projet.py", title="7.2 Démo 1 : le système complet en direct, sur les données du projet", icon=":material/play_circle:"),
         st.Page("streamlit_pages/p7_3_demo_base_de_donnees.py", title="7.3 Démo 2 : test grandeur nature, de la base de données à la décision", icon=":material/cloud_sync:"),
+        st.Page("streamlit_pages/p7_4_demo_dataset_complet.py", title="7.4 Démo 3 : tout le dataset d'origine, une règle métier face à un modèle", icon=":material/balance:"),
     ],
 }
 # Menu automatique masqué : il se placerait au-dessus du logo et du titre.

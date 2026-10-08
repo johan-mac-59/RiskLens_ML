@@ -696,3 +696,223 @@ def figure_detection(libelles, barres, precisions, hasard, nom_barres="Part des 
     fig.update_layout(xaxis_title=titre_x, yaxis_title="%", yaxis_range=[0, y_max], height=hauteur, separators=", ",
                       legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0))
     return fig
+
+# ==============================================================================
+# DÉMOS DE LA PARTIE 7 : TRAITEMENT EN DIRECT DES CLIENTS BRUTS (pages 7.3 et 7.4)
+# Copies des notebooks : nettoyage niveaux 1 à 5 (src/02_01_nettoyage.ipynb), colonnes du modèle
+# (lab_ML/creation_datasets_ML.ipynb). Les pages contrôlent, client par client, que le résultat reste celui du projet.
+# ==============================================================================
+PAY = [f"PAY_{i}" for i in range(1, 7)]
+BILL = [f"BILL_AMT{i}" for i in range(1, 7)]
+PAY_AMT = [f"PAY_AMT{i}" for i in range(1, 7)]
+
+
+# ------------------------------------------------------------------------------
+# Nettoyage : copie de src/02_01_nettoyage.ipynb (niveaux 1 à 4)
+# ------------------------------------------------------------------------------
+def nettoyage_niveaux_1_a_4(df):
+    """Renvoie (clients gardés, retirés pour paiement géant, retirés comme comptes inactifs, retirés pour plafond atypique)."""
+    df = df.copy()
+    # Audit : catégories inconnues regroupées dans « autres »
+    df["MARRIAGE"] = df["MARRIAGE"].where(df["MARRIAGE"].isin([1, 2, 3]), 3)
+    df["EDUCATION"] = df["EDUCATION"].where(df["EDUCATION"].isin([1, 2, 3, 4]), 4)
+    # Niveau 1 : paiements géants (> 1 000 000) ; comptes inactifs (aucune facture positive sur 6 mois, aucun paiement de
+    # PAY_AMT1 à PAY_AMT5 : PAY_AMT6 rembourse la facture de mars, antérieure à la période)
+    geant = (df[PAY_AMT] > 1000000).any(axis=1)
+    inactif = (df[BILL] <= 0).all(axis=1) & (df[PAY_AMT[:5]] == 0).all(axis=1)
+    retires_geants, retires_inactifs = df[geant], df[inactif & ~geant]
+    df = df[~(geant | inactif)].copy()
+    df.loc[df["ID"] == 6783, ["PAY_1", "PAY_2", "PAY_3", "PAY_4"]] = 0     # codifié 1 sur 4 mois alors qu'il paie chaque mois
+    # Niveau 2 : PAY_n = 1 sans facture due (BILL_AMT(n+1) <= 0) reprend la codification du mois d'avant, puis passes
+    # jusqu'à stabilité ; les 1 restants sans facture due passent à 0
+    for i in range(5, 0, -1):
+        condition = (df[f"BILL_AMT{i+1}"] <= 0) & (df[f"PAY_{i}"] == 1)
+        df.loc[condition, f"PAY_{i}"] = df.loc[condition, f"PAY_{i+1}"]
+    while True:
+        nb = 0
+        for i in range(5, 0, -1):
+            condition = (df[f"BILL_AMT{i+1}"] <= 0) & (df[f"PAY_{i}"] == 1) & (df[f"PAY_{i+1}"] != 1)
+            nb += condition.sum()
+            df.loc[condition, f"PAY_{i}"] = df.loc[condition, f"PAY_{i+1}"]
+        if nb == 0:
+            break
+    for i in range(1, 6):
+        df.loc[(df[f"PAY_{i}"] == 1) & (df[f"BILL_AMT{i+1}"] <= 0), f"PAY_{i}"] = 0
+    # Niveau 3 : ratios de paiement, puis PAY_1 = 1 sur une facture payée à 90 % ou plus reprend la codification d'août
+    for n in range(1, 6):
+        bill = df[f"BILL_AMT{n+1}"]
+        df[f"ratio_PAY_BILL{n}"] = (df[f"PAY_AMT{n}"] / bill.where(bill > 0) * 100).clip(lower=0, upper=200).fillna(100)
+    condition = (df["PAY_1"] == 1) & (df["PAY_2"] <= 0) & (df["BILL_AMT2"] > 0) & (df["ratio_PAY_BILL1"] >= 90)
+    df.loc[condition, "PAY_1"] = df.loc[condition, "PAY_2"]
+    # Niveau 4 : plafonds de plus de 500 000 NT$ (clientèle haut de gamme, atypique)
+    plafond = df["LIMIT_BAL"] > 500000
+    return df[~plafond].copy(), retires_geants, retires_inactifs, df[plafond]
+
+
+# ------------------------------------------------------------------------------
+# Niveau 5 : copie des fonctions du contentieux de src/02_01_nettoyage.ipynb (définition 2)
+# ------------------------------------------------------------------------------
+def corriger_faux_codage(d):
+    codes = d[PAY].copy()
+    faux_codage = pd.Series(False, index=d.index)
+    surveillance = pd.Series(False, index=d.index)
+    for m in range(1, 6):
+        faux_2 = (d[f'PAY_{m}'] >= 2) & (d[f'PAY_{m+1}'] < 2) & (d[f'BILL_AMT{m+1}'] <= 0)
+        paiement_avant = d[f'PAY_AMT{m+1}'] > 0
+        encours_avant = d[f'BILL_AMT{m+2}'] > 0 if m + 2 <= 6 else pd.Series(False, index=d.index)
+        fc = faux_2 & (paiement_avant | encours_avant)
+        surveillance |= faux_2 & ~fc
+        faux_codage |= fc
+        a_corriger = faux_2.copy()
+        for k in range(m, 0, -1):
+            a_corriger &= (d[f'PAY_{k}'] >= 2) & (d[f'BILL_AMT{k+1}'] <= 0)
+            codes.loc[a_corriger, f'PAY_{k}'] = d.loc[a_corriger, f'PAY_{m+1}']
+    return codes, faux_codage, surveillance
+
+
+def recodage_pay1(d, codes):
+    transition = (codes['PAY_2'] >= 2) & (codes['PAY_1'] <= 1)
+    ratio = (d['PAY_AMT1'] / d['BILL_AMT2'].where(d['BILL_AMT2'] > 0) * 100).fillna(0)
+    sans_paiement_2_mois = (d['PAY_AMT1'] == 0) & (d['PAY_AMT2'] == 0)
+    factures_exigibles = (d['BILL_AMT3'] > 0) & (d['BILL_AMT2'] > 0)
+    code_avant = pd.Series(0, index=d.index)
+    a_chercher = pd.Series(True, index=d.index)
+    for k in range(3, 7):
+        trouve = a_chercher & (codes[f'PAY_{k}'] < 2)
+        code_avant[trouve] = codes.loc[trouve, f'PAY_{k}']
+        a_chercher &= ~trouve
+    code_avant = code_avant.clip(upper=0).replace(-2, -1)
+    return pd.Series(np.select([transition & sans_paiement_2_mois & factures_exigibles, transition & (ratio >= 90)],
+                               [2, code_avant], default=codes['PAY_1']), index=d.index)
+
+
+def indicateurs_ctx(d, codes):
+    pay1 = codes['PAY_1']
+    ratio_m1 = (d['PAY_AMT1'] / d['BILL_AMT2'].where(d['BILL_AMT2'] > 0) * 100).fillna(0)
+    ratio_m2 = (d['PAY_AMT2'] / d['BILL_AMT3'].where(d['BILL_AMT3'] > 0) * 100).fillna(0)
+    retard_paye = (pay1 >= 2) & ((ratio_m1 >= 90) | (ratio_m2 >= 90))
+    retard_paye_serie = retard_paye & (codes['PAY_2'] >= 2)
+    retard_paye_isole = retard_paye & ~retard_paye_serie
+    au_ctx_m = (pay1 >= 2) & ~retard_paye
+    retard = (codes >= 2).to_numpy()
+    passage_ctx = np.zeros(len(d), bool)
+    retard_regularise = np.zeros(len(d), bool)
+    mois_sortie = np.full(len(d), -1)
+    mois_regularisation = np.full(len(d), -1)
+    nb_mois_ctx = np.zeros(len(d), int)
+    for i, r in enumerate(retard):
+        if r[0]:
+            fin = 0
+            while fin + 1 < 6 and r[fin + 1]:
+                fin += 1
+            if au_ctx_m.iat[i] or retard_paye_serie.iat[i]:
+                nb_mois_ctx[i] = fin + 1
+        k = 1
+        while k < 6:
+            if r[k] and not r[k - 1]:
+                fin = k
+                while fin + 1 < 6 and r[fin + 1]:
+                    fin += 1
+                if fin > k or fin == 5:
+                    if not passage_ctx[i]:
+                        mois_sortie[i] = k
+                        if nb_mois_ctx[i] == 0:
+                            nb_mois_ctx[i] = fin - k + 1
+                    passage_ctx[i] = True
+                else:
+                    if not retard_regularise[i]:
+                        mois_regularisation[i] = k
+                    retard_regularise[i] = True
+                k = fin + 1
+            else:
+                k += 1
+    mois_sortie = pd.Series(mois_sortie, index=d.index)
+    mois_sortie[au_ctx_m] = -1
+    mois_sortie[retard_paye_serie] = 0
+    mois_regularisation = pd.Series(mois_regularisation, index=d.index)
+    mois_regularisation[retard_paye_isole] = 0
+    mois_regularisation[au_ctx_m] = -1
+    flag_ctx = (pd.Series(passage_ctx, index=d.index) | au_ctx_m | retard_paye_serie).astype(int)
+    flag_retard = ((pd.Series(retard_regularise, index=d.index) | retard_paye_isole) & ~au_ctx_m).astype(int)
+    nb_mois_ctx = pd.Series(nb_mois_ctx, index=d.index).where(flag_ctx == 1, 0)
+    return pd.DataFrame({'FLAG_CTX': flag_ctx, 'MOIS_SORTIE_CTX': mois_sortie.astype(int), 'FLAG_RETARD': flag_retard,
+                         'MOIS_SORTIE_RETARD': mois_regularisation.astype(int), 'NB_MOIS_CTX': nb_mois_ctx.astype(int)})
+
+
+def niveau_5(df):
+    df = df.copy()
+    codes, faux_codage, surveillance = corriger_faux_codage(df)
+    codes['PAY_1'] = recodage_pay1(df, codes)
+    indicateurs = indicateurs_ctx(df, codes)
+    df[PAY] = codes.astype(int)
+    df['FAUX_CODAGE'] = faux_codage.astype(int)
+    df['SURVEILLANCE_RECENTE'] = surveillance.astype(int)
+    for col in indicateurs.columns:
+        df[col] = indicateurs[col]
+    return df
+
+
+# ------------------------------------------------------------------------------
+# Colonnes du modèle : copie de lab_ML/creation_datasets_ML.ipynb (PAY_habituel, CUMUL_INCIDENT)
+# ------------------------------------------------------------------------------
+def colonnes_du_modele(d):
+    d = d.copy()
+    codifs = pd.DataFrame({n: d[f"PAY_{n}"].clip(upper=2) for n in range(1, 7)})
+
+    def codification_habituelle(ligne):
+        valeurs = ligne.dropna()
+        comptes = valeurs.value_counts()
+        ex_aequo = comptes[comptes == comptes.max()].index
+        return next(v for v in valeurs if v in ex_aequo)
+
+    d["PAY_habituel"] = codifs.apply(codification_habituelle, axis=1).astype(int) if len(d) else pd.Series(dtype=int)
+    d["CUMUL_INCIDENT"] = (d[PAY] >= 2).sum(axis=1).astype(int)
+    return d
+
+
+def au_contentieux(d):
+    return (d["FLAG_CTX"] == 1) & (d["MOIS_SORTIE_CTX"] == -1)
+
+
+# Lecture des clients dans la base, par l'API (une ligne au format du fichier d'origine par client)
+def ligne_depuis_api(fiche, historique):
+    """Reconstruit la ligne d'un client au format du fichier d'origine, à partir de sa fiche et de son historique lus par l'API."""
+    ligne = {"ID": fiche["client_id"], "LIMIT_BAL": fiche["plafond"], "SEX": fiche["code_genre"], "EDUCATION": fiche["code_scolaire"],
+             "MARRIAGE": fiche["code_marital"], "AGE": fiche["age"]}
+    # Seuls les six mois étudiés sont lus (avril à septembre 2005) : le mois m correspond à PAY_(10 - m) (septembre = 1) ;
+    # les autres mois éventuels de la base sont ignorés
+    mois = {10 - h["date_complexe"]["mois_num"]: h for h in historique
+            if h["date_complexe"]["annee"] == 2005 and 4 <= h["date_complexe"]["mois_num"] <= 9}
+    if sorted(mois) != list(range(1, 7)):
+        raise ValueError(f"client {fiche['client_id']} : il manque un ou plusieurs mois d'avril à septembre 2005 dans la base")
+    ligne |= {f"PAY_{n}": mois[n]["code_statut_paiement"] for n in range(1, 7)}
+    ligne |= {f"BILL_AMT{n}": mois[n]["montant_encours"] for n in range(1, 7)}
+    ligne |= {f"PAY_AMT{n}": mois[n]["montant_paye"] for n in range(1, 7)}
+    ligne["dpnm"] = fiche["code_statut_defaut"]
+    return ligne
+
+
+def lire_client_api(id_client):
+    """Un client : GET /client puis GET /historique_mensuel (fiche « un client à la fois »)."""
+    res_client = requests.get(f"{API_URL}/client/{id_client}", timeout=API_TIMEOUT)
+    res_historique = requests.get(f"{API_URL}/historique_mensuel/{id_client}", timeout=API_TIMEOUT)
+    if res_client.status_code != 200 or res_historique.status_code != 200:
+        raise ValueError(f"L'API a refusé la lecture du client {id_client} : "
+                         f"{message_erreur_api(res_client if res_client.status_code != 200 else res_historique)}")
+    return ligne_depuis_api(res_client.json(), res_historique.json()["historique"]), (res_client.json(), res_historique.json())
+
+
+def lire_lot_api(ids):
+    """Un lot : POST /clients/lot, un seul appel pour tous les clients (fiche et historique de chacun).
+    Renvoie les lignes reconstruites, les identifiants introuvables dans la base et les clients illisibles."""
+    res = requests.post(f"{API_URL}/clients/lot", json={"ids": [int(i) for i in ids]}, timeout=API_TIMEOUT)
+    if res.status_code != 200:
+        raise ValueError(f"L'API a refusé la lecture du lot : {message_erreur_api(res)}")
+    reponse = res.json()
+    lignes, illisibles = [], []
+    for c in reponse["clients"]:
+        try:
+            lignes.append(ligne_depuis_api(c["client"], c["historique"]))
+        except ValueError as e:
+            illisibles.append(str(e))
+    return lignes, reponse["introuvables"], illisibles

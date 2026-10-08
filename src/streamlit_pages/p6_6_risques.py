@@ -89,13 +89,13 @@ tableau_html(ENTETES, [
      "Afficher le niveau de risque du client et le taux de défaut observé de ce niveau, jamais la probabilité brute",
      "Calibrer les probabilités avant de les montrer"],
     ["<b>Une démonstration trop belle</b> : prédire sur des clients que le modèle a appris donne un résultat flatteur", gravite("Moyenne"),
-     "Mettre de côté, avant tout réentraînement, quelques clients jamais appris, réservés à la démonstration",
+     "Démonstrations (partie 7) uniquement sur des clients jamais appris : le jeu de test et des clients retirés avant le machine learning ; le modèle n'est pas réentraîné",
      "Juger le modèle uniquement sur des clients jamais vus"],
     ["<b>Un modèle en ligne différent du modèle évalué</b>, s'il est réentraîné sur plus de données", gravite("Faible"),
-     "Mêmes réglages et même méthode de seuil ; le score annoncé reste celui du test",
+     "Le modèle en ligne est celui évalué sur le test, sans réentraînement : le score annoncé est le sien",
      "Évaluer chaque nouvelle version avant de la mettre en service"],
     ["<b>Une base de démonstration ouverte</b> : l'API laisse tout visiteur lire et modifier la base", gravite("Faible"),
-     "Choix assumé : données publiques et anonymes, base réinitialisée à chaque mise en veille du serveur, formats contrôlés à l'entrée, accès limité à quelques clients à la fois, téléchargement complet réservé à l'administrateur, protégé par un identifiant et un mot de passe (partie 2)",
+     "Choix assumé : données publiques et anonymes, base réinitialisée à chaque mise en veille du serveur, formats contrôlés à l'entrée, lecture par lot ouverte pour la démonstration (partie 7), téléchargement complet réservé à l'administrateur, protégé par un identifiant et un mot de passe (partie 2)",
      "Des accès par rôle (lecture, écriture, administration), attribués par le système d'information"],
 ], largeurs=LARGEURS)
 
