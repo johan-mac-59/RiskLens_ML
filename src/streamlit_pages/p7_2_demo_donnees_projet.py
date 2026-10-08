@@ -3,7 +3,7 @@ import joblib
 from streamlit_pages.commun import *
 
 # ==============================================================================
-# DÉMO 1 (menu « Tests ») : le système complet en direct, sur les données du projet
+# PAGE 7.2, DÉMO 1 : le système complet en direct, sur les données du projet
 # Clients : ceux de l'évaluation finale (test du ML + 20 % du contentieux du périmètre), jamais vus par le modèle.
 # Valeurs lues dans dataset_streamlit.csv (identique aux données du ML) ; la règle du contentieux et le modèle
 # calculent en direct, à chaque clic. Fichiers préparés par lab_ML/demo_ML/creation_demo_ML.ipynb.
@@ -53,7 +53,8 @@ def taux_par_niveau():
     return reserve.groupby(niveau_de_risque(reserve, proba))["dpnm"].mean().mul(100).to_dict()
 
 
-st.title("🧪 Démo : le système complet en direct")
+entete_partie_7()
+st.header("7.2 Démo 1 : le système complet en direct, sur les données du projet", anchor="demo-1")
 st.markdown(f"""
 Le système construit dans le projet tourne ici **en direct**, en deux étapes : la **règle métier du contentieux** (partie 5), puis le **modèle de machine learning** (partie 6) pour les autres clients.
 
@@ -64,7 +65,7 @@ Les clients injectés viennent d'une réserve de **{nombre_fr(len(reserve))} cli
 # ==============================================================================
 # 1. UN LOT DE CLIENTS
 # ==============================================================================
-st.header("1. Injecter un lot de clients", anchor="lot")
+st.subheader("1. Injecter un lot de clients", anchor="lot")
 col_lot, col_legende = st.columns([2, 1])
 with col_lot:
     CHOIX = {"10 % des défauts": "tres_haut_risque", "30 % des défauts": "haut_risque", "60 % des défauts": "risque_modere"}
@@ -156,7 +157,7 @@ Relancez plusieurs lots de **200 clients**, puis de **toute la réserve** : sur 
 # ==============================================================================
 # 2. UN CLIENT À LA FOIS
 # ==============================================================================
-st.header("2. Un client à la fois", anchor="client")
+st.subheader("2. Un client à la fois", anchor="client")
 ORIGINES = {"Tous les clients de la réserve": None, "Parmi les clients au contentieux": True, "Parmi les autres clients": False}
 origine = st.radio("Tirer le client", list(ORIGINES), horizontal=True)
 

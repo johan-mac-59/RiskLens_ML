@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 # niveaux de risque. Chiffres repris tels quels des sorties de lab_ML/evaluation_finale_test.ipynb (sections 2,
 # 3, 4 et 6) : le modèle et ses probabilités ne sont pas dans le dépôt. Effectifs du test et taux de défaut
 # calculés en direct (même découpage que lab_ML/creation_datasets_ML.ipynb).
-# La comparaison « règle seule / règle + modèle » est en partie 7 ; le plafond et ses causes en 6.5.
+# La comparaison « règle seule / règle + modèle » est en partie 8 (conclusion) ; le plafond et ses causes en 6.5.
 # ==============================================================================
 GH_RACINE = "https://github.com/johan-mac-59/RiskLens_ML/blob/main"
 EVALUATION = f"{GH_RACINE}/lab_ML/evaluation_finale_test.ipynb"

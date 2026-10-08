@@ -3,7 +3,7 @@ import joblib
 from streamlit_pages.commun import *
 
 # ==============================================================================
-# DÉMO 2 (menu « Tests ») : test grandeur nature, à partir du fichier d'origine, sans aucune modification
+# PAGE 7.3, DÉMO 2 : test grandeur nature, à partir du fichier d'origine, sans aucune modification
 # Tout est refait en direct : nettoyage (niveaux 1 à 5 de src/02_01_nettoyage.ipynb), périmètre, colonnes du modèle
 # (lab_ML/creation_datasets_ML.ipynb), règle du contentieux, modèle. Les fonctions ci-dessous sont des copies de ces
 # notebooks : le contrôle en bas de page compare, client par client, le résultat au jeu de données du projet.
@@ -282,7 +282,8 @@ def ecarts_base_fichier(lignes):
     return int((lignes.set_index("ID")[fichier.columns].to_numpy() != fichier.to_numpy()).any(axis=1).sum())
 
 
-st.title("🧪 Démo 2 : test grandeur nature, à partir du fichier d'origine")
+entete_partie_7()
+st.header("7.3 Démo 2 : test grandeur nature, de la base de données à la décision", anchor="demo-2")
 st.markdown(f"""
 Cette fois, rien n'est préparé : les clients arrivent **tels qu'ils sont dans le fichier d'origine** (fichier de l'UCI, colonnes séparées par des points-virgules), et **tout est refait en direct** : le nettoyage, les corrections de codification, le périmètre, la règle du contentieux et le modèle.
 
@@ -294,7 +295,7 @@ La réserve compte **{nombre_fr(len(reserve))} clients**, tous inconnus du modè
 with st.expander("Voir les premières lignes du fichier, telles qu'elles arrivent"):
     st.code("\n".join(CHEMIN_BRUTS.read_text(encoding="utf-8-sig").splitlines()[:6]), language=None)
 
-st.header("1. Injecter un lot de clients", anchor="lot")
+st.subheader("1. Injecter un lot de clients", anchor="lot")
 col_lot, col_legende = st.columns([2, 1])
 with col_lot:
     CHOIX = {"10 % des défauts": "tres_haut_risque", "30 % des défauts": "haut_risque", "60 % des défauts": "risque_modere"}
@@ -454,7 +455,7 @@ Relancez plusieurs lots de **200 clients**, puis de **toute la réserve** : sur 
 # 2. UN CLIENT À LA FOIS
 # ==============================================================================
 
-st.header("2. Un client à la fois", anchor="client")
+st.subheader("2. Un client à la fois", anchor="client")
 ORIGINES = {"Tous les clients de la réserve": GROUPES, "Parmi les clients retirés par le nettoyage": GROUPES[:1],
             "Parmi les clients hors périmètre (sans encours en septembre)": GROUPES[1:2],
             "Parmi les clients au contentieux": GROUPES[2:3], "Parmi les autres clients": GROUPES[3:]}

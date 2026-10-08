@@ -1,10 +1,10 @@
 from streamlit_pages.commun import *
 
 # ==============================================================================
-# BROUILLON POUR LA PARTIE 7.1 (pas encore dans le menu)
+# BROUILLON POUR LA PARTIE 8.1 (pas encore dans le menu ; conclusion, ex-partie 7, renumérotée le 08/10/2026)
 # Section retirée de la page 6.4 le 07/10/2026, hors sujet sur une page consacrée au modèle : la règle du
 # contentieux et le modèle ensemble, sur tout le périmètre, niveau par niveau (système complet).
-# À intégrer à la page 7.1 quand elle sera rédigée. Chiffres repris tels quels de
+# À intégrer à la page 8.1 quand elle sera rédigée. Chiffres repris tels quels de
 # lab_ML/evaluation_finale_test.ipynb, section 6 (mêmes NIVEAUX que la page 6.4).
 # ==============================================================================
 GH_RACINE = "https://github.com/johan-mac-59/RiskLens_ML/blob/main"

@@ -8,7 +8,7 @@ from streamlit_pages.commun import *
 # hors pli ne sont pas dans le dépôt. Indices sur la cible : calculés en direct sur le dataset (portefeuille nettoyé,
 # contentieux à M), sauf la codification de retard sur une dette nulle, qui porte sur les données d'origine
 # (lab_ML/controles_cible.ipynb, section 3).
-# Le poids du comportement face aux codifications (H6) est gardé pour la partie 7.
+# Le poids du comportement face aux codifications (H6) est gardé pour la partie 8 (conclusion).
 # ==============================================================================
 GH_RACINE = "https://github.com/johan-mac-59/RiskLens_ML/blob/main"
 DEFAUTS_MANQUES = f"{GH_RACINE}/lab_ML/analyse_defauts_manques.ipynb"

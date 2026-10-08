@@ -111,9 +111,9 @@ pages = {
         st.Page("streamlit_pages/p6_5_plafond.py", title="6.5 Pourquoi le modèle plafonne : une part des défauts ne s'annonce pas dans les données", icon=":material/block:"),
         st.Page("streamlit_pages/p6_6_risques.py", title="6.6 L'évaluation des risques : ce qui peut tromper, et comment le limiter", icon=":material/warning:"),
     ],
-    "🪣 Tests": [
-        st.Page("streamlit_pages/demo_1_systeme_complet.py", title="Démo 1 : le système complet en direct", icon=":material/science:"),
-        st.Page("streamlit_pages/demo_2_fichier_origine.py", title="Démo 2 : test grandeur nature, à partir du fichier d'origine", icon=":material/science:"),
+    "7. Le déploiement du modèle : du fichier de la banque à la décision": [
+        st.Page("streamlit_pages/p7_2_demo_donnees_projet.py", title="7.2 Démo 1 : le système complet en direct, sur les données du projet", icon=":material/play_circle:"),
+        st.Page("streamlit_pages/p7_3_demo_base_de_donnees.py", title="7.3 Démo 2 : test grandeur nature, de la base de données à la décision", icon=":material/cloud_sync:"),
     ],
 }
 # Menu automatique masqué : il se placerait au-dessus du logo et du titre.

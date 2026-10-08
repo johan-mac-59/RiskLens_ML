@@ -33,7 +33,7 @@ La première itération mélangeait deux populations (page 6.1). La partie 5 les
 
 Ces deux jeux sont créés **directement à partir du nettoyage le plus avancé** (partie 3), sans dépendre de l'exploration : n'importe qui peut les recréer à l'identique à partir des données d'origine.
 
-Cette base est **plus difficile** que celle de la première itération : les défauts les plus faciles à repérer, ceux du contentieux, sont partis à la règle métier. Les scores des modèles y sont mécaniquement plus bas, sans que les modèles soient moins bons ; la vraie comparaison se fera sur le système complet, la règle pour le contentieux et le modèle pour le reste (partie 7).
+Cette base est **plus difficile** que celle de la première itération : les défauts les plus faciles à repérer, ceux du contentieux, sont partis à la règle métier. Les scores des modèles y sont mécaniquement plus bas, sans que les modèles soient moins bons ; la vraie comparaison se fera sur le système complet, la règle pour le contentieux et le modèle pour le reste (partie 8).
 """)
 
 # ------------------------------------------------------------------------------

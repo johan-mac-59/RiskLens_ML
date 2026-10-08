@@ -479,7 +479,7 @@ def entete_partie_6():
 
 
 # ==============================================================================
-# DÉMOS (menu « Tests ») : légende des niveaux de risque, du plus risqué au moins risqué
+# DÉMOS DE LA PARTIE 7 (pages 7.2 et 7.3) : légende des niveaux de risque, du plus risqué au moins risqué
 # ==============================================================================
 # Bleu des encadrés d'information de Streamlit (st.info) : le risque faible a la même couleur que le message « client non signalé »
 BLEU_INFO = "#1C83E1"
@@ -637,8 +637,17 @@ def legende_niveaux(taux, seuil_choisi):
                "Seuils fixés sur le jeu d'entraînement.")
 
 
+
+def entete_partie_7():
+    """En-tête de la partie 7, repris sur toutes ses pages."""
+    st.title("🚀 7. Le déploiement du modèle : du fichier de la banque à la décision")
+    st.markdown("""
+    Un modèle ne vaut que s'il sert. Cette partie met en service le système construit dans le projet, la règle du contentieux puis le modèle, et le fait tourner **en direct**, des données jusqu'à la décision, sur des clients que le modèle n'a **jamais vus**.
+    """)
+
+
 # ==============================================================================
-# GRAPHIQUE DE DÉTECTION (6.4, et section mise de côté pour la 7.1) : défauts détectés, précision, hasard
+# GRAPHIQUE DE DÉTECTION (6.4, et section mise de côté pour la 8.1) : défauts détectés, précision, hasard
 # ==============================================================================
 def figure_detection(libelles, barres, precisions, hasard, nom_barres="Part des défauts détectés", titre_x=None, info_survol=None, y_max=100, hauteur=480,
                      en_courbes=False, etiquetes=None, axe_numerique=False,
