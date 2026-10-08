@@ -654,8 +654,16 @@ def entete_partie_7():
     """)
 
 
+def entete_partie_8():
+    """En-tête de la partie 8, repris sur toutes ses pages."""
+    st.title("🎯 8. Réponse à la problématique et conclusion")
+    st.markdown("""
+    Le projet partait d'une question : **« Peut-on prévoir le défaut de paiement d'un client en se basant uniquement sur son comportement transactionnel des 6 derniers mois, malgré un manque d'informations économiques globales ? »** Par « informations économiques », il faut entendre deux choses absentes du dataset : la conjoncture (chômage, inflation, croissance) et les données économiques du client (revenu, autres crédits, loyer, endettement total, reste à vivre). Cette partie y répond, compare le résultat à l'étude de référence de 2009, puis en tire ce qu'il faut retenir, les limites et les recommandations.
+    """)
+
+
 # ==============================================================================
-# GRAPHIQUE DE DÉTECTION (6.4, et section mise de côté pour la 8.1) : défauts détectés, précision, hasard
+# GRAPHIQUE DE DÉTECTION (pages 6.4 et 8.1) : défauts détectés, précision, hasard
 # ==============================================================================
 def figure_detection(libelles, barres, precisions, hasard, nom_barres="Part des défauts détectés", titre_x=None, info_survol=None, y_max=100, hauteur=480,
                      en_courbes=False, etiquetes=None, axe_numerique=False,
@@ -924,3 +932,64 @@ def lire_lot_api(ids):
         except ValueError as e:
             illisibles.append(str(e))
     return lignes, reponse["introuvables"], illisibles
+
+
+# ==============================================================================
+# PARTIE 8 : LE SYSTÈME DU PROJET FACE AU MODÈLE BRUT, SUR LES MÊMES CLIENTS (pages 8.1 et 8.2)
+# Clients de la démo 1 (test du ML + 20 % du contentieux du périmètre, 5 441 clients), jamais vus par aucun des deux :
+# - système du projet : règle du contentieux, puis CatBoost de ml_14 (données nettoyées de dataset_streamlit.csv) ;
+# - modèle brut de la démo 3 : CatBoost sur les 23 variables d'origine, chaque client noté par le modèle de pli qui ne
+#   l'a pas vu (données d'origine de clients_bruts_demo.csv, qui contient tous ces clients).
+# Fichiers préparés par lab_ML/demo_ML/creation_demo_ML.ipynb et creation_demo_3.ipynb.
+# ==============================================================================
+@st.cache_data
+def systemes_sur_clients_demo():
+    """Une ligne par client : défaut constaté, contentieux, probabilité de ml_14 (hors contentieux), score du modèle brut,
+    codifications d'origine. Le défaut constaté des deux fichiers est contrôlé client par client."""
+    import joblib
+    dossier = BASE_DIR / "lab_ML" / "demo_ML"
+    liste = pd.read_csv(dossier / "clients_demo.csv")
+    projet = load_data().set_index("ID").loc[liste["ID"]].reset_index()
+    bruts = pd.read_csv(dossier / "clients_bruts_demo.csv", sep=";", encoding="utf-8-sig").set_index("ID").loc[liste["ID"]].reset_index()
+    assert (projet["dpnm"].values == bruts["dpnm"].values).all(), "Défaut constaté différent entre les deux fichiers"
+
+    ml_14 = joblib.load(dossier / "model_ml_14.joblib")
+    ctx = au_contentieux(projet).values
+    proba = np.full(len(projet), np.nan)
+    proba[~ctx] = ml_14["modele"].predict_proba(projet.loc[~ctx, ml_14["variables"]])[:, 1]
+
+    brut = joblib.load(dossier / "demo_3_modeles_plis.joblib")
+    pli_du_client = {i: numero for numero, ids in enumerate(brut["ids_non_vus"]) for i in ids}
+    plis = bruts["ID"].map(pli_du_client)
+    assert plis.notna().all(), "Des clients de la démo 1 n'ont pas de modèle de pli"
+    score_brut = np.full(len(bruts), np.nan)
+    for numero, modele in enumerate(brut["modeles"]):
+        dans_pli = (plis == numero).values
+        if dans_pli.any():
+            score_brut[dans_pli] = modele.predict_proba(bruts.loc[dans_pli, brut["variables"]])[:, 1]
+
+    sortie = pd.DataFrame({"ID": projet["ID"], "dpnm": projet["dpnm"], "contentieux": ctx, "proba_ml14": proba, "score_brut": score_brut})
+    for n in range(1, 7):
+        sortie[f"PAY_{n}_origine"] = bruts[f"PAY_{n}"].values
+    return sortie
+
+
+def score_systeme_projet(d):
+    """Score de tri du système du projet : le contentieux en tête (au-dessus de toute probabilité), puis la probabilité de ml_14."""
+    return np.where(d["contentieux"], 2.0, d["proba_ml14"])
+
+
+def precision_au_rappel(y, score, rappel):
+    """Clients rangés du plus au moins risqué, signalés jusqu'à détecter la part de défauts voulue.
+    Renvoie (précision, part des clients signalés), en %."""
+    y = np.asarray(y)
+    ordre = np.argsort(-np.asarray(score), kind="stable")
+    cumul = np.cumsum(y[ordre])
+    k = int(np.searchsorted(cumul, np.ceil(rappel / 100 * y.sum()))) + 1
+    return cumul[k - 1] / k * 100, k / len(y) * 100
+
+
+def aire_roc(y, score):
+    """ROC AUC (probabilité qu'un défaut soit mieux classé qu'un bon client), ex aequo comptés pour moitié."""
+    from sklearn.metrics import roc_auc_score
+    return roc_auc_score(y, score)

@@ -81,7 +81,7 @@ fig_plafond.add_annotation(x=(len(scenarios_niveau3) - 1) / 2, y=0.93, text="<b>
 fig_plafond.add_annotation(x=separation + len(etapes) / 2, y=0.93, text="<b>Nouvelles variables</b> (périmètre S12)", showarrow=False, font_size=TAILLE_ETIQUETTE)
 fig_plafond.update_layout(yaxis_title="Score de décision (validation)", yaxis_range=[0, 1], height=480, separators=", ", showlegend=False)
 st.plotly_chart(fig_plafond, width='stretch')
-st.caption(f"Score de décision du meilleur modèle à chaque étape conservée, en validation croisée sur l'entraînement, sur le dataset avec la population contentieuse. Ne figurent que les scénarios et les variables gardés (`S11`, gardé un temps, a ensuite été remplacé par `S12`, qui l'inclut), avec les deux points de départ (`S1`, `S12_0`) et la variable de contentieux (`S12_7`). Chiffres repris tels quels du [tableau de suivi de la première itération]({TABLEAU_ML}), sections 2 et 3 : ces modèles ne sont pas dans le dépôt.")
+st.caption(f"Score de décision du meilleur modèle à chaque étape conservée, en validation croisée sur l'entraînement, sur le dataset incluant la population contentieuse. Ne figurent que les scénarios et les variables gardés (`S11`, gardé un temps, a ensuite été remplacé par `S12`, qui l'inclut), avec les deux points de départ (`S1`, `S12_0`) et la variable de contentieux (`S12_7`). Chiffres repris tels quels du [tableau de suivi de la première itération]({TABLEAU_ML}), sections 2 et 3 : ces modèles ne sont pas dans le dépôt.")
 
 ecart_total = max(e[2] for e in etapes) - min(e[2] for e in etapes)
 st.markdown(f"""
@@ -95,7 +95,7 @@ st.subheader("4. Le coup d'arrêt : une variable de contentieux sans effet", anc
 st.markdown(f"""
 En parallèle, l'analyse exploratoire avait repéré des clients **figés à {codif('2')}** sur les six mois, qui font défaut à 77,55 % (page 5.1). Une variable a alors été ajoutée aux modèles pour les signaler (scénario `S12_7`) : un client figé à {codif('2')}, ou dont le retard redescend à {codif('2')} sans paiement. Les clients ainsi signalés faisaient défaut à **71,27 %**.
 
-**Et pourtant, le score n'a pas bougé.** Les arbres de décision utilisaient à peine cette variable, et élargir leurs réglages n'y a rien changé. Les modèles avaient sans doute déjà repéré ces clients par leurs codifications : la variable ne leur apprenait rien de neuf.
+**Et pourtant, le score n'a pas bougé.** Les arbres de décision utilisaient à peine cette variable, et élargir leurs réglages n'y a rien changé. Les modèles avaient sans doute déjà repéré ces clients par leurs codifications : la variable ne leur apprenait rien de neuf. C'est ce que confirme, après coup, le modèle de l'étape précédente (`S12_6`) : il prédit en défaut tous les clients que la règle du contentieux, définie ensuite, place au contentieux (page 8.2).
 
 Le diagnostic : **le dataset mélangeait deux populations**, des clients en gestion normale et des clients en gestion contentieuse, au comportement et au risque très différents. Un seul modèle les apprend mal ensemble, et il passe surtout son effort à reconnaître les seconds, ce qu'une règle métier fait de façon plus simple et explicable. Plutôt que de forcer les modèles, **le machine learning a été arrêté** pour comprendre cette population, la définir et la traiter à part : c'est **l'étude du contentieux, présentée en partie 5**.
 

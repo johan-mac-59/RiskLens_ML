@@ -117,6 +117,13 @@ pages = {
         st.Page("streamlit_pages/p7_3_demo_base_de_donnees.py", title="7.3 Démo 2 : test grandeur nature, de la base de données à la décision", icon=":material/cloud_sync:"),
         st.Page("streamlit_pages/p7_4_demo_dataset_complet.py", title="7.4 Démo 3 : tout le dataset d'origine, une règle métier face à un modèle", icon=":material/balance:"),
     ],
+    "8. Réponse à la problématique et conclusion": [
+        st.Page("streamlit_pages/p8_1_reponse.py", title="8.1 Peut-on prévoir le défaut ? Une règle métier, puis un modèle", icon=":material/task_alt:"),
+        st.Page("streamlit_pages/p8_2_yeh_lien.py", title="8.2 Comparaison avec Yeh et Lien (2009), dans leurs propres métriques", icon=":material/compare:"),
+        st.Page("streamlit_pages/p8_3_a_retenir.py", title="8.3 Ce qu'il faut retenir", icon=":material/bookmark:"),
+        st.Page("streamlit_pages/p8_4_limites.py", title="8.4 Les limites : ce que la réponse ne permet pas de dire", icon=":material/report:"),
+        st.Page("streamlit_pages/p8_5_recommandations.py", title="8.5 Les recommandations : ce qu'une banque pourrait en faire, et la suite", icon=":material/recommend:"),
+    ],
 }
 # Menu automatique masqué : il se placerait au-dessus du logo et du titre.
 # Le menu est reconstruit ci-dessous avec st.page_link, sous le logo et le titre.

@@ -113,49 +113,11 @@ C'est la **première moitié de la réponse à la problématique** : sans aucun 
 """)
 
 # ------------------------------------------------------------------------------
-st.subheader("5. Comparatif provisoire : la règle, la première itération du machine learning, l'étude de 2009", anchor="comparatif")
-# Résultats calculés hors du site, sur le même jeu de test que la règle (5 441 clients) : le modèle S12_6 de la première
-# itération (lab_ML/1ere_iteration/corrections_niveau3/best_models/model_S126_corrections_niveau3.joblib, notebook ml12_6_cleaned3, même
-# périmètre S12 et même découpage) et les règles simples sur les codifications brutes de cleaned3. Ni le modèle ni cleaned3
-# ne sont déployés avec le site : chiffres repris tels quels (décision D19). Yeh et Lien (2009) : Tableau 1 de l'étude.
-ML_S126 = {"predits": 1476, "vp": 764, "fp": 712, "auc": 0.80}
-SIMPLE_6_MOIS = {"predits": 1597, "vp": 780, "fp": 817}
-SIMPLE_SEPTEMBRE = {"predits": 634, "vp": 450, "fp": 184}
-YEH_ERREUR, YEH_RATIO_SURFACE = 17, 0.54
+st.subheader("5. Les corrections rendent-elles la règle moins bonne ?", anchor="corrections")
 # Entraînement : clients que les corrections retirent de « 2 en septembre » ou y ajoutent (calcul hors site, cleaned3 / cleaned5)
 DIFF_TRAIN = {"brut": (2486, 1719), "retires": (180, 78), "retires_payes": (142, 58), "retires_faux2": (38, 20), "ajoutes": (97, 49)}
-
-defauts_test = int(test['dpnm'].sum())
-
-
-def ligne_comparatif(nom, predits, vp, fp, detail=""):
-    fn = defauts_test - vp
-    return [f"<b>{nom}</b>{detail}", nombre_fr(predits), nombre_fr(vp), f"{nombre_fr(vp / predits * 100, 1)} %" if predits else "–",
-            f"{nombre_fr(vp / defauts_test * 100, 1)} %", f"{nombre_fr((fp + fn) / len(test) * 100, 1)} %"]
-
-
-st.markdown(f"""
-*Section provisoire, en attendant la partie 6.* Pour situer la règle, on la compare, **sur le même jeu de test** ({nombre_fr(len(test))} clients, dont {nombre_fr(defauts_test)} en défaut), au meilleur modèle de la première itération du machine learning sur le même périmètre (S12_6, CatBoost, entraîné sur le dataset avec la population contentieuse, avant sa définition), à deux règles simples, et à l'étude de référence de 2009.
-""")
-tableau_html(["Approche", "Clients prédits en défaut", "Défauts trouvés", "Précision", "Part des défauts trouvés (rappel)", "Taux d'erreur"], [
-    ligne_comparatif("Règle du contentieux", b_test['ctx'], b_test['vp'], b_test['fp']),
-    ligne_comparatif("Machine learning, première itération", ML_S126['predits'], ML_S126['vp'], ML_S126['fp'], "<br><small>meilleur modèle du périmètre (S12_6, CatBoost), entraîné sur le dataset avec la population contentieuse</small>"),
-    ligne_comparatif("Règle simple : une codification 2 ou plus sur les 6 mois", SIMPLE_6_MOIS['predits'], SIMPLE_6_MOIS['vp'], SIMPLE_6_MOIS['fp'], "<br><small>codifications brutes</small>"),
-    ligne_comparatif("Règle simple : codification 2 ou plus en septembre", SIMPLE_SEPTEMBRE['predits'], SIMPLE_SEPTEMBRE['vp'], SIMPLE_SEPTEMBRE['fp'], "<br><small>codifications brutes</small>"),
-    ["<b>Personne en défaut</b>", "0", "0", "–", "0 %", f"{nombre_fr(defauts_test / len(test) * 100, 1)} %"],
-    ["<b>Yeh et Lien (2009)</b><br><small>réseau de neurones, autre échantillon</small>", "non publié", "non publié", "non publiée", "non publiée",
-     f"{YEH_ERREUR} %<br><small>ratio de surface {nombre_fr(YEH_RATIO_SURFACE, 2)}, soit un AUC d'environ 0,77</small>"],
-], largeurs=[30, 13, 12, 12, 15, 18])
-st.caption("Règle du contentieux : calcul en direct. Machine learning et règles simples : calculés hors du site sur le même jeu de test (modèle enregistré de la première itération, rechargé ; codifications brutes du nettoyage de niveau 3), repris tels quels. Le taux d'erreur compte toutes les erreurs : les clients sains prédits en défaut, et les défauts manqués. Pour une règle, les clients qu'elle ne retient pas sont comptés comme prédits sains. Yeh et Lien (2009) ne publient ni précision ni nombre de défauts détectés : seule la comparaison du taux d'erreur est possible, sur un échantillon différent.")
-st.markdown(f"""
-- **Le modèle de la première itération avait déjà « trouvé » le contentieux** : il prédit en défaut tous les clients que la règle place au contentieux, et retrouve donc les mêmes défauts. Il en ajoute {nombre_fr(ML_S126['vp'] - b_test['vp'])}, au prix de {nombre_fr(ML_S126['fp'] - b_test['fp'])} fausses alertes supplémentaires. Il trouve plus de défauts, mais se trompe beaucoup plus souvent : sa précision tombe à {nombre_fr(ML_S126['vp'] / ML_S126['predits'] * 100, 1)} %. C'est ce qui expliquait l'effet nul de la variable contentieux ajoutée au modèle (page 5.1).
-- **Face à l'étude de 2009**, la règle seule a un taux d'erreur ({nombre_fr((b_test['fp'] + defauts_test - b_test['vp']) / len(test) * 100, 1)} %) du même ordre que le meilleur modèle de Yeh et Lien ({YEH_ERREUR} %), sans aucun modèle. La comparaison reste indicative : les échantillons diffèrent. Le modèle de la première itération a un meilleur AUC sur le test (environ {nombre_fr(ML_S126['auc'], 2)}), mais un taux d'erreur plus élevé, car il est réglé pour trouver le plus de défauts possible.
-- **La règle du contentieux fait jeu égal avec une règle très simple, « codification 2 ou plus en septembre »**, détaillée ci-dessous.
-""")
-
-st.markdown("##### Les corrections rendent-elles la règle moins bonne ?")
 brut_n, brut_d = DIFF_TRAIN['brut']
-st.markdown("Sur le jeu d'entraînement, là où une règle se juge, voici ce qui distingue la règle du contentieux de la règle simple « codification 2 ou plus en septembre » appliquée aux codifications brutes :")
+st.markdown("La règle du contentieux repose sur des codifications corrigées (page 5.2). Fait-elle mieux, ou moins bien, qu'une règle encore plus simple, qui lit les codifications telles que la banque les a posées : « codification 2 ou plus en septembre » ? Sur le jeu d'entraînement, là où une règle se juge, voici ce qui les distingue :")
 tableau_html(["Clients (entraînement)", "Clients", "En défaut", "Taux de défaut"], [
     ["Règle simple : codification 2 ou plus en septembre", nombre_fr(brut_n), nombre_fr(brut_d), f"{nombre_fr(brut_d / brut_n * 100, 1)} %"],
     ["<b>Règle du contentieux</b>", nombre_fr(b_train['ctx']), nombre_fr(b_train['vp']), f"<b>{nombre_fr(b_train['precision'], 1)} %</b>"],
@@ -167,7 +129,7 @@ tableau_html(["Clients (entraînement)", "Clients", "En défaut", "Taux de défa
 st.markdown(f"""
 - **Statistiquement, c'est un match nul** : la règle du contentieux est un peu plus précise ({nombre_fr(b_train['precision'], 1)} % contre {nombre_fr(brut_d / brut_n * 100, 1)} %) et trouve un peu moins de défauts ({nombre_fr(b_train['vp'])} contre {nombre_fr(brut_d)}). Des écarts d'un point, sur quelques dizaines de clients, relèvent du bruit.
 - **Les corrections retirent bien quelques défauts de la règle, mais ne les perdent pas.** Les clients retirés comme ajoutés ont un risque intermédiaire (40 à 53 %) : moins que le contentieux, mais bien plus que la population laissée au modèle. Leur classement ne se décide pas sur le défaut, mais sur la logique métier : une facture payée ne justifie pas le contentieux, deux factures impayées le justifient. Les clients retirés sont confiés au machine learning, avec leurs traces dans les colonnes créées.
-- **L'apport des corrections est ailleurs** : elles expliquent ce que recouvre le retard, assainissent tout l'historique (sorties, durées, retards isolés) et fournissent les colonnes que reçoit le modèle. C'est en partie 6 que se mesurera leur effet sur la prédiction.
+- **L'apport des corrections est ailleurs** : elles expliquent ce que recouvre le retard, assainissent tout l'historique (sorties, durées, retards isolés) et fournissent les colonnes que reçoit le modèle. Leur effet sur la prédiction, une fois le modèle ajouté à la règle, est mesuré dans la conclusion (pages 8.1 et 8.2).
 """)
 
 st.info(f"""
