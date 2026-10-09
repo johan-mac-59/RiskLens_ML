@@ -104,7 +104,7 @@ C'est d'ailleurs pour éviter ce scénario que certaines autorités réglementai
 - [UCI Machine Learning Repository, « Default of Credit Card Clients »](https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients)
 - [Banque centrale de Taïwan, rapport annuel 2005](https://www.cbc.gov.tw/public/data/publications/year2005/05ar_i-1.pdf) et [chapitre sur la politique monétaire](https://www.cbc.gov.tw/public/data/publications/year2005/05ar_iii-2.pdf)
 - [FSC (Banking Bureau), notice du 7 janvier 2008 sur la règle DBR22](https://law.banking.gov.tw/chi/NewsContent.aspx?msgid=1018)
-- [Kang et Ma, « Recent episodes of credit card distress in Asia », BIS Quarterly Review, juin 2007](https://www.bis.org/publ/qtrpdf/r_qt0706g.pdf)
+- [Kang et Ma, « Recent episodes of credit card distress in Asia », BIS Quarterly Review, juin 2007](https://www.bis.org/publ/qtrpdf/r_qt0706g.pdf) ([PDF](CreditCardDistressAsia_kang_ma_2007.pdf))
 - [Tsai C.-W. (2007), « Dispute Resolution Mechanisms in the Resolution of 2006 Taiwan Card-debt Problems », Université nationale de Taïwan](https://scholars.lib.ntu.edu.tw/entities/publication/4417ce50-afcf-4c34-b1e5-a164858b09f0)
 - [Electronic Payments International, « Taiwan's credit crisis: the calm after the storm »](https://www.electronicpaymentsinternational.com/country-surveys/taiwans-credit-crisis-the-calm-after-the-storm/)
 - [Taipei Times, 14 juillet 2004](https://www.taipeitimes.com/News/biz/archives/2004/07/14/2003178964) (taux plafond légal de 20 %)
