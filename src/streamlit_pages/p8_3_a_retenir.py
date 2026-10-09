@@ -42,7 +42,3 @@ st.markdown("""
 4. **La limite vient des données, pas des modèles.** Variables, réglages, modèles plus puissants, modèle lancé sur les données brutes : tout tombe sur la même courbe, et environ un tiers des défauts ont le profil des bons clients (pages 6.5 et 8.1).
 5. **La valeur du travail est dans la méthode.** À score égal, le projet apporte un système explicable : des corrections justifiées, une règle lisible, aucun seuil réglé sur le défaut, un test lu une seule fois, et des résultats comparables à l'étude de 2009 (pages 6.2 et 8.2).
 """)
-
-st.info("""
-**Ce qu'il faut retenir** : peut-on prévoir le défaut d'un client à partir de son seul comportement des six derniers mois ? Oui pour une part importante des défauts : un tiers par une simple règle métier, et le reste rangé par niveau de risque par un modèle, au niveau de l'étude de 2009. Non pour tous : une part des défauts ne s'annonce pas dans ces données. Le comportement classe les clients ; il ne désigne pas à coup sûr ceux qui feront défaut.
-""")

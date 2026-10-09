@@ -41,7 +41,7 @@ tableau_html(ENTETES, [
      "Réapprendre sur un portefeuille représentatif : appliqué tel quel, le modèle surestimerait le risque"],
     ["<b>Des données de 2005</b>, en pleine crise des cartes de crédit, d'une seule banque", gravite("Élevée"),
      "Le contexte de la crise est expliqué (partie 0) ; aucune conclusion n'est étendue à d'autres périodes ou d'autres banques",
-     "Réapprendre sur des données récentes : la réglementation a changé après la crise (plafond d'endettement), les comportements aussi"],
+     "Revalider sur les données de la banque concernée : une crise du crédit à la consommation peut se reproduire ailleurs, sous d'autres formes ; la méthode peut servir, les chiffres décrivent ce portefeuille"],
     ["<b>Des valeurs incohérentes</b> : montants aberrants, codifications posées sur des dettes nulles", gravite("Moyenne"),
      "Nettoyage par niveaux, chaque correction justifiée par la logique métier et documentée (partie 3, page 5.2)",
      "Valider les corrections avec les équipes de la banque"],
