@@ -100,6 +100,65 @@ def legende_classes(classe_min):
                f"choisit jusqu'où intervenir ; risque 1/9 : les clients sains. Construction et lecture des niveaux : plus bas, section 4 de cette page.")
 
 
+def precision_par_tranche(y, score, pas=5):
+    """Clients pris du score le plus haut au plus bas : pour chaque tranche de 5 % de rappel, précision des seuls clients ajoutés
+    dans la tranche, et leur nombre (même calcul que l'étape 8 de creation_demo_3)."""
+    ordre = np.argsort(-score)
+    cumul = np.cumsum(y[ordre])
+    lignes, precedent = [], (0, 0)
+    for r in range(pas, 101, pas):
+        n = min(int(np.searchsorted(cumul, np.ceil(r / 100 * cumul[-1])) + 1), len(cumul))   # clients à signaler pour ce rappel
+        d = int(cumul[n - 1])
+        lignes.append({"rappel": r, "precision": (d - precedent[1]) / max(n - precedent[0], 1) * 100, "clients": n - precedent[0]})
+        precedent = (n, d)
+    return pd.DataFrame(lignes)
+
+
+def classe_de_tranche(r):
+    """Niveau de risque de la tranche qui finit à r % de rappel : celui de la première borne atteinte, 1 au-delà de 60 %."""
+    return next((k for borne, k in zip(BORNES, CLASSE_DE_BORNE) if r <= borne), 1)
+
+
+@st.cache_data(show_spinner=False)
+def lire_et_noter_tout():
+    """Les 30 000 clients lus dans la base par l'API, notés par le modèle de leur pli (pour la courbe de la section 4)."""
+    lignes, _, _ = lire_lot_api(TOUS_LES_IDS)
+    lot = pd.DataFrame(lignes)
+    return lot["dpnm"].astype(bool).to_numpy(), noter(lot).to_numpy(), lot["ID"].to_numpy()
+
+
+def figure_tranches(y, score, ids):
+    """Précision de chaque tranche de 5 % de rappel, sur tous les clients (barres, couleur du niveau de risque),
+    et pour chacun des 5 modèles sur ses seuls clients non vus (points gris) : un palier réel apparaît dans les 5."""
+    tous = precision_par_tranche(y, score)
+    tous["classe"] = tous["rappel"].map(classe_de_tranche)
+    tous["libelle"] = [f"{r - 5}-{r} %" for r in tous["rappel"]]
+    fig = go.Figure()
+    for k in sorted(tous["classe"].unique(), reverse=True):
+        t = tous[tous["classe"] == k]
+        fig.add_trace(go.Bar(x=t["libelle"], y=t["precision"], name=f"Niveau risque {k}/9", width=0.8,
+                             marker_color=COULEURS_CLASSES.get(k, BLEU_INFO), customdata=t["clients"],
+                             hovertemplate=f"<b>Niveau risque {k}/9</b><br>Tranche de rappel : %{{x}}<br>"
+                                           "Précision de la tranche : %{y:.1f} %<br>Clients de la tranche : %{customdata}<extra></extra>"))
+    plis = pd.Series(ids).map(PLI_DU_CLIENT).to_numpy()
+    for numero in range(len(enregistre["modeles"])):
+        dans = plis == numero
+        p = precision_par_tranche(y[dans], score[dans])
+        fig.add_trace(go.Scatter(x=[f"{r - 5}-{r} %" for r in p["rappel"]], y=p["precision"], mode="markers",
+                                 name="Chacun des 5 modèles, sur ses clients non vus", legendgroup="plis", showlegend=numero == 0,
+                                 marker=dict(color="#555555", size=8, symbol="circle-open", line_width=2),
+                                 hovertemplate=f"Modèle {numero + 1}, sur ses clients non vus<br>Tranche : %{{x}}<br>Précision : %{{y:.1f}} %<extra></extra>"))
+    moyenne = y.mean() * 100
+    fig.add_hline(y=moyenne, line=dict(color=COULEURS["orange"], dash="dot", width=2))
+    fig.add_trace(go.Scatter(x=[None], y=[None], name=f"Au hasard ({nombre_fr(moyenne, 1)} %, le taux de défaut du dataset)",
+                             mode="lines", line=dict(color=COULEURS["orange"], dash="dot", width=2)))
+    fig.update_xaxes(type="category", title="Tranche de taux de rappel (clients pris du score le plus haut au plus bas)")
+    # barmode="overlay" : une seule barre par tranche, centrée (sinon chaque niveau garde une place vide dans chaque tranche)
+    fig.update_layout(yaxis_title="Précision de la tranche (%)", yaxis_range=[0, 100], height=520, separators=", ", barmode="overlay",
+                      legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0))
+    return fig
+
+
 entete_partie_7()
 st.header("7.4 Démo 3 : tout le dataset d'origine, un modèle sur les données brutes", anchor="demo-3")
 st.markdown(f"""
@@ -162,6 +221,7 @@ with col_lot:
 
         y = lot["dpnm"].astype(bool).to_numpy()
         st.session_state.dernier_lot_3 = {"numero": numero, "choix": choix, "classe_min": classe_min, "y": y, "score": score.to_numpy(),
+                                          "ids": lot["ID"].to_numpy(),
                                           "classe": classe, "regle": declare_regle.to_numpy(), "place": place.to_numpy()}
         st.session_state.historique_lots_3.append({
             "Lot": numero, "Clients": len(lot), "Part visée": choix, "Taux de défaut constaté (%)": round(y.mean() * 100, 1),
@@ -355,17 +415,57 @@ Le projet a pris un autre chemin : une **règle métier**, le contentieux, pour 
 st.subheader("4. La construction des niveaux de risque", anchor="courbe")
 hasard = CLASSES["taux_defaut_dataset"] * 100
 st.markdown(f"""
-Le modèle donne un score à chaque client. En prenant les clients du score le plus haut au plus bas, on détecte de plus en plus de défauts (le **taux de rappel**), avec une précision qui baisse. Les niveaux de risque ont été fixés **par une lecture humaine** de la courbe de précision selon le taux de rappel, tracée sur les **{nombre_fr(len(TOUS_LES_IDS))} clients**, chacun noté par le modèle qui ne l'avait pas vu :
-- **les paliers d'abord** : la précision forme trois plateaux, jusqu'à 15 %, de 15 à 25 % et de 25 à 35 % de rappel (risques 9/9, 8/9 et 7/9, les plus élevés) ;
-- **puis des tranches égales de 5 %** de 35 à 60 %, là où la précision descend en ligne droite (risques 6/9 à 2/9) : c'est là que la banque choisit jusqu'où elle signale ;
-- **un arrêt à 60 %** : au-delà, la précision de chaque tranche passe **sous le hasard** ({nombre_fr(hasard, 1)} %, le taux de défaut du dataset). Déclarer ces clients en défaut serait moins juste qu'un tirage au sort : ils sont en risque 1/9, non déclarés.
+Le modèle donne un score à chaque client. En prenant les clients du score le plus haut au plus bas, on détecte de plus en plus de défauts (le **taux de rappel**), avec une précision qui baisse. Les niveaux de risque ont été fixés **par une lecture humaine** de cette baisse, sur les **{nombre_fr(len(TOUS_LES_IDS))} clients**, chacun noté par le modèle qui ne l'avait pas vu, selon une règle décidée avant de lire la courbe :
+- **les paliers d'abord** : là où plusieurs tranches de suite font défaut à la même fréquence, puis décrochent, une borne se place à la fin du palier ;
+- **puis des tranches égales de 5 %**, là où la précision descend en ligne droite et où aucun palier ne se lit ;
+- **un arrêt** là où les tranches ne font plus défaut plus souvent qu'un client pris au hasard (le taux de défaut du dataset) : déclarer ces clients en défaut n'apporterait rien de plus qu'un tirage au sort.
 
+Aucune borne n'est donc placée au jugé : chacune applique cette règle à ce que montre la courbe.
+
+**Comment lire le graphique** : chaque barre est une tranche de 5 % des défauts ; sa hauteur est la part des clients ajoutés dans cette tranche qui font réellement défaut. Les points gris donnent la même mesure pour chacun des 5 modèles, sur ses seuls clients non vus : **un palier réel apparaît aux mêmes endroits dans les cinq**.
+""")
+
+d = st.session_state.get("dernier_lot_3")
+if d is not None and "ids" in d and len(d["y"]) == len(TOUS_LES_IDS):
+    st.session_state.courbe_3 = (d["y"], d["score"], d["ids"])
+if "courbe_3" not in st.session_state:
+    st.info("La courbe se calcule sur les 30 000 clients : injectez tout le dataset (section 1), ou tracez-la directement.")
+    if st.button("📈 Tracer la courbe (les 30 000 clients lus dans la base par l'API)"):
+        try:
+            with st.spinner("Lecture des 30 000 clients dans la base par l'API (le premier appel peut prendre jusqu'à une minute si le serveur est en veille)…"):
+                st.session_state.courbe_3 = lire_et_noter_tout()
+            st.rerun()
+        except (requests.exceptions.RequestException, ValueError) as e:
+            st.error(f"Lecture par l'API impossible : {e}")
+if "courbe_3" in st.session_state:
+    st.plotly_chart(figure_tranches(*st.session_state.courbe_3), width='stretch')
+    st.caption("Calcul en direct : les clients lus dans la base par l'API, chacun noté par le modèle de son pli, qui ne l'a jamais vu.")
+
+POURQUOI = {9: "<b>Premier palier</b> : les trois premières tranches font défaut à la même fréquence, puis la précision décroche",
+            8: "<b>Deuxième palier</b> : deux tranches au même niveau, puis un nouveau décrochage",
+            7: "<b>Troisième palier</b> : deux tranches au même niveau, puis la précision se met à descendre en ligne droite",
+            6: "<b>Tranches égales de 5 %</b> : la précision descend en ligne droite, sans palier à lire ; c'est dans cette zone que la banque choisit jusqu'où elle déclare"}
+lignes_seuils = []
+for i, k in enumerate(CLASSE_DE_BORNE):
+    lignes_seuils.append([(f"<b>Niveau risque {k}/9</b>", f"background: {COULEURS_CLASSES[k]}; color: {'white' if k >= 5 else '#262730'};"),
+                          f"{BORNES[i - 1] if i > 0 else 0} à {BORNES[i]} %", f"{nombre_fr(SEUILS[i], 3)} ou plus", f"{nombre_fr(TAUX_CLASSE[k], 1)} %",
+                          POURQUOI.get(k, "Tranche égale de 5 %, même raison")])
+lignes_seuils.append([(f"<b>{NON_CLASSE}</b>", f"background: {BLEU_INFO}; color: white;"), "au-delà de 60 %", f"moins de {nombre_fr(SEUILS[-1], 3)}",
+                      f"{nombre_fr(TAUX_CLASSE[1], 1)} %",
+                      "<b>Arrêt</b> : à partir de 60 % de rappel, les tranches tombent au niveau du hasard (le taux de défaut du dataset), puis en dessous ; ces clients ne sont pas déclarés"])
+st.markdown("**Les seuils retenus**")
+tableau_html(["Niveau de risque", "Tranche de rappel", "Score à atteindre", "Défaut constaté", "Pourquoi cette borne"], lignes_seuils,
+             largeurs=[16, 13, 13, 12, 46])
+st.caption(f"Score à atteindre : score du modèle à partir duquel un client entre dans le niveau. Défaut constaté : part des clients du niveau en défaut "
+           f"en octobre 2005, sur les {nombre_fr(len(TOUS_LES_IDS))} clients (au hasard : {nombre_fr(hasard, 1)} %, le taux de défaut du dataset).")
+
+st.markdown(f"""
 **Numérotation** : comme dans l'usage bancaire, le chiffre augmente avec le risque (risque 9/9 le plus élevé, risque 1/9 pour les non déclarés).
 
 **Comment lire les niveaux de risque** :
 - **du risque 9/9 au risque 2/9, le risque est élevé tout le long, et bien échelonné.** Chaque niveau fait défaut plus souvent que le suivant, sans plateau de risque, et tous restent au-dessus du hasard. Les risques 9/9, 8/9 et 7/9 sont les plus élevés : la majorité de leurs clients font défaut ;
 - **c'est sur cette échelle que la banque choisit jusqu'où elle intervient.** Chaque niveau ajouté détecte plus de défauts, mais fait aussi signaler plus de clients qui, en réalité, paieront : c'est le coût des faux positifs, à mettre en regard des défauts en plus ;
-- **risque 1/9 : très peu de risque, les clients sains** aux yeux du modèle. Leur taux de défaut est bien sous la moyenne, mais le modèle ne sait plus y repérer les rares défauts.
+- **risque 1/9 : très peu de risque, les clients sains** aux yeux du modèle. Leur taux de défaut est bien sous la moyenne, et le modèle n'y repère plus les rares défauts qu'au prix d'un grand nombre de clients déclarés à tort, qui paieront.
 
-Les courbes des 5 modèles, chacun sur ses clients non vus, ont confirmé que ces paliers sont réels et non dus au hasard. Courbes, lecture et vérification des niveaux pli par pli : [notebook de préparation]({PREPARATION}), étapes 8 et 9.
+Précision cumulée, chiffres de chaque tranche et vérification des niveaux pli par pli : [notebook de préparation]({PREPARATION}), étapes 8 et 9.
 """)
