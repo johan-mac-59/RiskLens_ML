@@ -60,10 +60,6 @@ st.markdown("""
 st.sidebar.image(str(BASE_DIR / "images" / "logo_risklens.svg"), width=250)
 st.sidebar.title("🏦 RiskLens ML — Analyse & Prédiction du Défaut de Paiement 💳")
 st.sidebar.markdown("---")
-st.info(
-    "🚧 **Interface centralisée RiskLens en cours de construction** | "
-    "⏳ *Note : L'API étant sur Render, la première requête peut prendre jusqu'à 1 minute si le serveur s'est mis en veille.*"
-)
 
 # Pages (st.navigation) : les pages sont ajoutées au fur et à mesure de la migration
 pages = {

@@ -37,6 +37,4 @@ digraph {
 
 st.markdown("""
 **À tester** : la [documentation interactive de l'API](""" + f"{API_URL}/docs" + """) (Swagger) permet d'essayer chaque route, et la page **Démo de l'API** permet de le faire depuis cette application.
-
-⏳ Le serveur se met en veille quand il n'est pas utilisé : la première requête peut prendre jusqu'à une minute.
 """)

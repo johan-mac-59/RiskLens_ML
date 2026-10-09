@@ -16,7 +16,7 @@ from plotly.subplots import make_subplots
 API_URL = "https://risklens-ml-api.onrender.com" 
 # API_URL = "http://127.0.0.1:8000"  # En local
 
-# Délai max d'attente d'une réponse API (Render peut mettre ~2 min à sortir de veille)
+# Délai max d'attente d'une réponse API (Render met environ une minute à sortir de veille ; marge pour les lectures par lot)
 API_TIMEOUT = 180
 
 # ==============================================================================
@@ -143,6 +143,8 @@ def entete_partie_2():
     Avant d'être analysées, les données sont rangées comme dans le système d'information d'une banque : une **base de données relationnelle** (SQLite), accessible uniquement par une **API REST** (FastAPI). Le fichier plat de 30 000 lignes devient des tables reliées entre elles, et toute lecture ou modification passe par l'API, qui contrôle chaque donnée avant de toucher à la base.
 
     La base contient les 30 000 clients du fichier d'origine, après un nettoyage structurel (niveau 0). C'est une base de démonstration : les analyses des parties suivantes s'appuient sur une version plus poussée du nettoyage.
+
+    ⏳ L'API est hébergée sur l'offre gratuite de Render : quand le serveur s'est mis en veille, la première requête peut prendre jusqu'à une minute.
     """)
 
 
