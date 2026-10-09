@@ -35,7 +35,7 @@ Le projet suit un cycle de vie data complet : du diagnostic initial et la struct
 ### 🎯 Problématique
 > **"Peut-on prévoir le défaut de paiement d'un client en se basant uniquement sur son comportement transactionnel des 6 derniers mois, malgré un manque d'informations économiques globales ?"**
 
-L'enjeu est de déterminer si les habitudes de paiement et l'utilisation du crédit ainsi que les informations de bases d'un client sont des indicateurs suffisamment robustes pour anticiper un défaut, sans deux types d'informations que les banques utilisent d'habitude : les **données de conjoncture** (chômage, inflation, croissance) et les **données économiques du client lui-même** (revenu, autres crédits, loyer, endettement total, reste à vivre), ni score de crédit externe.
+L'enjeu est de déterminer si les habitudes de paiement et l'utilisation du crédit ainsi que les informations de base d'un client sont des indicateurs suffisamment robustes pour anticiper un défaut, sans deux types d'informations que les banques utilisent d'habitude : les **données de conjoncture** (chômage, inflation, croissance) et les **données économiques du client lui-même** (revenu, autres crédits, loyer, endettement total, reste à vivre), ni score de crédit externe.
 
 ### 💥 Le contexte : la crise des *"Card Monsters"* (Taïwan, 2005)
 - **L'économie allait bien** : chômage bas, inflation maîtrisée, croissance solide. La crise ne vient pas de l'économie.
@@ -110,7 +110,7 @@ digraph {
     ctx [fillcolor="#d9f0e3", label="✅ Définition métier\ndu contentieux\n(nettoyage niveau 5)"];
     ml2 [fillcolor="#d9f0e3", label="✅ Machine learning\n2e itération,\nsur les autres clients"];
     deploi [fillcolor="#d9f0e3", label="✅ Déploiement :\nrègle + modèle en direct,\nde la base à la décision"];
-    dash [shape=plaintext, style="", label="⏳ Dashboard Streamlit, construit au fil de l'analyse,\npuis slides de restitution qui le résument"];
+    dash [shape=plaintext, style="", label="✅ Dashboard Streamlit, construit au fil de l'analyse,\npuis slides de restitution qui le résument"];
     dash_fin [shape=none, label="", width=0, height=0, margin=0];
 
     // Ligne 1 : le premier parcours ; ligne 2 : le blocage ; ligne 3 : le second parcours ; ligne 4 : Streamlit
@@ -127,7 +127,7 @@ digraph {
     blocage -> ml2 [style=invis, weight=20]; eda2 -> dash [style=invis, weight=20]; deploi -> dash_fin [style=invis, weight=20];
 }
 """, width="stretch")
-st.caption("✅ fait ; ⏳ en cours ; ⏹ arrêté.")
+st.caption("✅ fait ; ⏹ arrêté.")
 
 st.markdown("---")
 st.subheader("⚙️ Les outils du projet")
