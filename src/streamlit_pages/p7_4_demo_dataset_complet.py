@@ -16,7 +16,7 @@ ESSAI = f"{GH_RACINE}/lab_ML/comparatif_global/essai_jeu_de_base.ipynb"
 PAUSE = 0.6   # secondes entre deux étapes affichées, pour que le public suive (les temps de calcul affichés sont réels)
 # Classes de risque, numérotées comme dans l'usage bancaire : le chiffre augmente avec le risque (9 = la plus risquée,
 # 1 = non déclarés). Couleurs de la classe 9 (foncée) à la classe 2 (claire) ; classe 1 : bleu des autres démos
-COULEURS_CLASSES = {9: "#67001F", 8: "#912235", 7: "#B2182B", 6: "#C83E3E", 5: "#D6604D", 4: "#E58368", 3: "#F4A582", 2: "#F8C3A4"}
+COULEURS_CLASSES = {9: "#67001F", 8: "#8C0C25", 7: "#B2182B", 6: "#C83E3E", 5: "#D6604D", 4: "#E58368", 3: "#F4A582", 2: "#F8C3A4"}
 
 
 @st.cache_resource
