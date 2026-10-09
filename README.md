@@ -54,7 +54,7 @@ Détails : [journal du machine learning](lab_ML/tableau_ML.md), [méthodologie](
 #### 🕵️‍♂️ Pour aller plus loin : Les coulisses de la donnée
 
 Pour découvrir comment des détails logistiques de l'époque (comme les règlements en espèces dans les supérettes 7-Eleven, qui créent des décalages dans l'enregistrement des paiements sur les comptes, et des erreurs de saisie) ou les parallèles avec le **Buy Now, Pay Later (BNPL)** actuel éclairent ce projet d'un point de vue purement métier :
-📖 [Lire le contexte du projet](docs/contexte.md)
+📖 [Lire le contexte du projet](docs/contexte.md) · 📚 [Toutes les sources du projet](docs/sources.md)
 
 ---
 
@@ -65,7 +65,7 @@ Le schéma résume le parcours ; voici le détail de chaque étape, dans le mêm
 
 #### 1. Données brutes, audit et nettoyage structurel
 *   Analyse du dataset *Default of Credit Card Clients* (30 000 clients, UCI), formulation de la problématique et identification des limites (manque de données contextuelles).
-*   Audit et nettoyage structurel (niveau 0) : [notebook d'audit](src/01_01_audit.ipynb)
+*   Audit et nettoyage structurel (niveau 0) : [notebook d'audit](src/01_01_audit.ipynb) | sens de chaque variable : [dictionnaire des données](docs/dataset_dictionary.md)
 
 #### 2. Base SQLite et API REST
 *   Modélisation relationnelle : [schéma de la base](images/schema_bdd__risklens.png) | schéma SQL normalisé, avec des tables de correspondance qui traduisent les valeurs numériques en libellés explicites : [script de création des tables](src/03_02_creation_tables.sql)
@@ -76,6 +76,7 @@ Le schéma résume le parcours ; voici le détail de chaque étape, dans le mêm
 *   Analyse statistique approfondie (corrélations, tendances) avec Python : [EDA laboratoire](src/05_01_EDA_lab.ipynb)
 *   Nettoyage par niveaux cumulatifs, chaque correction justifiée par la logique métier : [notebook de nettoyage](src/02_01_nettoyage.ipynb)
 *   Data visualisation pour identifier les facteurs clés du défaut de paiement : [EDA storytelling](src/05_03_EDA_storytelling.ipynb)
+*   Colonnes créées pendant l'exploration, une seule définition par colonne : [colonnes créées](docs/colonnes_creees.md)
 
 #### 4. Machine learning, 1re itération, et le blocage
 *   Premiers modèles sur tout le dataset, contentieux compris, à chaque niveau de nettoyage : [archive de la première itération](lab_ML/1ere_iteration/) et son [journal](lab_ML/1ere_iteration/tableau_ML.md).
@@ -90,6 +91,8 @@ Le schéma résume le parcours ; voici le détail de chaque étape, dans le mêm
 *   Modèles entraînés sur les clients à encours positif, **sans la population contentieuse** (traitée par la règle métier), avec un découpage entraînement / test propre au machine learning : [création des jeux](lab_ML/creation_datasets_ML.ipynb).
 *   Six modèles comparés (régression logistique, SVM, KNN, réseau de neurones, RandomForest, CatBoost), puis les quatre meilleurs gardés pour la phase finale (régression logistique, réseau de neurones, RandomForest, CatBoost), réglés par une **boucle automatique de GridSearch** sous contrainte de surapprentissage, en validation croisée à 5 plis ; réglage sur la **précision des défauts prédits** au rappel minimal (60 % des défauts), classement par le score décisionnel F2.
 *   Variables ajoutées par scénarios, puis élaguées ; chaque scénario comparé à sa référence pli par pli, les écarts serrés tranchés par une validation croisée répétée : [journal des scénarios](lab_ML/tableau_ML.md).
+*   Validation croisée répétée du duel final : [duel fin](lab_ML/duel_fin_ml14_ml15.ipynb) ; contrôles de la cible (clients sans dette, contentieux qui paie) : [contrôles de la cible](lab_ML/controles_cible.ipynb).
+*   **Comparatif global**, essai à part : modèles sur les 23 variables d'origine, avec ou sans séparation du contentieux, et niveaux de risque de toutes les approches sur la même courbe : [essais du comparatif](lab_ML/comparatif_global/).
 *   **Version finale** : 21 variables, aucune donnée démographique, CatBoost ; lue **une seule fois** sur le jeu de test, qui confirme la validation : [évaluation finale](lab_ML/evaluation_finale_test.ipynb).
 *   **Limites** : analyse des défauts que les modèles manquent et de la cible elle-même : [méthodologie, section 13](lab_ML/methodologie_ML.md).
 
@@ -100,6 +103,7 @@ Le schéma résume le parcours ; voici le détail de chaque étape, dans le mêm
 
 #### 8. Dashboard Streamlit et slides de restitution
 *   Dashboard interactif sous **Streamlit**, construit au fil de l'analyse : chaque graphique et chaque chiffre est recalculé en direct sur les données : [accéder au site](https://risklens-ml.streamlit.app/)
+*   Application : [routeur](src/04_02_streamlit_app.py), une page par sous-partie dans [`src/streamlit_pages/`](src/streamlit_pages/), code partagé dans [`commun.py`](src/streamlit_pages/commun.py).
 *   Slides de restitution, qui résument le site pour une présentation orale à un public non technique.
 
 ---

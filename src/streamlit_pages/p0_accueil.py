@@ -85,7 +85,7 @@ L'analyse est terminée, du nettoyage au déploiement. Voici ses conclusions, pa
 #### 🕵️‍♂️ Pour aller plus loin : Les coulisses de la donnée
 
 Pour découvrir comment des détails logistiques de l'époque (comme les règlements en espèces dans les supérettes 7-Eleven, qui créent des décalages dans l'enregistrement des paiements sur les comptes, et des erreurs de saisie) ou les parallèles avec le **Buy Now, Pay Later (BNPL)** actuel éclairent ce projet d'un point de vue purement métier :
-📖 [Lire le contexte du projet](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/contexte.md)
+📖 [Lire le contexte du projet](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/contexte.md) · 📚 [Toutes les sources du projet](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/sources.md)
 """)
 
 
