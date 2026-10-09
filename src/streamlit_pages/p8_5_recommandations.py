@@ -61,8 +61,8 @@ tableau_html(["Piste", "Pourquoi elle a été écartée"], [
      "Le pari était de faire mieux en lisant ces données avec un regard métier : comprendre les codifications de la banque et le fonctionnement de ses comptes avant de modéliser. Il a payé en partie, avec la population contentieuse, isolée par une règle métier qui prédit à elle seule un tiers des défauts (partie 5). Ce dataset est aussi celui de l'étude de référence : en changer, c'était renoncer à s'y comparer (page 8.2)."],
     ["<b>Un modèle pour sortir des clients du contentieux</b>",
      "Avec l'exigence métier, ne sortir un client que s'il a au moins neuf chances sur dix de payer (sortir à tort un client en défaut revient à abandonner une créance), aucun modèle ne trouve de client à sortir : au contentieux, ils trient à peine mieux que le hasard (page 8.1)."],
-    ["<b>Isoler l'effet des seules corrections du nettoyage</b>",
-     "Elles touchent très peu de clients, et l'écart attendu serait plus petit que l'incertitude de la mesure ; les essais du comparatif ne montrent déjà que des écarts minimes."],
+    ["<b>Isoler l'effet des corrections de codification du contentieux</b> (niveau 5 du nettoyage)",
+     "Elles ne modifient les codifications que d'environ 1 % des clients, et l'écart attendu serait plus petit que l'incertitude de la mesure ; les essais du comparatif ne montrent déjà que des écarts minimes."],
     ["<b>Réentraîner le modèle sur l'entraînement et le test réunis</b>",
      "Le gain attendu reste dans le bruit, et il ne resterait plus de clients jamais vus pour juger le modèle et le montrer en direct (page 7.1)."],
 ], largeurs=[30, 70])

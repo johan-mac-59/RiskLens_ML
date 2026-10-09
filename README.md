@@ -184,7 +184,7 @@ Le projet est entièrement déployé dans le cloud selon une architecture décou
 *   **Recoder la cible** : les modèles prédiraient notre définition du défaut, et non plus celle de la banque.
 *   **Changer de jeu de données** : le pari était de faire mieux par un regard métier sur ces données ; il a payé en partie, avec la règle du contentieux qui prédit à elle seule un tiers des défauts.
 *   **Un modèle pour sortir des clients du contentieux** : avec l'exigence métier, ne sortir un client que s'il a au moins neuf chances sur dix de payer (sortir à tort un client en défaut revient à abandonner une créance), aucun modèle ne trouve de client à sortir : au contentieux, ils trient à peine mieux que le hasard.
-*   **Isoler l'effet des seules corrections du nettoyage** : elles touchent très peu de clients, et l'écart attendu serait plus petit que l'incertitude de la mesure ; les essais du comparatif ne montrent déjà que des écarts minimes.
+*   **Isoler l'effet des corrections de codification du contentieux** (niveau 5 du nettoyage) : elles ne modifient les codifications que d'environ 1 % des clients, et l'écart attendu serait plus petit que l'incertitude de la mesure ; les essais du comparatif ne montrent déjà que des écarts minimes.
 *   **Réentraîner le modèle sur l'entraînement et le test réunis** : un gain dans le bruit, et plus aucun client jamais vu pour juger le modèle et le montrer en direct.
 
 Raisonnement complet : page « Les recommandations » du [site](https://risklens-ml.streamlit.app/) et [hypothèses et conclusions](docs/hypotheses_et_conclusions.md).

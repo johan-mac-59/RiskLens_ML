@@ -44,6 +44,13 @@ Un client qui recommence à payer peut garder une codification de retard pendant
 - **Résultat** (`essai_jeu_corrige_deux_populations.ipynb`, sections 3 et 4) : au contentieux, les paiements pèsent peu dans ce que trouvent les modèles (ce sont surtout les factures et la démographie), et aucun modèle, même sans les `PAY_n`, ne distingue assez nettement les clients qui paieront pour les sortir. Au contentieux, les clients qui paient font défaut autant que les autres (H3).
 - Le retard des codifications existe sans doute dans les données, mais il ne se traduit pas en clients repérables par leurs paiements.
 
+### H15. L'échantillon a été sélectionné, et la sélection rend la tâche plus difficile qu'elle ne l'est pour une banque 🟡
+
+- **Un taux de défaut irréaliste** : 22 % des clients sont en défaut ; aucune banque ne tiendrait longtemps à ce niveau, même en pleine crise. L'étude ne décrit pas comment l'échantillon a été tiré : les défauts y sont probablement sur-représentés, et les taux affichés décrivent l'échantillon, pas la banque (appliqué tel quel à un vrai portefeuille, le modèle surestimerait le risque).
+- **Biais de sélection** : si l'échantillon a écarté une grande partie des clients ordinaires, qui paient sans incident, les modèles ont appris à départager des clients plus risqués et plus semblables entre eux que dans la réalité.
+- **Effet de dilution, en ordre de grandeur** : pour que le portefeuille ne compte plus que 5 % de défauts, il faudrait 5,3 fois plus de bons clients. Si ces clients ajoutés sont des payeurs ordinaires, le modèle les range en risque faible : au seuil de 60 % des défauts hors contentieux, rien ne change pour les clients signalés, mais le modèle ne fait plus 1,7 fois mieux que le hasard, il fait 8 fois mieux ; le risque faible passe de 9,7 % à 1,5 % de défaut (Streamlit, page 8.4, calculé en direct).
+- **Hypothèse invérifiable avec les données seules** : il faudrait connaître la façon dont l'échantillon a été tiré (section 7).
+
 ---
 
 ## 2. Ce que portent les données
@@ -69,7 +76,7 @@ Sur les clients du train ML, plis des scénarios, score décisionnel F2 au rappe
 - Le jeu de base complet, sans nettoyage ni colonne construite, atteint le plateau des scénarios (0,485 face à 0,484 pour `ml_4`, dans le bruit).
 - Du niveau 0 au niveau 5, les résultats bougent très peu (ROC AUC 0,784 dans les deux essais).
 - Les deux essais n'ont ni le même périmètre ni les mêmes plis : l'écart mêle le changement de périmètre et les corrections des `PAY_n`.
-- **Test possible** : un essai au périmètre du niveau 4 (mêmes clients que le niveau 5, `PAY_n` non corrigés) isolerait l'effet des seules corrections.
+- **Piste écartée (09/10)** : un essai au niveau 4 du nettoyage (`cleaned4` : mêmes clients que le niveau 5, avant les corrections de codification du contentieux) isolerait l'effet de ces corrections. Elles ne modifient les codifications que de 346 clients sur 28 851, soit 1,2 % (comparaison de `cleaned4` et `cleaned5`), et l'écart attendu serait plus petit que l'incertitude de la mesure ; les deux essais ne montrent déjà que des écarts minimes. L'essai n'est donc pas lancé (Streamlit, page 8.5).
 
 ### H8. Les colonnes construites aident la régression logistique, sans que le gain soit démontrable ✅
 
@@ -123,6 +130,7 @@ Niveaux de risque (règle, puis haut risque jusqu'à 30 % de rappel, puis risque
 - **La séparation du contentieux et celle de la banque se valent** : la banque signale un peu moins de clients au niveau modéré, attrape un peu moins de défauts avec une précision un peu plus haute : un autre point de la même courbe (H12).
 - **Le comportement seul fait presque aussi bien** : sans aucune codification, le modèle ne perd qu'environ 3 points de précision sur le haut risque, rien sur la part des défauts. Une fois le contentieux mis à part par la règle, les montants portent l'essentiel de ce qui est prévisible (H6).
 - **Évaluation finale** : sur le test, jamais vu, les taux par niveau sont les mêmes que sur le train hors pli (haut risque 42,0 % contre 41,2 %, modéré 21,3 % contre 20,4 %, faible 9,5 % contre 9,8 %) : la courbe est celle du portefeuille (`evaluation_finale_test.ipynb`).
+- **Confirmé sur des clients jamais vus (08/10)** : sur les 5 441 clients des démonstrations (test du ML et 20 % du contentieux du périmètre), qu'aucun des deux systèmes n'a vus, le système du projet (règle du contentieux, puis `ml_14`) et un CatBoost sur les 23 variables d'origine (sans nettoyage ni règle, chaque client noté par un modèle de pli qui ne l'a pas vu, `lab_ML/demo_ML/creation_demo_3.ipynb`) font **jeu égal**. Le modèle brut est réglé pour trouver la même part des défauts que le projet à chaque palier ; les précisions ne s'écartent que de 2,3 points au plus, dans un sens puis dans l'autre : contentieux seul 70,5 % contre 69,9 % ; + très haut risque 67,2 % contre 66,0 % ; + haut risque 56,8 % contre 59,1 % ; + risque modéré 39,5 % contre 37,8 %. ROC AUC 0,787 contre 0,790 (Streamlit, page 8.1, calculé en direct). L'apport du projet n'est pas le score mais un système défendable à score égal : une règle lisible, aucune donnée démographique (le modèle brut se sert du genre, de l'âge, des études et du statut marital), des corrections justifiées.
 - **Cinq niveaux depuis le 07/10** : découpage présenté sur Streamlit (page 6.4) : le haut risque est coupé en deux par une borne ajoutée après la lecture du test (`tableau_ML.md`, section 3) : très haut risque, 10 % des défauts, 51,3 % de défaut ; haut risque, de 10 à 30 %, 37,7 %. Les chiffres ci-dessus restent ceux de l'évaluation, à quatre niveaux.
 
 ### H14. Les corrélations de l'EDA sont réelles, mais elles distinguent des groupes, pas des individus ✅
@@ -158,13 +166,14 @@ Niveaux de risque (règle, puis haut risque jusqu'à 30 % de rappel, puis risque
 
 - L'étude ne publie ni ROC AUC ni rappel : seulement un taux d'erreur et un ratio d'aire (Tableau 1, p. 2477), sur un seul découpage. Son ratio d'aire vaut exactement 2 × ROC AUC − 1.
 - **Qualité du tri** : légèrement meilleure ici. Ratio d'aire de 0,567 (jeu de base) et 0,568 (jeu corrigé) pour CatBoost, contre 0,54 pour leur meilleur modèle, le réseau de neurones.
+- **Le système du projet** (règle du contentieux, puis `ml_14`), sur les 5 441 clients des démonstrations jamais vus : ratio d'aire de 0,57 (ROC AUC 0,787, environ 0,79), contre 0,54 (0,77) : défi relevé, de peu (Streamlit, page 8.2, calculé en direct).
 - **Taux d'erreur** : au même niveau, pas meilleur. 0,180 (jeu de base) et 0,174 (jeu corrigé) à la règle marginale, contre 0,17 pour leur réseau de neurones et 0,16 pour leur KNN.
 - **Sans modèle**, la règle « tout le contentieux en défaut » donne déjà un taux d'erreur de 0,175 sur le niveau 5 (`essai_jeu_corrige_deux_populations.ipynb`, section 6) ; sur le fichier brut, la règle de la banque (`PAY_1` ≥ 2) donne 0,180, et règle + ML : taux d'erreur 0,180, ratio d'aire 0,564, **sur le même périmètre que l'étude** (`essai_jeu_de_base_deux_populations.ipynb`, section 5).
 - L'article contient des incohérences (25 000 observations annoncées pour 30 000 dans le fichier ; 22,12 % de défauts puis 87,88 % de clients sans risque).
 
 **À dire dans la conclusion, avant tout chiffre** : la comparaison avec l'étude ne peut pas être exacte, pour trois raisons.
 - **Leur objectif n'était pas le nôtre.** L'étude cherche d'abord à **bien estimer la probabilité de défaut** (sa méthode de lissage, *Sorting Smoothing Method*, et la régression entre probabilité estimée et « vraie » probabilité, R² de 0,965 pour le réseau de neurones) et à **bien trier** les clients (ratio d'aire). Elle ne cherche pas à **détecter** un maximum de défauts à un seuil choisi : elle ne publie ni rappel ni précision, et son taux d'erreur suppose un seuil qu'elle ne décrit pas. Nos modèles sont réglés pour détecter (précision au rappel de 60 %, ou règle marginale) et pondèrent les défauts : leurs probabilités sont décalées vers le haut, donc mal calibrées au sens de l'étude.
-- **Les modèles ont progressé depuis.** Le réseau de neurones de l'étude est un réseau à rétropropagation de 2009 ; les modèles de boosting d'arbres utilisés ici (CatBoost, comme XGBoost et LightGBM) sont apparus après (années 2016 à 2018), avec la validation croisée et la recherche automatique de réglages devenues courantes. Que notre meilleur modèle trie un peu mieux (ratio d'aire) est attendu ; que l'écart reste faible confirme que la limite vient des données (H1).
+- **Les modèles ont progressé depuis.** Le réseau de neurones de l'étude est un réseau à rétropropagation de 2006-2007 : l'étude est publiée en 2009, mais menée avant (son texte parle du pic des impayés « attendu » au troisième trimestre de 2006, et l'article est enregistré par l'éditeur dès la fin de 2007, doi:10.1016/j.eswa.2007.12.020) ; les modèles de boosting d'arbres utilisés ici (CatBoost, comme XGBoost et LightGBM) sont apparus après (années 2016 à 2018), avec la validation croisée et la recherche automatique de réglages devenues courantes. Que notre meilleur modèle trie un peu mieux (ratio d'aire) est attendu ; que l'écart reste faible confirme que la limite vient des données (H1).
 - **Nos traitements diffèrent des leurs, sans que l'on connaisse les leurs en détail** : un seul découpage chez eux (proportions non précisées, environ la moitié des clients en validation d'après leurs courbes de gain), une validation croisée à 5 plis ici ; réglages, mise à l'échelle et traitement du déséquilibre non décrits chez eux ; ici, logarithme des montants, pondération des défauts, contrôle du surapprentissage, retrait du contentieux (version finale) ou séparation par la règle (comparatif global).
 
 ---
@@ -183,6 +192,7 @@ La méthode a été rigoureuse (aucune règle ni seuil optimisé sur la cible, t
 
 - **La définition exacte de `dpnm`** : défaut de paiement observé ou statut posé par la banque (H3).
 - **Les vrais encours** : `BILL_AMT` est le montant du relevé, qui ne serait pas toujours la dette réelle (certains défauts chez des clients sans dette affichée le laissent penser). Avec l'encours réel, on saurait si les clients « sans dette » l'étaient vraiment, et si leur défaut est du bruit de la cible ou une dette invisible dans les relevés.
+- **La façon dont l'échantillon a été tiré** : avec environ un client sur cinq en défaut, il ne ressemble pas à un portefeuille réel ; savoir quels clients ont été retenus dirait si la sélection a rendu la tâche plus difficile (H15).
 - **La vraie liste des clients en incident hors circuit normal** (recouvrement, contentieux) : elle permettrait de valider la définition 2 du contentieux (clients retrouvés, manqués, ajoutés à tort) et de séparer le défaut « administratif » du vrai défaut de paiement, là où se cache probablement le tiers de défauts imprévisibles (H2).
 
 **Conclusion provisoire** : on a tiré de ces données ce qu'elles contiennent, et on sait mesurer ce qu'elles ne contiennent pas. Nettoyer davantage les variables selon des règles métier transformerait le jeu en notre propre lecture ; recoder la cible changerait la question (les modèles prédiraient notre définition du défaut). La suite logique dépasse ce jeu de données : obtenir les données manquantes ci-dessus.
@@ -197,6 +207,6 @@ La méthode a été rigoureuse (aucune règle ni seuil optimisé sur la cible, t
 | Lire le contentieux dans `essai_jeu_corrige_deux_populations.ipynb` : variante « sans les `PAY_n` », importance par famille | H4, H10 | fait (07/10) |
 | Comparer la séparation du contentieux à celle de la banque (`PAY_1` ≥ 2), sur les clients communs | H12 | fait (07/10) : match nul |
 | Ajouter la stratégie « un seul ML » aux deux synthèses (cellules d'enregistrement des essais à un seul modèle, puis synthèse) | H10, H12 | fait (07/10) |
-| Essai au périmètre du niveau 4 (`PAY_n` non corrigés) pour isoler l'effet des corrections | H7 | piste, non lancé |
+| Essai au niveau 4 du nettoyage (avant les corrections de codification du contentieux) pour isoler l'effet de ces corrections | H7 | écarté (09/10) : écart attendu sous l'incertitude de la mesure |
 | Règle de verdict avec un gain minimal | méthode | à décider |
 | Mesurer la calibration à la manière de l'étude (lissage, régression probabilité estimée / « vraie », R²) sur les probabilités hors pli, éventuellement après calibration des modèles : comparaison sur leur objectif principal | section 5 | piste, non lancé |
