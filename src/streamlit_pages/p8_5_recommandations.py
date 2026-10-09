@@ -41,10 +41,7 @@ Les limites du projet viennent des données (page 8.4). Quatre informations, que
 st.subheader("3. Les pistes ouvertes", anchor="pistes")
 st.markdown(f"""
 - **Une probabilité de défaut par client** (calibration), l'objectif principal de l'étude de 2009, plutôt qu'un taux par niveau de risque ; on pourrait alors comparer le projet à l'étude sur son propre terrain.
-- **Comprendre la codification {codif('1')} de septembre après un retard**, deux lectures sont possibles (pages 5.2 et 5.3). **Si c'est une codification temporaire**, posée le temps que la banque tranche, un modèle pourrait être entraîné à retrouver la codification définitive (sortie du retard ou retour au retard) à partir de la durée du retard, des paiements et de l'évolution du solde : hors dette soldée ou absence totale de paiement, aucune règle métier ne le permet. Il faudrait pour cela connaître la codification des mois suivants, absente du dataset. **Si c'est une codification à part entière**, dont le sens n'est simplement pas documenté, il n'y a rien à corriger : elle se garde telle quelle. Seule la banque peut dire laquelle des deux lectures est la bonne.
-- **Comprendre les défauts sans dette en septembre**, laissés hors du périmètre (page 5.1) : erreur de la cible, ou dette que les relevés ne montrent pas ?
-- **Isoler l'effet des seules corrections** du nettoyage sur la prédiction, par un essai sur les mêmes clients avec les codifications non corrigées.
-- **Prédire la prochaine codification de la banque** plutôt que le défaut, si le défaut d'octobre mêle de vrais défauts et des statuts provisoires (page 5.6) : ce serait une autre cible, donc une autre question.
+- **Comprendre la codification {codif('1')}**, deux lectures sont possibles (pages 5.2 et 5.3). **Si c'est une codification temporaire**, posée le temps que la banque tranche, un modèle pourrait être entraîné à retrouver la codification définitive (sortie du retard ou retour au retard) à partir de la durée du retard, des paiements et de l'évolution du solde : hors dette soldée ou absence totale de paiement, aucune règle métier ne le permet. Il faudrait pour cela connaître la codification des mois suivants, absente du dataset. **Si c'est une codification à part entière**, dont le sens n'est simplement pas documenté, il n'y a rien à corriger : elle se garde telle quelle. Seule la banque peut dire laquelle des deux lectures est la bonne.
 """)
 
 # ------------------------------------------------------------------------------
@@ -63,7 +60,9 @@ tableau_html(["Piste", "Pourquoi elle a été écartée"], [
     ["<b>Changer de jeu de données</b>, pour un jeu à la cible clairement définie et aux codifications documentées",
      "Le pari était de faire mieux en lisant ces données avec un regard métier : comprendre les codifications de la banque et le fonctionnement de ses comptes avant de modéliser. Il a payé en partie, avec la population contentieuse, isolée par une règle métier qui prédit à elle seule un tiers des défauts (partie 5). Ce dataset est aussi celui de l'étude de référence : en changer, c'était renoncer à s'y comparer (page 8.2)."],
     ["<b>Un modèle pour sortir des clients du contentieux</b>",
-     "Entraînés sur les seuls clients au contentieux, les modèles y trient à peine mieux que le hasard : aucun ne trouve de clients à sortir sans risquer de sortir des clients en défaut (page 8.1)."],
+     "Avec l'exigence métier, ne sortir un client que s'il a au moins neuf chances sur dix de payer (sortir à tort un client en défaut revient à abandonner une créance), aucun modèle ne trouve de client à sortir : au contentieux, ils trient à peine mieux que le hasard (page 8.1)."],
+    ["<b>Isoler l'effet des seules corrections du nettoyage</b>",
+     "Elles touchent très peu de clients, et l'écart attendu serait plus petit que l'incertitude de la mesure ; les essais du comparatif ne montrent déjà que des écarts minimes."],
     ["<b>Réentraîner le modèle sur l'entraînement et le test réunis</b>",
      "Le gain attendu reste dans le bruit, et il ne resterait plus de clients jamais vus pour juger le modèle et le montrer en direct (page 7.1)."],
 ], largeurs=[30, 70])

@@ -114,15 +114,25 @@ Le suivi rigoureux de la mission est assuré via un tableau **Trello**, mis à j
 
 Le projet est entièrement déployé dans le cloud selon une architecture découplée (API Backend + Interface Frontend) :
 
-* **🖥️ Interface Utilisateur (Frontend Streamlit) :** [Accéder à la démo en ligne](https://risklens-ml.streamlit.app/)
+* **🖥️ Interface Utilisateur (Frontend Streamlit) :** [Accéder au site](https://risklens-ml.streamlit.app/)
 * **⚙️ Documentation Technique (Backend FastAPI / Swagger UI) :** [Explorer l'API et les routes](https://risklens-ml-api.onrender.com/docs)
+* **🤖 Modèles :** enregistrés dans le dépôt ([`lab_ML/demo_ML/`](lab_ML/demo_ML/)), chargés et exécutés par l'application Streamlit ; deux des trois démonstrations lisent les clients dans la base par l'API.
+* **🗄️ Base de données :** SQLite, hébergée avec l'API ; elle contient aussi les prédictions enregistrées du modèle entraîné sur les données brutes. Les démonstrations ne font que la lire.
 
-### 🧪 Fonctionnalités à tester sur l'interface :
+### 🧪 Fonctionnalités à tester sur le site
+**La base de données, par l'API**
 * **Consultation (GET)** : Requêter les profils clients et leurs historiques de paiement issus de la BDD SQLite.
 * **Opérations CRUD (POST / PATCH / DELETE)** : Simuler l'ajout, la modification ou la suppression de dossiers clients en direct.
 * **Validation des schémas JSON** : Inspecter la structure des requêtes et les modèles de données (Pydantic).
 
-> ℹ️ *L'API est hébergée sur l'offre gratuite de Render. Si le serveur est en veille, la première requête peut prendre jusque 1 minute à répondre.*
+**Les simulateurs de risque par profil**
+* Choisir un profil de client (âge, genre, niveau d'études, statut marital) et lire son taux de défaut de paiement : sur tous les clients étudiés, sur la base lue par l'API, sur la population contentieuse, et sur les clients confiés au machine learning.
+
+**Les démonstrations du modèle**
+* **Le système en direct** : injecter un lot de clients que le modèle n'a jamais vus, choisir la part des défauts à détecter (ou la règle du contentieux seule), puis comparer les décisions au défaut constaté ; ou suivre un client, de sa lecture dans la base jusqu'à son niveau de risque.
+* **Lecture par lot et prédictions (`POST /clients/lot`, `GET /prediction`)** : lire des milliers de clients en un appel, consulter la prédiction enregistrée d'un client.
+
+> ℹ️ *L'API est hébergée sur l'offre gratuite de Render. Si le serveur est en veille, la première requête peut prendre jusqu'à une minute à répondre.*
 
 ---
 
@@ -155,8 +165,26 @@ Le projet est entièrement déployé dans le cloud selon une architecture décou
 ---
 
 ## 🔭 Axes d'amélioration
-*   **Obtenir la définition exacte de la cible (`dpnm`)** : elle n'est pas documentée, et ne semble pas être un simple défaut de paiement observé (des clients sans dette sont comptés en défaut). C'est la condition de toute amélioration.
-*   **Obtenir les vrais encours et la liste réelle des clients en incident** (recouvrement, contentieux) : le montant du relevé ne serait pas toujours la dette réelle (certains défauts chez des clients sans dette affichée le laissent penser), et la population contentieuse est ici reconstruite à partir des codifications.
-*   **Départager les PAY_1 = 1 après un retard par un modèle** : au dernier mois observé, la banque codifie 1 des clients dont on ne sait pas encore s'ils sortent du retard (statut d'attente). Hors dette soldée ou absence totale de paiement, aucune règle métier ne permet de trancher ; un modèle combinant la durée du retard, les paiements et l'évolution du solde pourrait en départager une partie, mais ce travail dépend fortement de la définition réelle de la cible.
-*   **Estimer une probabilité de défaut par client** (calibration), l'objectif principal de l'étude d'origine, au lieu d'un taux par niveau de risque.
-*   **Piste envisagée puis écartée : combiner plusieurs modèles** (vote, moyenne des probabilités). Les quatre modèles retenus se partagent les clients de la même façon : la plupart des défauts détectés le sont par les quatre à la fois, et environ un tiers des défauts ne sont trouvés par aucun ([analyse des défauts manqués](/lab_ML/analyse_defauts_manques.ipynb)). Les combiner ne ferait pas apparaître les défauts qu'aucun ne voit.
+
+**Quatre informations à obtenir de la banque**, car les limites du projet viennent des données :
+*   **La définition exacte du défaut** (`dpnm`) : défaut de paiement observé, ou statut posé par la banque ? Des clients sans dette sont comptés en défaut. C'est la condition de toute amélioration.
+*   **Les vrais encours** : le montant du relevé ne serait pas toujours la dette réelle ; on saurait si les défauts « sans dette » sont une erreur de la cible ou une dette invisible dans les relevés.
+*   **La liste des clients suivis hors du circuit normal** (recouvrement, contentieux) : elle validerait la règle du contentieux, reconstruite ici à partir des codifications.
+*   **La façon dont l'échantillon a été tiré** : avec environ un client sur cinq en défaut, il ne ressemble pas à un portefeuille réel.
+
+**Les pistes ouvertes**
+*   **Une probabilité de défaut par client** (calibration), l'objectif principal de l'étude d'origine, plutôt qu'un taux par niveau de risque.
+*   **Comprendre la codification `PAY_n = 1`** : si c'est un statut d'attente, un modèle pourrait retrouver la codification définitive (sortie du retard ou retour au retard) ; si c'est une codification à part entière, elle se garde telle quelle. Seule la banque peut trancher.
+
+**Les pistes envisagées puis écartées**
+*   **Combiner plusieurs modèles** (vote, moyenne des probabilités) : les quatre modèles retenus trouvent les mêmes défauts, et environ un tiers des défauts ne sont trouvés par aucun ([analyse des défauts manqués](lab_ML/analyse_defauts_manques.ipynb)).
+*   **Ajouter encore des variables** : tous les scénarios sont restés dans l'incertitude de la mesure.
+*   **Des modèles plus puissants** : ils ne font pas mieux, et un modèle lancé sur les données brutes fait jeu égal avec le projet.
+*   **Nettoyer davantage les données** : au-delà des anomalies indéfendables, ce serait remplacer le signal de la banque par notre propre lecture.
+*   **Recoder la cible** : les modèles prédiraient notre définition du défaut, et non plus celle de la banque.
+*   **Changer de jeu de données** : le pari était de faire mieux par un regard métier sur ces données ; il a payé en partie, avec la règle du contentieux qui prédit à elle seule un tiers des défauts.
+*   **Un modèle pour sortir des clients du contentieux** : avec l'exigence métier, ne sortir un client que s'il a au moins neuf chances sur dix de payer (sortir à tort un client en défaut revient à abandonner une créance), aucun modèle ne trouve de client à sortir : au contentieux, ils trient à peine mieux que le hasard.
+*   **Isoler l'effet des seules corrections du nettoyage** : elles touchent très peu de clients, et l'écart attendu serait plus petit que l'incertitude de la mesure ; les essais du comparatif ne montrent déjà que des écarts minimes.
+*   **Réentraîner le modèle sur l'entraînement et le test réunis** : un gain dans le bruit, et plus aucun client jamais vu pour juger le modèle et le montrer en direct.
+
+Raisonnement complet : page « Les recommandations » du [site](https://risklens-ml.streamlit.app/) et [hypothèses et conclusions](docs/hypotheses_et_conclusions.md).
