@@ -28,21 +28,20 @@ Déployer le modèle, c'est le rendre utilisable en dehors des notebooks où il 
 """)
 
 # ------------------------------------------------------------------------------
-st.subheader("Le chemin d'un client, de la base à la décision", anchor="chemin")
+st.subheader("Démos 1 et 2 : le système du projet, de la donnée à la décision", anchor="chemin")
 st.graphviz_chart(r"""
 digraph {
-    rankdir=LR; nodesep=0.25; ranksep=0.35; compound=true;
+    rankdir=LR; nodesep=0.3; ranksep=0.4;
     node [shape=box, style="rounded,filled", fillcolor="#e1f5fe", fontname="Helvetica", fontsize=10, margin="0.1,0.05"];
     edge [fontname="Helvetica", fontsize=9];
-    fichier [fillcolor="#eeeeee", label="Fichier d'origine\n(UCI)"];
-    bdd [label="Base SQLite\nclients, historique,\nprédictions"];
-    notebook3 [shape=note, fillcolor="#ffffff", label="Prédictions de la démo 3\n(notebook creation_demo_3)"];
-    notebook3 -> bdd [label="ingestion"];
+    projet [fillcolor="#fff3e0", label="Point d'entrée de la démo 1\ndonnées du projet,\ndéjà nettoyées"];
+    bdd [fillcolor="#fff3e0", label="Point d'entrée de la démo 2\nbase SQLite,\ndonnées brutes"];
     api [fillcolor="#b3e5fc", label="API FastAPI\n(Render)"];
-    fichier -> bdd [label="ingestion"];
+    fichier [fillcolor="#eeeeee", label="Fichier d'origine\n(secours)"];
+    modele_f [shape=note, fillcolor="#ffffff", label="Modèle enregistré\net seuils"];
     bdd -> api [dir=both];
     subgraph cluster_app {
-        label="Application Streamlit : traitement en direct"; fontname="Helvetica"; fontsize=10; style="rounded"; color="#888888";
+        label="Application Streamlit : traitement en direct, en mémoire"; fontname="Helvetica"; fontsize=10; style="rounded"; color="#888888"; labelloc="b"; labeljust="l";
         nett [fillcolor="#fff3e0", label="Nettoyage\n(niveaux 1 à 5)"];
         perim [fillcolor="#fff3e0", label="Périmètre\n(encours en\nseptembre)"];
         cols [fillcolor="#fff3e0", label="Colonnes\ndu modèle"];
@@ -53,20 +52,55 @@ digraph {
         regle -> decision [label="au contentieux"];
         regle -> modele [label="les autres"];
         modele -> decision [label="seuil choisi"];
-        brut [fillcolor="#f3d6e0", label="Démo 3 : modèle sur\nles données brutes\n(5 modèles de plis)"];
-        niveau [fillcolor="#d9f0e3", label="Niveau de risque\n1/9 à 9/9"];
-        brut -> niveau [label="seuil choisi"];
     }
-    api -> brut [label="POST /clients/lot\n(données brutes)"];
-    api -> niveau [style=dashed, label="GET /prediction\n(niveau enregistré)"];
-    api -> nett [label="POST /clients/lot\nGET /client"];
+    api -> nett [label="POST /clients/lot"];
     fichier -> nett [style=dashed, label="secours"];
-    fichiers [shape=note, fillcolor="#ffffff", label="Modèle enregistré\net seuils"];
-    fichiers -> modele [style=dotted];
+    projet -> regle;
+    modele_f -> modele [style=dotted];
 }
 """, width="stretch")
-st.caption("Flèches pleines : le chemin normal ; tirets : le fichier d'origine en secours si l'API ne répond pas (démo 2), et le niveau de risque enregistré "
-           "dans la base, relu pour contrôle (démo 3) ; pointillés : les fichiers lus par le modèle.")
+st.caption("La démo 1 part des données du projet, déjà nettoyées : elle entre directement à la règle du contentieux. La démo 2 lit les données brutes "
+           "dans la base, par l'API, et refait tout le chemin ; le fichier d'origine sert de secours si l'API ne répond pas (tirets). "
+           "Pointillés : les fichiers lus par le modèle. Rien n'est écrit dans la base.")
+
+st.subheader("Démo 3 : un modèle sur les données brutes, et ses prédictions enregistrées dans la base", anchor="chemin-demo-3")
+st.graphviz_chart(r"""
+digraph {
+    rankdir=LR; nodesep=0.3; ranksep=0.45;
+    node [shape=box, style="rounded,filled", fillcolor="#e1f5fe", fontname="Helvetica", fontsize=10, margin="0.1,0.05"];
+    edge [fontname="Helvetica", fontsize=9];
+    notebook [shape=note, fillcolor="#ffffff", label="Notebook creation_demo_3\n(5 modèles de plis,\nniveaux de risque)"];
+    fichier_pred [fillcolor="#fff3e0", label="Fichier des prédictions\n1 ligne = 1 client :\nscore, niveau de risque"];
+    json [fillcolor="#fff3e0", label="correspondances.json"];
+    subgraph cluster_bdd {
+        label="Base SQLite"; fontname="Helvetica"; fontsize=10; style="rounded"; color="#888888"; labelloc="b"; labeljust="l";
+        client [fillcolor="#eeeeee", label="client"];
+        dim_date [fillcolor="#eeeeee", label="dim_date"];
+        prediction [fillcolor="#b3e5fc", label="prediction\n1 ligne = 1 client\n× 1 période × 1 modèle"];
+        classe [fillcolor="#b3e5fc", label="modele · classe_risque\nlibellé, bornes, seuil,\ntaux de défaut constaté"];
+        prediction -> client [dir=none, style=dashed];
+        prediction -> dim_date [dir=none, style=dashed, label="période de calcul"];
+        prediction -> classe [dir=none, style=dashed];
+    }
+    api [fillcolor="#b3e5fc", label="API FastAPI\n(Render)"];
+    subgraph cluster_app {
+        label="Application Streamlit"; fontname="Helvetica"; fontsize=10; style="rounded"; color="#888888"; labelloc="b"; labeljust="l";
+        brut [fillcolor="#f3d6e0", label="Modèle sur les\ndonnées brutes\n(5 modèles de plis)"];
+        niveau [fillcolor="#d9f0e3", label="Niveau de risque\n1/9 à 9/9,\ndécision au seuil choisi"];
+        fiche [fillcolor="#d9f0e3", label="Fiche client :\nniveau enregistré,\ncontrôlé en direct"];
+        brut -> niveau;
+    }
+    notebook -> fichier_pred;
+    fichier_pred -> prediction [label="ingestion"];
+    json -> classe [label="ingestion"];
+    client -> api [dir=both];
+    api -> brut [label="POST /clients/lot\n(données brutes)"];
+    api -> fiche [label="GET /prediction"];
+}
+""", width="stretch")
+st.caption("En gris, les tables de la base présentées en partie 2 (page 2.1) ; en bleu, les tables ajoutées pour la démo 3. Les prédictions sont calculées une fois, "
+           "par le notebook, puis chargées dans la base par le script d'ingestion ; sur le site, le modèle note de nouveau les clients en direct, et la fiche "
+           "d'un client compare son niveau enregistré au calcul en direct.")
 
 # ------------------------------------------------------------------------------
 st.subheader("Ce qui tourne où", anchor="ou")
@@ -106,6 +140,7 @@ st.markdown("""
 
 # ------------------------------------------------------------------------------
 st.subheader("Les conditions d'utilisation : ce que fait le système, ce qu'il ne fait pas", anchor="conditions")
+st.markdown("**Le système du projet (démos 1 et 2)**")
 tableau_html(["Ce que fait le système", "Ce qu'il ne fait pas"], [
     ["Il lit des clients au format du fichier d'origine : une fiche et six mois d'historique, d'avril à septembre 2005, avec les codifications de la banque",
      "Il ne traite pas d'autres données sans être réentraîné : une autre banque, une autre période ou d'autres codifications sortent de ce qu'il a appris"],
@@ -116,9 +151,18 @@ tableau_html(["Ce que fait le système", "Ce qu'il ne fait pas"], [
     ["Il mesure, sur un lot de clients, ce que la règle et le modèle détectent, face au défaut constaté",
      "Il ne décide pas pour les clients hors du <b>périmètre</b>. Le périmètre, ce sont les clients gardés par le nettoyage qui ont un encours à rembourser fin septembre et un plafond de 500 000 NT$ au plus : c'est sur eux seuls que la règle et le modèle ont été construits. Les autres sont écartés sans décision. Le modèle pourrait techniquement les noter, mais il n'a rien appris sur eux : ses résultats y seraient moins fiables"],
     ["Il signale tout écart avec les données et les règles du projet (contrôles client par client)",
-     "Il n'apprend pas en service : le modèle est figé et ne se met pas à jour seul ; seul le niveau de risque de la démo 3 est enregistré dans la base, jamais la décision"],
+     "Il n'apprend pas en service : le modèle est figé et ne se met pas à jour seul ; rien n'est écrit dans la base"],
 ], largeurs=[50, 50])
 st.markdown("""
 **Pour l'utiliser correctement** : lui donner des clients au même format, choisir le seuil selon le nombre d'alertes que les équipes peuvent traiter, et ne juger ses performances que sur des clients qu'il n'a jamais vus. Aucune banque n'utilise ce système : c'est une démonstration, sur des données publiques.
 """)
+st.markdown("**L'indicateur de risque de la démo 3**")
+tableau_html(["Ce que fait l'indicateur", "Ce qu'il ne fait pas"], [
+    ["Il note tous les clients, sans nettoyage ni périmètre, chacun par un modèle qui ne l'a jamais vu",
+     "Il ne distingue pas les clients que le projet écarte (sans dette, comptes inactifs) : ils reçoivent eux aussi un niveau"],
+    ["Il range chaque client dans un niveau de risque de 1/9 à 9/9, enregistré dans la base avec sa période de calcul, pour que les équipes filtrent les clients à suivre ; jamais la décision, qui dépend du seuil choisi",
+     "Ses niveaux ont été fixés en lisant la courbe de ces mêmes 30 000 clients : leurs taux de défaut décrivent cet échantillon, et il faudrait les vérifier sur une nouvelle période avant de s'y fier"],
+    ["Il laisse la banque choisir à partir de quel niveau elle intervient",
+     "Il n'explique pas son classement par une règle métier, et il utilise aussi les données démographiques (genre, âge, niveau d'études, statut marital)"],
+], largeurs=[50, 50])
 st.caption("Les risques du système et les mesures prises pour les limiter sont présentés en page 6.6.")
