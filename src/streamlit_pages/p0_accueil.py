@@ -66,19 +66,20 @@ st.markdown(f"""
 ### 📚 Le dataset et l'étude de référence
 Ce dataset est la base de données publique qui résulte de [l'étude scientifique de I-Cheng Yeh et Che-hui Lien (2009)](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/DefaultCreditCardClients_yeh_2009.pdf) (traduit en français [ici](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/traduction_DefaultCreditCardClients_yeh_2009.md)). En pleine crise, une banque taïwanaise a confié aux chercheurs un échantillon anonymisé de 30 000 clients. Cette étude comparait plusieurs modèles pour repérer les clients à risque. Le meilleur, un réseau de neurones, obtenait un score de 0,54, ce qui correspond à un **AUC de 0,77**. L'AUC mesure la capacité d'un modèle à distinguer les bons payeurs des futurs défaillants.
 
-Ma démarche adopte un prisme résolument **orienté métier**. En combinant une compréhension approfondie du jeu de données (le fonctionnement de la banque, de ses codifications et des paiements de l'époque), un nettoyage rigoureux fondé sur des règles métier et un pilotage par un **score de décision** (moyenne du ROC AUC et du F2 score, qui privilégie le Recall), je cherche à optimiser la détection réelle des risques de défaut, garantissant ainsi une performance robuste et réellement actionnable pour la gestion des risques bancaires.
+Ma démarche adopte un prisme résolument **orienté métier**. En combinant une compréhension approfondie du jeu de données (le fonctionnement de la banque, de ses codifications et des paiements de l'époque), un nettoyage rigoureux fondé sur des règles métier et une exigence posée avant tout modèle, un **taux de rappel minimal** (le modèle du projet doit trouver au moins une part fixée des défauts), je cherche à optimiser la détection réelle des risques de défaut, garantissant ainsi une performance robuste et réellement actionnable pour la gestion des risques bancaires.
 
-**🚀 Objectif ML Engineer :** Mon but est de dépasser le score de référence de 2009 (un AUC de 0,77) avec ce score de décision. En banque, oublier un client à risque (Faux Négatif) coûte bien plus cher que de suspecter un client sûr (Faux Positif).
+**🚀 Objectif ML Engineer :** Mon but est de dépasser le score de référence de l'étude de 2009 (un AUC de 0,77). En banque, oublier un client à risque (Faux Négatif) coûte bien plus cher que de suspecter un client sûr (Faux Positif).
 
 ### 🔎 Ce que l'analyse va montrer
-L'analyse exploratoire et l'étude du contentieux sont terminées ; le machine learning reste à reprendre. Voici leurs conclusions, partie par partie :
+L'analyse est terminée, du nettoyage au déploiement. Voici ses conclusions, partie par partie :
 - **Les données (partie 1)** : {nombre_fr(ent_accueil.loc['origine', 'clients'])} clients d'une banque taïwanaise, suivis d'avril à septembre 2005, en pleine crise des cartes de crédit. {nombre_fr(TAUX_DEFAUT_ORIGINE, 1)} % font défaut en octobre, un taux bien plus élevé que celui d'un portefeuille bancaire ordinaire.
 - **La base de données et l'API (partie 2)** : les données sont rangées dans une base relationnelle et exposées par une API REST, comme dans le système d'information d'une banque.
 - **Comprendre le jeu de données (partie 3)** : un fichier complet, mais des anomalies à expliquer avant toute analyse. Les codifications de paiement ne sont pas un fait brut : c'est une étiquette de la banque, mise à jour avec un mois de décalage sur le paiement. Très peu de lignes sont retirées ({nombre_fr(ent_accueil.loc['sans_paiements_geants', 'retires'])} paiements géants, {nombre_fr(ent_accueil.loc['sans_comptes_inactifs', 'retires'])} comptes inactifs, {nombre_fr(ent_accueil.loc['sans_plafonds_atypiques', 'retires'])} plafonds atypiques) : il reste {nombre_fr(ent_accueil.loc['sans_plafonds_atypiques', 'clients'])} clients.
 - **L'analyse exploratoire (partie 4)** : le profil des clients ne pèse que modérément sur le risque ; ce sont les comportements qui comptent. Un client qui ne rembourse rien fait défaut à {nombre_fr(defaut_type.get('Ne paie rien', 0))} %, un payeur au comptant à {nombre_fr(defaut_type.get('Paiement comptant', 0))} %. La dette totale des clients augmente de {nombre_fr((dette_sept / dette_avril - 1) * 100)} % en six mois, alors qu'ils n'en remboursent chaque mois que {nombre_fr(min(parts_remb))} à {nombre_fr(max(parts_remb))} %. Et le risque grimpe avec les codifications de retard accumulées : de {nombre_fr(defaut_incident.get(0, 0))} % sans aucune à {nombre_fr(defaut_incident.get(6, 0))} % pour un retard sur les six mois.
 - **La population contentieuse (partie 5)** : des clients figés en retard et un modèle qui plafonnait ont conduit à isoler une sous-population par une **règle métier explicable**, deux codifications de retard d'affilée, soit au moins 90 jours. Sur des clients jamais vus, elle ne retient que {nombre_fr(part_ctx)} % des clients, mais {nombre_fr(precision_ctx)} % d'entre eux font défaut, et elle capte ainsi {nombre_fr(captes_ctx)} % des défauts, sans aucun modèle.
-
-La suite (partie 6) confiera le reste des clients au machine learning, puis comparera le tout à l'étude de référence de 2009.
+- **Le machine learning (partie 6)** : sur les autres clients, tous les modèles et toutes les variables atteignent le même plafond. Le modèle retenu, sans aucune donnée démographique, range les clients par niveau de risque, du très haut risque (un client sur deux en défaut) au risque faible (un sur dix). Environ un tiers des défauts ont le profil des bons clients et ne s'annoncent pas dans les données.
+- **Le déploiement (partie 7)** : la règle puis le modèle tournent en direct, de la base de données à la décision, sur des clients jamais vus, et retrouvent les résultats de l'évaluation.
+- **La réponse (partie 8)** : oui, en partie. Le comportement des six derniers mois prévoit une grande part des défauts et classe les clients par niveau de risque, avec un AUC un peu au-dessus du 0,77 de l'étude : défi relevé, de peu. Il ne désigne pas à coup sûr ceux qui feront défaut.
 
 
 #### 🕵️‍♂️ Pour aller plus loin : Les coulisses de la donnée
@@ -107,15 +108,15 @@ digraph {
     blocage [style="rounded,filled,dashed", fillcolor="#fde2e4", color="#CC6677", label="Blocage : les performances plafonnent,\nune sous-population est détectée"];
     eda2 [fillcolor="#d9f0e3", label="✅ Analyse\ndu contentieux"];
     ctx [fillcolor="#d9f0e3", label="✅ Définition métier\ndu contentieux\n(nettoyage niveau 5)"];
-    ml2 [fillcolor="#fff3e0", label="⏳ Machine learning\n2e itération,\nsur les autres clients"];
-    slides [fillcolor="#fff3e0", label="⏳ Slides\nde restitution"];
-    dash [shape=plaintext, style="", label="⏳ Dashboard Streamlit,\nconstruit au fil de l'analyse"];
-    dash_fin [shape=point, width=0.01, color="#888888"];
+    ml2 [fillcolor="#d9f0e3", label="✅ Machine learning\n2e itération,\nsur les autres clients"];
+    deploi [fillcolor="#d9f0e3", label="✅ Déploiement :\nrègle + modèle en direct,\nde la base à la décision"];
+    dash [shape=plaintext, style="", label="⏳ Dashboard Streamlit, construit au fil de l'analyse,\npuis slides de restitution qui le résument"];
+    dash_fin [shape=none, label="", width=0, height=0, margin=0];
 
     // Ligne 1 : le premier parcours ; ligne 2 : le blocage ; ligne 3 : le second parcours ; ligne 4 : Streamlit
     {rank=same; donnees -> audit -> bdd -> eda1 -> nett -> ml1;}
     {rank=same; blocage;}
-    {rank=same; eda2 -> ctx -> ml2 -> slides;}
+    {rank=same; eda2 -> ctx -> ml2 -> deploi;}
     {rank=same; dash -> dash_fin [style=dashed, penwidth=1.5];}
 
     ml1 -> blocage;
@@ -123,7 +124,7 @@ digraph {
 
     // Colonnes alignées (liaisons invisibles)
     eda1 -> eda2 [style=invis, weight=20]; nett -> ctx [style=invis, weight=20];
-    blocage -> ml2 [style=invis, weight=20]; eda2 -> dash [style=invis, weight=20]; slides -> dash_fin [style=invis, weight=20];
+    blocage -> ml2 [style=invis, weight=20]; eda2 -> dash [style=invis, weight=20]; deploi -> dash_fin [style=invis, weight=20];
 }
 """, width="stretch")
 st.caption("✅ fait ; ⏳ en cours ; ⏹ arrêté.")
