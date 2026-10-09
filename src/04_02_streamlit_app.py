@@ -124,6 +124,9 @@ pages = {
         st.Page("streamlit_pages/p8_4_limites.py", title="8.4 Les limites : ce que la réponse ne permet pas de dire", icon=":material/report:"),
         st.Page("streamlit_pages/p8_5_recommandations.py", title="8.5 Les recommandations : ce qu'une banque pourrait en faire, et la suite", icon=":material/recommend:"),
     ],
+    "Annexe": [
+        st.Page("streamlit_pages/annexe_sources.py", title="Les sources du projet", icon=":material/menu_book:"),
+    ],
 }
 # Menu automatique masqué : il se placerait au-dessus du logo et du titre.
 # Le menu est reconstruit ci-dessous avec st.page_link, sous le logo et le titre.
