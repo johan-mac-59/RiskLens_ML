@@ -51,12 +51,12 @@ digraph {
     rankdir=LR; nodesep=0.25; ranksep=0.35;
     node [shape=box, style="rounded,filled", fillcolor="#e1f5fe", fontname="Helvetica", fontsize=10, margin="0.12,0.06"];
     edge [color="#888888"];
-    a [label="1990 – 2005\nLes banques distribuent\nmassivement des cartes"];
-    b [label="2005\nLe régulateur durcit\nles conditions d'octroi"];
-    c [fillcolor="#b3e5fc", label="Avril → septembre 2005\nLes impayés montent\n= les 6 mois du dataset"];
+    a [label="Début des années 1990\nLibéralisation :\nle nombre de banques double"];
+    b [label="2002 – 2005\nBoom des cartes : la dette\nde cartes passe de 5 à 9 %\ndu PIB"];
+    c [fillcolor="#b3e5fc", label="Avril → septembre 2005\n= les 6 mois du dataset :\nle régulateur durcit les règles\n(1er mai), les impayés montent"];
     d [fillcolor="#fff3e0", label="Octobre 2005\nDéfaut de paiement ?\n= la cible à prévoir"];
-    e [label="2006\nLa crise éclate ;\nnégociation des dettes"];
-    f [label="Au plus tard en 2006\nEndettement plafonné\nà 22 fois le revenu"];
+    e [label="Décembre 2005 – 2006\nLa crise éclate : aide aux\ndébiteurs, négociation des\ndettes, endettement plafonné\nà 22 fois le revenu"];
+    f [label="2006 – 2007\nYeh et Lien étudient\nces données (publiées en 2009)\n= le dataset du projet"];
     a -> b -> c -> d -> e -> f;
 }
 """, width="stretch")
