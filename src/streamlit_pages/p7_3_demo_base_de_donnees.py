@@ -72,7 +72,7 @@ def ecarts_base_fichier(lignes):
 entete_partie_7()
 st.header("7.3 Démo 2 : test grandeur nature, de la base de données à la décision", anchor="demo-2")
 st.markdown(f"""
-Cette fois, rien n'est préparé : les clients sont lus **dans la base de données du projet, par l'API REST** (partie 2), avec les valeurs du fichier d'origine de l'UCI, et **tout est refait en direct** : le nettoyage, les corrections de codification, le périmètre, la règle du contentieux et le modèle. Si l'API ne répond pas, les mêmes clients sont lus dans le fichier d'origine, en secours.
+Cette fois, rien n'est préparé : les clients sont lus **dans la base de données du projet, par l'API REST** (partie 2), avec les valeurs du fichier d'origine de l'UCI, et **tout est refait en direct** : le nettoyage, les corrections de codification, le périmètre, la règle du contentieux et le modèle. Si l'API ne répond pas, les mêmes clients sont lus dans le fichier d'origine, en secours. La base n'est jamais modifiée : les clients y sont seulement lus, et le nettoyage se fait en mémoire, dans l'application, juste avant la règle et le modèle.
 
 La réserve compte **{nombre_fr(len(reserve))} clients**, tous inconnus du modèle : ceux de la démo 1, et 20 % des clients que le projet a retirés avant le machine learning. Un client pris au hasard dans le fichier d'origine aurait de fortes chances d'avoir servi à l'apprentissage : une fois traité, le modèle le reconnaîtrait, et son score serait trop beau.
 

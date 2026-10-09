@@ -103,7 +103,7 @@ def legende_classes(classe_min):
 entete_partie_7()
 st.header("7.4 Démo 3 : tout le dataset d'origine, un modèle sur les données brutes", anchor="demo-3")
 st.markdown(f"""
-Cette démonstration porte sur **les {nombre_fr(len(TOUS_LES_IDS))} clients** du dataset d'origine, lus dans la base par l'API, **sans rien retirer** : ni nettoyage, ni règle du contentieux, ni périmètre. Elle répond à la problématique sans le travail du projet : **peut-on prévoir le défaut à partir du seul comportement des six derniers mois ?** Le modèle est le CatBoost de l'[essai du comparatif global]({ESSAI}), entraîné sur les 23 variables d'origine.
+Cette démonstration porte sur **les {nombre_fr(len(TOUS_LES_IDS))} clients** du dataset d'origine, lus dans la base par l'API (en lecture seule : la base n'est jamais modifiée), **sans rien retirer** : ni nettoyage, ni règle du contentieux, ni périmètre. Elle répond à la problématique sans le travail du projet : **peut-on prévoir le défaut à partir du seul comportement des six derniers mois ?** Le modèle est le CatBoost de l'[essai du comparatif global]({ESSAI}), entraîné sur les 23 variables d'origine.
 
 **Chaque client est noté par un modèle qui ne l'a jamais vu.** Un modèle entraîné sur tout le dataset aurait vu tout le dataset : on utilise donc cinq modèles, chacun entraîné sur 80 % des clients ; chaque client est noté par celui qui ne l'a pas appris.
 """)
