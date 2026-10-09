@@ -493,13 +493,23 @@ NIVEAUX_DEMO = {
     "Risque faible": (BLEU_INFO, "white", "score sous le seuil de 60 % des défauts"),
 }
 # Niveaux du modèle signalés selon la part des défauts visée (clé du seuil dans bornes_niveaux.json)
-SIGNALES_DEMO = {"tres_haut_risque": ["Très haut risque"], "haut_risque": ["Très haut risque", "Haut risque"],
+SIGNALES_DEMO = {"regle_seule": [], "tres_haut_risque": ["Très haut risque"], "haut_risque": ["Très haut risque", "Haut risque"],
                  "risque_modere": ["Très haut risque", "Haut risque", "Risque modéré"]}
+# Choix des démos 1 et 2 : la règle du contentieux seule, puis la règle et le modèle à trois seuils
+CHOIX_DEMO = {"Contentieux seul (règle, sans modèle)": "regle_seule", "10 % des défauts": "tres_haut_risque",
+              "30 % des défauts": "haut_risque", "60 % des défauts": "risque_modere"}
 
 
 def couleur_signales(seuil_choisi):
-    """Couleur du groupe « Signalés par le modèle » : celle du dernier niveau signalé avec le seuil choisi."""
-    return NIVEAUX_DEMO[SIGNALES_DEMO[seuil_choisi][-1]][0]
+    """Couleur du groupe « Déclarés en défaut par le modèle » : celle du dernier niveau signalé avec le seuil choisi (gris si aucun)."""
+    return NIVEAUX_DEMO[SIGNALES_DEMO[seuil_choisi][-1]][0] if SIGNALES_DEMO[seuil_choisi] else COULEURS["gris"]
+
+
+def mention_seuil(choix):
+    """Fin de phrase de la fiche client des démos : le seuil choisi plus haut, ou le choix de la règle seule."""
+    if CHOIX_DEMO[choix] == "regle_seule":
+        return f"avec le choix « {choix} » fait plus haut : le modèle classe le client, mais ne déclare personne en défaut."
+    return f"au seuil de {choix} (seuil choisi plus haut)."
 
 
 def couleur_texte(couleur):
@@ -553,7 +563,7 @@ def figure_recipient(groupes, couleur_modele, hauteur):
     """Récipient des clients déclarés en défaut (contentieux + signalés par le modèle), rempli par les défauts constatés :
     en bas les vrais défauts (règle, puis modèle), au-dessus les fausses déclarations. groupes : {nom: (clients, défauts)}."""
     ctx_n, ctx_d = groupes["Contentieux (règle)"]
-    sig_n, sig_d = groupes["Signalés par le modèle"]
+    sig_n, sig_d = groupes["Déclarés en défaut par le modèle"]
     return figure_recipient_parts([("Vrais défauts, règle du contentieux", ctx_d, NIVEAUX_DEMO["Contentieux (règle)"][0]),
                                    ("Vrais défauts, modèle", sig_d, couleur_modele)], ctx_n + sig_n, hauteur)
 
@@ -589,8 +599,8 @@ def tableau_performance(groupes):
     """Performance d'un lot des démos : règle du contentieux, modèle, système complet (et, s'il y a des clients écartés avant
     le système, système complet sur tout le lot). groupes : {nom du groupe: (clients, défauts constatés)}."""
     ctx_n, ctx_d = groupes["Contentieux (règle)"]
-    sig_n, sig_d = groupes["Signalés par le modèle"]
-    eca_n, eca_d = groupes["Écartés par le modèle"]
+    sig_n, sig_d = groupes["Déclarés en défaut par le modèle"]
+    eca_n, eca_d = groupes["Non déclarés en défaut par le modèle"]
     avant = [v for n, v in groupes.items() if n in ("Retirés par le nettoyage", "Sans encours en septembre")]
     perim_n, perim_d = ctx_n + sig_n + eca_n, ctx_d + sig_d + eca_d
 
@@ -632,9 +642,9 @@ def legende_niveaux(taux, seuil_choisi):
     seuil_choisi : clé du seuil sélectionné, qui décide des niveaux signalés par le modèle."""
     def decision(nom):
         if nom == "Contentieux (règle)":
-            return ("<b>prédit en défaut par la règle</b>", "")
+            return ("<b>prédit en défaut par la règle</b>", "background: rgba(204, 102, 119, 0.25);")
         if nom in NIVEAUX_DEMO and nom in SIGNALES_DEMO["risque_modere"] + ["Risque faible"]:
-            return ("<b>signalé</b>", "background: rgba(204, 102, 119, 0.25);") if nom in SIGNALES_DEMO[seuil_choisi] else ("non signalé", "")
+            return ("<b>déclaré en défaut par le modèle</b>", "background: rgba(204, 102, 119, 0.25);") if nom in SIGNALES_DEMO[seuil_choisi] else ("non déclaré", "")
         return ("hors du système", "")
     st.markdown("**Les niveaux de risque, avec le seuil choisi**")
     tableau_html(["Niveau", "Comment le client y arrive", "Décision", "Défaut constaté"],

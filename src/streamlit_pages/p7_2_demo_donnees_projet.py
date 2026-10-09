@@ -68,19 +68,20 @@ Les clients injectés viennent d'une réserve de **{nombre_fr(len(reserve))} cli
 st.subheader("1. Injecter un lot de clients", anchor="lot")
 col_lot, col_legende = st.columns([2, 1])
 with col_lot:
-    CHOIX = {"10 % des défauts": "tres_haut_risque", "30 % des défauts": "haut_risque", "60 % des défauts": "risque_modere"}
+    CHOIX = CHOIX_DEMO
     TAILLES = [200, 500, 1000, 2000, len(reserve)]
     c1, c2 = st.columns(2)
     taille = c1.select_slider("Nombre de clients injectés", TAILLES, value=TAILLES[0],
                               format_func=lambda t: f"{nombre_fr(t)} (toute la réserve)" if t == len(reserve) else nombre_fr(t))
-    choix = c2.radio("Part des défauts que la banque veut détecter (seuils fixés sur le jeu d'entraînement ; 60 % : seuil retenu pour l'apprentissage)", list(CHOIX), index=2)
+    choix = c2.radio("Part des défauts que la banque veut détecter avec le modèle (seuils fixés sur le jeu d'entraînement ; 60 % : seuil retenu pour l'apprentissage)", list(CHOIX), index=3)
 
     if "historique_lots" not in st.session_state:
         st.session_state.historique_lots = []
 
     if st.button("▶️ Injecter le lot", type="primary"):
         numero = len(st.session_state.historique_lots) + 1
-        seuil = bornes[CHOIX[choix]]
+        regle_seule = CHOIX[choix] == "regle_seule"
+        seuil = None if regle_seule else bornes[CHOIX[choix]]
         with st.status(f"Traitement du lot n° {numero}…", expanded=True) as statut:
             lot = reserve.sample(n=taille, random_state=numero) if taille < len(reserve) else reserve
             st.write(f"📥 **{nombre_fr(len(lot))} clients injectés**, tirés au hasard dans la réserve (tirage n° {numero}).")
@@ -89,27 +90,31 @@ with col_lot:
             st.write(f"⚖️ **Étape 1, règle du contentieux** : {nombre_fr(regle.sum())} clients au contentieux, prédits en défaut et retirés.")
             time.sleep(PAUSE)
             hors_ctx = lot[~regle]
-            debut = time.perf_counter()
-            proba = enregistre["modele"].predict_proba(hors_ctx[VARIABLES])[:, 1]
-            duree = (time.perf_counter() - debut) * 1000
-            st.write(f"🤖 **Étape 2, le modèle** : {nombre_fr(len(hors_ctx))} scores de risque calculés en {nombre_fr(duree, 0)} millisecondes.")
-            time.sleep(PAUSE)
-            signale = proba >= seuil
-            st.write(f"🚩 **Décision** (seuil {nombre_fr(seuil, 3)}, {choix}) : {nombre_fr(signale.sum())} clients signalés, {nombre_fr((~signale).sum())} écartés.")
+            if regle_seule:
+                signale = np.zeros(len(hors_ctx), dtype=bool)
+                st.write(f"🤖 **Étape 2, le modèle** : non utilisé ({choix}) ; les {nombre_fr(len(hors_ctx))} clients hors contentieux ne sont pas déclarés en défaut.")
+            else:
+                debut = time.perf_counter()
+                proba = enregistre["modele"].predict_proba(hors_ctx[VARIABLES])[:, 1]
+                duree = (time.perf_counter() - debut) * 1000
+                st.write(f"🤖 **Étape 2, le modèle** : {nombre_fr(len(hors_ctx))} scores de risque calculés en {nombre_fr(duree, 0)} millisecondes.")
+                time.sleep(PAUSE)
+                signale = proba >= seuil
+                st.write(f"🚩 **Décision** (seuil {nombre_fr(seuil, 3)}, {choix}) : {nombre_fr(signale.sum())} clients déclarés en défaut, {nombre_fr((~signale).sum())} non déclarés.")
             time.sleep(PAUSE)
             st.write("🔍 **Vérification** : comparaison avec le défaut constaté en octobre 2005.")
             statut.update(label=f"Lot n° {numero} traité", state="complete", expanded=False)
 
-        groupes = {"Contentieux (règle)": lot[regle], "Signalés par le modèle": hors_ctx[signale], "Écartés par le modèle": hors_ctx[~signale]}
+        groupes = {"Contentieux (règle)": lot[regle], "Déclarés en défaut par le modèle": hors_ctx[signale], "Non déclarés en défaut par le modèle": hors_ctx[~signale]}
         taux = {nom: (g["dpnm"].mean() * 100 if len(g) else np.nan) for nom, g in groupes.items()}
-        detectes = groupes["Contentieux (règle)"]["dpnm"].sum() + groupes["Signalés par le modèle"]["dpnm"].sum()
+        detectes = groupes["Contentieux (règle)"]["dpnm"].sum() + groupes["Déclarés en défaut par le modèle"]["dpnm"].sum()
         st.session_state.dernier_lot = {"numero": numero, "choix": choix, "groupes": {n: (len(g), int(g["dpnm"].sum())) for n, g in groupes.items()},
                                         "total": (len(lot), int(lot["dpnm"].sum()))}
         st.session_state.historique_lots.append({
             "Lot": numero, "Clients": len(lot), "Part visée": choix,
-            **{f"Taux constaté, {n.split(' ')[0].lower()} (%)": round(t, 1) for n, t in taux.items()},
+            **{f"{n} : taux constaté (%)": round(t, 1) for n, t in taux.items()},
             "Défauts détectés, système complet (%)": round(detectes / lot["dpnm"].sum() * 100, 1),
-            "Défauts manqués, parmi les écartés (%)": round(groupes["Écartés par le modèle"]["dpnm"].sum() / lot["dpnm"].sum() * 100, 1)})
+            "Défauts manqués, parmi les non déclarés (%)": round(groupes["Non déclarés en défaut par le modèle"]["dpnm"].sum() / lot["dpnm"].sum() * 100, 1)})
 
     if "dernier_lot" in st.session_state:
         dernier = st.session_state.dernier_lot
@@ -129,7 +134,7 @@ with col_lot:
         ctx_n, ctx_d = dernier["groupes"][noms[0]]
         fig = figure_entonnoir([("Clients injectés", total_clients, total_defauts, COULEURS["bleu_pale"]),
                                 ("Hors contentieux, vers le modèle", total_clients - ctx_n, total_defauts - ctx_d, COULEURS["bleu_pale"]),
-                                ("Déclarés sains par le modèle", *dernier["groupes"]["Écartés par le modèle"], NIVEAUX_DEMO["Risque faible"][0])], 380)
+                                ("Non déclarés en défaut par le modèle", *dernier["groupes"]["Non déclarés en défaut par le modèle"], NIVEAUX_DEMO["Risque faible"][0])], 380)
         st.caption(f"Taux de défaut constaté de tout le lot : {nombre_fr(total_defauts / total_clients * 100, 1)} % (ce que donnerait un tirage au hasard).")
 
 # Légende remplie après le choix du seuil (colonne de droite)
@@ -191,7 +196,7 @@ if "client_id" in st.session_state:
         niveau = niveau_de_risque(client, proba)[0]
         signale = niveau in SIGNALES_DEMO[CHOIX[choix]]
         encadre_niveau(niveau, f"🤖 Niveau de risque : **{niveau}**. Client **{'déclaré' if signale else 'non déclaré'} en défaut par le modèle** "
-                               f"au seuil de {choix} (seuil choisi plus haut).")
+                               + mention_seuil(choix))
     st.markdown(f"Dans la réserve, le taux de défaut constaté des clients de ce niveau est de **{nombre_fr(taux_par_niveau()[niveau], 1)} %**.")
     st.caption("Le modèle ne donne pas une probabilité fiable pour un client seul (les défauts ont plus de poids pendant l'apprentissage) : "
                "on affiche le niveau de risque, et le taux de défaut constaté dans ce niveau.")

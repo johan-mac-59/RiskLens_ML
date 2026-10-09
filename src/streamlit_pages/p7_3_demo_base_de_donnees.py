@@ -3,7 +3,7 @@ import joblib
 from streamlit_pages.commun import *
 
 # ==============================================================================
-# PAGE 7.3, DÉMO 2 : test grandeur nature, à partir du fichier d'origine, sans aucune modification
+# PAGE 7.3, DÉMO 2 : test grandeur nature, à partir de la base de données (API), fichier d'origine en secours
 # Tout est refait en direct : nettoyage (niveaux 1 à 5 de src/02_01_nettoyage.ipynb), périmètre, colonnes du modèle
 # (lab_ML/creation_datasets_ML.ipynb), règle du contentieux, modèle. Les fonctions de traitement (commun.py) sont des copies de ces
 # notebooks : le contrôle en bas de page compare, client par client, le résultat au jeu de données du projet.
@@ -72,25 +72,25 @@ def ecarts_base_fichier(lignes):
 entete_partie_7()
 st.header("7.3 Démo 2 : test grandeur nature, de la base de données à la décision", anchor="demo-2")
 st.markdown(f"""
-Cette fois, rien n'est préparé : les clients arrivent **tels qu'ils sont dans le fichier d'origine** (fichier de l'UCI, colonnes séparées par des points-virgules), et **tout est refait en direct** : le nettoyage, les corrections de codification, le périmètre, la règle du contentieux et le modèle.
+Cette fois, rien n'est préparé : les clients sont lus **dans la base de données du projet, par l'API REST** (partie 2), avec les valeurs du fichier d'origine de l'UCI, et **tout est refait en direct** : le nettoyage, les corrections de codification, le périmètre, la règle du contentieux et le modèle. Si l'API ne répond pas, les mêmes clients sont lus dans le fichier d'origine, en secours.
 
 La réserve compte **{nombre_fr(len(reserve))} clients**, tous inconnus du modèle : ceux de la démo 1, et 20 % des clients que le projet a retirés avant le machine learning. Un client pris au hasard dans le fichier d'origine aurait de fortes chances d'avoir servi à l'apprentissage : une fois traité, le modèle le reconnaîtrait, et son score serait trop beau.
 
 **Le périmètre** : les clients qui ont un encours à rembourser fin septembre (`BILL_AMT1 > 0`) et un plafond de 500 000 NT$ au plus. C'est sur eux seuls que s'appliquent la règle du contentieux et le modèle (partie 5). Après le nettoyage, les clients de la réserve qui entrent dans le périmètre sont **exactement ceux de la démo 1**.
 """)
 
-with st.expander("Voir les premières lignes du fichier, telles qu'elles arrivent"):
+with st.expander("Voir les premières lignes du fichier d'origine, dont la base reprend les valeurs"):
     st.code("\n".join(CHEMIN_BRUTS.read_text(encoding="utf-8-sig").splitlines()[:6]), language=None)
 
 st.subheader("1. Injecter un lot de clients", anchor="lot")
 col_lot, col_legende = st.columns([2, 1])
 with col_lot:
-    CHOIX = {"10 % des défauts": "tres_haut_risque", "30 % des défauts": "haut_risque", "60 % des défauts": "risque_modere"}
+    CHOIX = CHOIX_DEMO
     TAILLES = [200, 500, 1000, 2000, len(reserve)]
     c1, c2 = st.columns(2)
     taille = c1.select_slider("Nombre de clients injectés", TAILLES, value=TAILLES[0],
                               format_func=lambda t: f"{nombre_fr(t)} (toute la réserve)" if t == len(reserve) else nombre_fr(t))
-    choix = c2.radio("Part des défauts que la banque veut détecter (seuils fixés sur le jeu d'entraînement ; 60 % : seuil retenu pour l'apprentissage)", list(CHOIX), index=2)
+    choix = c2.radio("Part des défauts que la banque veut détecter avec le modèle (seuils fixés sur le jeu d'entraînement ; 60 % : seuil retenu pour l'apprentissage)", list(CHOIX), index=3)
     SOURCES = ["Base de données (API)", "Fichier d'origine (CSV), en secours si l'API ne répond pas"]
     col_source, _ = st.columns([1, 2])
     source = col_source.selectbox("Où lire les clients", SOURCES, index=0,
@@ -102,7 +102,8 @@ with col_lot:
 
     if st.button("▶️ Injecter le lot", type="primary"):
         numero = len(st.session_state.historique_lots_2) + 1
-        seuil = bornes[CHOIX[choix]]
+        regle_seule = CHOIX[choix] == "regle_seule"
+        seuil = None if regle_seule else bornes[CHOIX[choix]]
         with st.status(f"Traitement du lot n° {numero}…", expanded=True) as statut:
             lot = reserve.sample(n=taille, random_state=numero) if taille < len(reserve) else reserve
             duree_lecture, ecarts, erreurs = None, None, []
@@ -150,18 +151,23 @@ with col_lot:
             st.write(f"⚖️ **Règle du contentieux** : {nombre_fr(regle.sum())} clients au contentieux, prédits en défaut et retirés.")
             time.sleep(PAUSE)
             hors_ctx = perimetre[~regle]
-            debut = time.perf_counter()
-            proba = enregistre["modele"].predict_proba(hors_ctx[VARIABLES])[:, 1] if len(hors_ctx) else np.array([])
-            st.write(f"🤖 **Le modèle** : {nombre_fr(len(hors_ctx))} scores de risque calculés en {nombre_fr((time.perf_counter() - debut) * 1000, 0)} millisecondes.")
-            time.sleep(PAUSE)
-            signale = proba >= seuil
-            st.write(f"🚩 **Décision** (seuil {nombre_fr(seuil, 3)}, {choix}) : {nombre_fr(signale.sum())} clients signalés, {nombre_fr((~signale).sum())} écartés.")
+            if regle_seule:
+                proba = np.full(len(hors_ctx), np.nan)
+                signale = np.zeros(len(hors_ctx), dtype=bool)
+                st.write(f"🤖 **Le modèle** : non utilisé ({choix}) ; les {nombre_fr(len(hors_ctx))} clients hors contentieux ne sont pas déclarés en défaut.")
+            else:
+                debut = time.perf_counter()
+                proba = enregistre["modele"].predict_proba(hors_ctx[VARIABLES])[:, 1] if len(hors_ctx) else np.array([])
+                st.write(f"🤖 **Le modèle** : {nombre_fr(len(hors_ctx))} scores de risque calculés en {nombre_fr((time.perf_counter() - debut) * 1000, 0)} millisecondes.")
+                time.sleep(PAUSE)
+                signale = proba >= seuil
+                st.write(f"🚩 **Décision** (seuil {nombre_fr(seuil, 3)}, {choix}) : {nombre_fr(signale.sum())} clients déclarés en défaut, {nombre_fr((~signale).sum())} non déclarés.")
             time.sleep(PAUSE)
             st.write("🔍 **Vérification** : comparaison avec le défaut constaté en octobre 2005.")
             statut.update(label=f"Lot n° {numero} traité", state="complete", expanded=False)
 
         groupes = {"Retirés par le nettoyage": pd.concat([geants, inactifs, plafonds]), "Sans encours en septembre": sans_encours,
-                   "Contentieux (règle)": perimetre[regle], "Signalés par le modèle": hors_ctx[signale], "Écartés par le modèle": hors_ctx[~signale]}
+                   "Contentieux (règle)": perimetre[regle], "Déclarés en défaut par le modèle": hors_ctx[signale], "Non déclarés en défaut par le modèle": hors_ctx[~signale]}
         st.session_state.dernier_lot_2 = {"numero": numero, "choix": choix, "total": (len(lot), int(lot["dpnm"].sum())), "ecarts_base": ecarts,
                                           "groupes": {n: (len(g), int(g["dpnm"].sum())) for n, g in groupes.items()},
                                           "perimetre": perimetre[["ID"] + PAY + ["FLAG_CTX", "MOIS_SORTIE_CTX", "CUMUL_INCIDENT", "PAY_habituel"]],
@@ -170,7 +176,7 @@ with col_lot:
             "Lot": numero, "Clients": len(lot), "Part visée": choix, "Source": "API" if duree_lecture is not None else "Fichier",
             "Lecture par l'API (s)": round(duree_lecture, 1) if duree_lecture is not None else None,
             **{f"{n} : taux constaté (%)": (round(g["dpnm"].mean() * 100, 1) if len(g) else None) for n, g in groupes.items()},
-            "Défauts manqués, parmi les écartés (%)": round(groupes["Écartés par le modèle"]["dpnm"].sum() / lot["dpnm"].sum() * 100, 1)})
+            "Défauts manqués, parmi les non déclarés (%)": round(groupes["Non déclarés en défaut par le modèle"]["dpnm"].sum() / lot["dpnm"].sum() * 100, 1)})
 
     if "dernier_lot_2" in st.session_state:
         dernier = st.session_state.dernier_lot_2
@@ -200,7 +206,7 @@ with col_lot:
             defauts_restants.append(defauts_restants[-1] - dernier["groupes"][nom][1])
         noms_etapes = ["Clients lus", "Après le nettoyage", "Avec un encours en septembre (périmètre)", "Hors contentieux, vers le modèle"]
         fig = figure_entonnoir([(nom, n, d, COULEURS["bleu_pale"]) for nom, n, d in zip(noms_etapes, restants, defauts_restants)]
-                               + [("Déclarés sains par le modèle", *dernier["groupes"]["Écartés par le modèle"], NIVEAUX_DEMO["Risque faible"][0])], 440)
+                               + [("Non déclarés en défaut par le modèle", *dernier["groupes"]["Non déclarés en défaut par le modèle"], NIVEAUX_DEMO["Risque faible"][0])], 440)
 
         # Contrôle client par client : le traitement en direct redonne le jeu de données du projet (et donc la démo 1)
         reference = load_data().set_index("ID")
@@ -324,7 +330,7 @@ if "lu_api_2" in st.session_state:
         signale = groupe_client in SIGNALES_DEMO[CHOIX[choix]]
         encadre_niveau(groupe_client, f"🤖 Nettoyage, périmètre et règle du contentieux passés. Le modèle le classe en **{groupe_client}**. "
                                       f"Client **{'déclaré' if signale else 'non déclaré'} en défaut par le modèle** "
-                                      f"au seuil de {choix} (seuil choisi plus haut).")
+                                      + mention_seuil(choix))
     st.markdown(f"Dans la réserve, le taux de défaut constaté des clients de ce groupe est de **{nombre_fr(taux_groupe[groupe_client], 1)} %**.")
     st.caption("Le modèle ne donne pas une probabilité fiable pour un client seul (les défauts ont plus de poids pendant l'apprentissage) : "
                "on affiche le niveau de risque, et le taux de défaut constaté dans ce niveau.")
