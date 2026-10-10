@@ -1,5 +1,5 @@
 {
- "date": "2026-10-10T20:28:24",
+ "date": "2026-10-10T22:49:47",
  "source": "data/cleaned1_creditcard.csv, codifications 1 d'avril à août corrigées ; sans dpnm",
  "exemples": "clients en retard le mois précédent ; mois cibles septembre, août, juillet ; train + test (tous les clients dont PAY_1 est tranchée), après la vérification unique sur le test",
  "cible": "1 = sortie du retard (codification du mois -2, -1 ou 0) ; 0 = retard maintenu",
@@ -23,7 +23,8 @@
   "paiement_m5",
   "LIMIT_BAL"
  ],
- "regle_de_decision": "précision marginale de 80% sur les 50 derniers annoncés ; sortie si les deux modèles l'annoncent",
+ "regle_de_decision": "précision marginale de 50% sur les 50 derniers annoncés, pour chaque modèle ; sortie si les trois modèles l'annoncent",
+ "voix_necessaires": 3,
  "versions": {
   "python": "3.14.6",
   "scikit-learn": "1.9.0",
@@ -33,11 +34,18 @@
  "modeles": {
   "MLP": {
    "fichier": "sorties_retard_mlp.pkl",
-   "seuil": 0.7900110421873702
+   "seuil": 0.411583837559209,
+   "score": "predict_proba"
   },
   "CatBoost": {
    "fichier": "sorties_retard_catboost.pkl",
-   "seuil": 0.7451871452017188
+   "seuil": 0.6096126392050271,
+   "score": "predict_proba"
+  },
+  "SVM": {
+   "fichier": "sorties_retard_svm.pkl",
+   "seuil": 0.04611305558838358,
+   "score": "decision_function"
   }
  }
 }
