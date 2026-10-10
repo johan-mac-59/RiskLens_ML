@@ -36,3 +36,6 @@ ecole/
 
 #démo du ML (clients de la démo ; modèle et bornes non ignorés)
 !lab_ML/demo_ML/*.csv
+
+# Essai bonus de correction de la codification 1 : gardé en local, hors du dépôt
+lab_ML/correction_codification_1/
