@@ -10,7 +10,7 @@ Rappel de la convention temporelle : mois 1 = M-1 (septembre 2005), 6 = M-6 (avr
 
 ## 0. Correction des codifications 1 (niveau 2, `cleaned2`)
 
-La codification 1 est lue comme un **code d'attente** : la banque n'a pas encore tranché la situation du mois. Le niveau 2 du nettoyage (`src/02_01_nettoyage.ipynb`) corrige les codifications 1 juste après le niveau 1, avant toute autre correction des codifications et avant le classement au contentieux. **Aucun client n'est retiré.**
+La codification 1 est lue comme un **code d'attente** : la banque n'a pas encore tranché la situation du mois. Le niveau 2 du nettoyage (`src/02_01_nettoyage.ipynb`), justifié par l'étude `src/05_04_EDA_codification1.ipynb`, corrige les codifications 1 juste après le niveau 1, avant toute autre correction des codifications et avant le classement au contentieux. **Aucun client n'est retiré.**
 
 | Colonne | Définition et calcul | Créée et utilisée dans | Adaptation et usage ML |
 |---|---|---|---|
@@ -112,7 +112,7 @@ Colonnes créées pour un graphique, un tableau ou un essai, qui ne sortent pas 
 | `Max_Ratio` | Plus grand ratio brut (`ratio_brut_PAY_BILLn`) du client, calculé pour les clients qui ont au moins un ratio brut au-dessus de 210 %, pour les trier du cas le plus extrême au moins extrême | `05_01_EDA_lab` |
 | `Source_Ratio`, `Facture_Source` | Nom du ratio brut (`ratio_brut_PAY_BILLn`) et de la facture (`BILL_AMT(n+1)`) concernés, dans le tableau des ratios de plus de 1 000 % avec une facture d'au moins 100 NT$ | `05_01_EDA_lab` |
 | `Bucket`, `Condition` | Colonnes du tableau d'étude de la zone 0-20 % (une ligne par ratio mensuel `ratio_PAY_BILLn` compris entre 0 et 20 %, facture due). `Bucket` : tranche de 1 point ([0, 1), [1, 2)… [19, 20)). `Condition` : groupe comparé, `PAY_n > 0` ou `PAY_n <= 0`, ou bien `PAY_n` comparée à `PAY_(n+1)` (« PAY Hausse » ou « PAY Stagnant/Baisse ») | `05_01_EDA_lab` |
-| `ratio_PAY_to_BILL_median` | Médiane de `ratio_PAY_BILL1` à `ratio_PAY_BILL5`, mois sans facture comptés à 100 % ; à ne pas confondre avec `ratio_PAY_BILL_median` | `05_01_EDA_lab`, annexe de `05_04_EDA_codification1` |
+| `ratio_PAY_to_BILL_median` | Médiane de `ratio_PAY_BILL1` à `ratio_PAY_BILL5`, mois sans facture comptés à 100 % ; à ne pas confondre avec `ratio_PAY_BILL_median` | `05_01_EDA_lab` |
 | `CTX_Trajectoire` | Classement selon la première règle du contentieux : « 1. CTX Chronique (6 mois) » si `PAY_1` à `PAY_6` valent tous 2 ; « 2. Faux rétrogradage strict » si un mois n a `PAY_n = 2` alors que `PAY_(n+1) > 2`, avec une facture due (`BILL_AMT(n+1) > 0`) et aucun paiement (`PAY_AMTn = 0`) ; « 3. Non CTX » sinon. Sans rapport avec `FLAG_CTX` | `05_01_EDA_lab` |
 | `Max_PAY_6m` | Pire codification du client sur la période : maximum de `PAY_1` à `PAY_6` | `05_01_EDA_lab` |
 | `Duree_PAY2_Consecutif` | Nombre de mois consécutifs codifiés exactement 2 en partant de septembre (`PAY_1`, puis `PAY_2`…), de 0 à 6 ; le compte s'arrête au premier mois différent de 2 | `05_01_EDA_lab` |
@@ -127,7 +127,6 @@ Colonnes créées pour un graphique, un tableau ou un essai, qui ne sortent pas 
 | `ratio_median_departage` | Brouillon de médiane : médiane de `ratio_PAY_BILLn` sur les mois avec une facture due ; nombre pair de mois : valeur du milieu la plus proche de la moyenne des ratios du client | `05_01_EDA_lab` |
 | `ratio_median_global`, `ratio_PAY_to_BILL_median_global` | Brouillon de `ratio_PAY_BILL_median` : même médiane, départagée par `taux_global` (sans la limite du trop-payé), sans la valeur -1 des comptes qui n'ont qu'une facture en septembre | `05_01_EDA_lab` (les deux), `05_03_EDA_storytelling` (`ratio_median_global`) |
 | `type_usage` | Brouillon de `TYPE_USAGE`, en 7 types posés sur `ratio_PAY_to_BILL_median_global` : 0 % → « Ne paie rien » ; moins de 3 % → « Client en difficulté » ; 3 à moins de 6 % → « Crédit par mensualité » ; 6 à moins de 30 % → « Usage mixte » ; 30 à moins de 99 % → « Remboursement élevé » ; 99 à 105 % → « Paiement comptant » ; plus de 105 % → « Paie plus que sa facture » | `05_01_EDA_lab` |
-| `bins` | Tranche de `ratio_PAY_to_BILL_median` (10 tranches de même largeur, découpage automatique de pandas). Ailleurs, `bins` est une simple liste de bornes, pas une colonne | annexe de `05_04_EDA_codification1` |
 
 ---
 
