@@ -482,19 +482,21 @@ BLEU_INFO = "#1C83E1"
 NIVEAUX_DEMO = {
     "Retiré par le nettoyage": (COULEURS["gris"], "white", "paiement géant, compte inactif ou plafond de plus de 500 000 NT$ : hors du système"),
     "Sans encours en septembre": ("#BBBBBB", "black", "rien à rembourser fin septembre : hors du périmètre"),
-    "Contentieux (règle)": (COULEURS["bordeaux"], "white", "deux retards de deux mois ou plus d'affilée, sans sortie"),
+    "En incident (règle)": (STATUTS_CTX["En incident"], "white", "en incident en septembre : deux retards d'affilée en août et septembre, ou un retard grave (3 et plus) en septembre"),
+    "Retard imminent (règle)": (STATUTS_CTX["Retard imminent"], "white", "un seul retard, posé par la banque en septembre après un mois d'août sain"),
     "Très haut risque": (COULEURS["rouge_pale"], "white", "score du modèle au-dessus du seuil de 10 % des défauts"),
     "Haut risque": (COULEURS["orange"], "black", "score entre les seuils de 10 % et 30 % des défauts"),
     "Risque modéré": (COULEURS["jaune"], "black", "score entre les seuils de 30 % et 60 % des défauts"),
     "Risque faible": (BLEU_INFO, "white", "score sous le seuil de 60 % des défauts"),
 }
+# Les deux populations confiées aux règles métier, chacune à part (statut à M, STATUT_INCIDENT)
+NIVEAUX_REGLES = {"En incident": "En incident (règle)", "Retard imminent": "Retard imminent (règle)"}
 # Niveaux du modèle signalés selon la part des défauts visée (clé du seuil dans bornes_niveaux.json)
 SIGNALES_DEMO = {"regle_seule": [], "tres_haut_risque": ["Très haut risque"], "haut_risque": ["Très haut risque", "Haut risque"],
                  "risque_modere": ["Très haut risque", "Haut risque", "Risque modéré"]}
-# Choix des démos 1 et 2 : la règle du contentieux seule, puis la règle et le modèle à trois seuils
-CHOIX_DEMO = {"Contentieux seul (règle, sans modèle)": "regle_seule", "10 % des défauts": "tres_haut_risque",
+# Choix des démos 1 et 2 : les règles métier seules, puis les règles et le modèle à trois seuils
+CHOIX_DEMO = {"Règles métier seules (sans modèle)": "regle_seule", "10 % des défauts": "tres_haut_risque",
               "30 % des défauts": "haut_risque", "60 % des défauts": "risque_modere"}
-
 
 def couleur_signales(seuil_choisi):
     """Couleur du groupe « Déclarés en défaut par le modèle » : celle du dernier niveau signalé avec le seuil choisi (gris si aucun)."""
@@ -556,13 +558,15 @@ def figure_entonnoir(etapes, hauteur):
 
 
 def figure_recipient(groupes, couleur_modele, hauteur):
-    """Récipient des clients déclarés en défaut (contentieux + signalés par le modèle), rempli par les défauts constatés :
-    en bas les vrais défauts (règle, puis modèle), au-dessus les fausses déclarations. groupes : {nom: (clients, défauts)}."""
-    ctx_n, ctx_d = groupes["Contentieux (règle)"]
+    """Récipient des clients déclarés en défaut (deux règles métier + signalés par le modèle), rempli par les défauts constatés :
+    en bas les vrais défauts (règle de l'incident, règle du retard imminent, puis modèle), au-dessus les fausses déclarations.
+    groupes : {nom: (clients, défauts)}."""
+    inc_n, inc_d = groupes["En incident (règle)"]
+    imm_n, imm_d = groupes["Retard imminent (règle)"]
     sig_n, sig_d = groupes["Déclarés en défaut par le modèle"]
-    return figure_recipient_parts([("Vrais défauts, règle du contentieux", ctx_d, NIVEAUX_DEMO["Contentieux (règle)"][0]),
-                                   ("Vrais défauts, modèle", sig_d, couleur_modele)], ctx_n + sig_n, hauteur)
-
+    return figure_recipient_parts([("Vrais défauts, règle de l'incident", inc_d, NIVEAUX_DEMO["En incident (règle)"][0]),
+                                   ("Vrais défauts, règle du retard imminent", imm_d, NIVEAUX_DEMO["Retard imminent (règle)"][0]),
+                                   ("Vrais défauts, modèle", sig_d, couleur_modele)], inc_n + imm_n + sig_n, hauteur)
 
 def figure_recipient_parts(vrais_defauts, declares, hauteur):
     """Récipient des clients déclarés en défaut : en bas les vrais défauts, en une ou plusieurs parts (nom, nombre, couleur),
@@ -592,13 +596,15 @@ def figure_recipient_parts(vrais_defauts, declares, hauteur):
 
 
 def tableau_performance(groupes):
-    """Performance d'un lot des démos : règle du contentieux, modèle, système complet (et, s'il y a des clients écartés avant
-    le système, système complet sur tout le lot). groupes : {nom du groupe: (clients, défauts constatés)}."""
-    ctx_n, ctx_d = groupes["Contentieux (règle)"]
+    """Performance d'un lot des démos : chaque règle métier, les deux règles ensemble, le modèle, le système complet (et, s'il y a
+    des clients écartés avant le système, le système complet sur tout le lot). groupes : {nom du groupe: (clients, défauts constatés)}."""
+    inc_n, inc_d = groupes["En incident (règle)"]
+    imm_n, imm_d = groupes["Retard imminent (règle)"]
     sig_n, sig_d = groupes["Déclarés en défaut par le modèle"]
     eca_n, eca_d = groupes["Non déclarés en défaut par le modèle"]
     avant = [v for n, v in groupes.items() if n in ("Retirés par le nettoyage", "Sans encours en septembre")]
-    perim_n, perim_d = ctx_n + sig_n + eca_n, ctx_d + sig_d + eca_d
+    reg_n, reg_d = inc_n + imm_n, inc_d + imm_d
+    perim_n, perim_d = reg_n + sig_n + eca_n, reg_d + sig_d + eca_d
 
     def ligne(nom, perimetre, detectes, defauts, declares, clients):
         rappel = detectes / defauts if defauts else 0
@@ -607,19 +613,20 @@ def tableau_performance(groupes):
         return [f"<b>{nom}</b>", perimetre, f"{nombre_fr(detectes)} sur {nombre_fr(defauts)}", f"{nombre_fr(rappel * 100, 1)} %",
                 f"{nombre_fr(precision * 100, 1)} %", f"{nombre_fr(declares / clients * 100, 1)} %" if clients else "–", nombre_fr(f2, 3)]
 
-    lignes = [ligne("Règle du contentieux", "périmètre", ctx_d, perim_d, ctx_n, perim_n),
-              ligne("Modèle", "clients hors contentieux", sig_d, sig_d + eca_d, sig_n, sig_n + eca_n),
-              ligne("Système complet (règle + modèle)", "périmètre", ctx_d + sig_d, perim_d, ctx_n + sig_n, perim_n)]
+    lignes = [ligne("Règle de l'incident", "périmètre", inc_d, perim_d, inc_n, perim_n),
+              ligne("Règle du retard imminent", "périmètre", imm_d, perim_d, imm_n, perim_n),
+              ligne("Règles métier (les deux)", "périmètre", reg_d, perim_d, reg_n, perim_n),
+              ligne("Modèle", "clients hors des deux populations", sig_d, sig_d + eca_d, sig_n, sig_n + eca_n),
+              ligne("Système complet (règles + modèle)", "périmètre", reg_d + sig_d, perim_d, reg_n + sig_n, perim_n)]
     if avant:
         tous_n, tous_d = perim_n + sum(v[0] for v in avant), perim_d + sum(v[1] for v in avant)
         lignes.append(ligne("Système complet, sur tout le lot", "tous les clients lus (écartés avant le système : non détectés)",
-                            ctx_d + sig_d, tous_d, ctx_n + sig_n, tous_n))
+                            reg_d + sig_d, tous_d, reg_n + sig_n, tous_n))
     st.markdown("**Performance sur ce lot**")
     tableau_html(["", "Clients pris en compte", "Défauts détectés", "Taux de rappel", "Précision des défauts prédits",
                   "Clients déclarés en défaut", "Score décisionnel F2"], lignes, largeurs=[20, 20, 13, 11, 13, 12, 11])
     st.caption("Taux de rappel : part des défauts constatés que l'étape déclare en défaut. Précision des défauts prédits : part des clients "
                "déclarés en défaut qui le sont vraiment dans les données. Score décisionnel F2 : combine les deux, en donnant plus de poids au rappel.")
-
 
 def encadre_niveau(nom, texte):
     """Encadré d'un client (fiche des démos), à la couleur de son niveau dans le tableau des niveaux de risque."""
@@ -637,7 +644,7 @@ def legende_niveaux(taux, seuil_choisi):
     """Tableau coloré des niveaux de risque des démos ; taux : {niveau: taux de défaut constaté en %}, seuls ces niveaux sont affichés ;
     seuil_choisi : clé du seuil sélectionné, qui décide des niveaux signalés par le modèle."""
     def decision(nom):
-        if nom == "Contentieux (règle)":
+        if nom in NIVEAUX_REGLES.values():
             return ("<b>prédit en défaut par la règle</b>", "background: rgba(204, 102, 119, 0.25);")
         if nom in NIVEAUX_DEMO and nom in SIGNALES_DEMO["risque_modere"] + ["Risque faible"]:
             return ("<b>déclaré en défaut par le modèle</b>", "background: rgba(204, 102, 119, 0.25);") if nom in SIGNALES_DEMO[seuil_choisi] else ("non déclaré", "")
@@ -656,7 +663,7 @@ def entete_partie_7():
     """En-tête de la partie 7, repris sur toutes ses pages."""
     st.title("🚀 7. Le déploiement du modèle : du fichier de la banque à la décision")
     st.markdown("""
-    Un modèle ne vaut que s'il sert. Cette partie met en service le système construit dans le projet, la règle du contentieux puis le modèle, et le fait tourner **en direct**, des données jusqu'à la décision, sur des clients que le modèle n'a **jamais vus**.
+    Un modèle ne vaut que s'il sert. Cette partie met en service le système construit dans le projet, les règles métier (population en incident, retard imminent) puis le modèle, et le fait tourner **en direct**, des données jusqu'à la décision, sur des clients que le modèle n'a **jamais vus**.
     """)
 
 
@@ -721,7 +728,7 @@ def figure_detection(libelles, barres, precisions, hasard, nom_barres="Part des 
 
 # ==============================================================================
 # DÉMOS DE LA PARTIE 7 : TRAITEMENT EN DIRECT DES CLIENTS BRUTS (pages 7.3 et 7.4)
-# Copies des notebooks : nettoyage niveaux 1 à 5 (src/02_01_nettoyage.ipynb), colonnes du modèle
+# Copies des notebooks : nettoyage en trois niveaux (src/02_01_nettoyage.ipynb), colonnes du modèle
 # (lab_ML/creation_datasets_ML.ipynb). Les pages contrôlent, client par client, que le résultat reste celui du projet.
 # ==============================================================================
 PAY = [f"PAY_{i}" for i in range(1, 7)]
@@ -730,117 +737,130 @@ PAY_AMT = [f"PAY_AMT{i}" for i in range(1, 7)]
 
 
 # ------------------------------------------------------------------------------
-# Nettoyage : copie de src/02_01_nettoyage.ipynb (niveaux 1 à 4)
+# Niveau 1 : suppressions (copie de src/02_01_nettoyage.ipynb)
 # ------------------------------------------------------------------------------
-def nettoyage_niveaux_1_a_4(df):
+def nettoyage_niveau_1(df):
     """Renvoie (clients gardés, retirés pour paiement géant, retirés comme comptes inactifs, retirés pour plafond atypique)."""
     df = df.copy()
     # Audit : catégories inconnues regroupées dans « autres »
     df["MARRIAGE"] = df["MARRIAGE"].where(df["MARRIAGE"].isin([1, 2, 3]), 3)
     df["EDUCATION"] = df["EDUCATION"].where(df["EDUCATION"].isin([1, 2, 3, 4]), 4)
-    # Niveau 1 : paiements géants (> 1 000 000) ; comptes inactifs (aucune facture positive sur 6 mois, aucun paiement de
-    # PAY_AMT1 à PAY_AMT5 : PAY_AMT6 rembourse la facture de mars, antérieure à la période)
+    # Paiements géants (> 1 000 000) ; comptes inactifs (aucune facture positive sur 6 mois, aucun paiement de PAY_AMT1 à
+    # PAY_AMT5 : PAY_AMT6 règle la facture de mars, antérieure à la période) ; plafonds de plus de 500 000 NT$
     geant = (df[PAY_AMT] > 1000000).any(axis=1)
     inactif = (df[BILL] <= 0).all(axis=1) & (df[PAY_AMT[:5]] == 0).all(axis=1)
-    retires_geants, retires_inactifs = df[geant], df[inactif & ~geant]
-    df = df[~(geant | inactif)].copy()
-    df.loc[df["ID"] == 6783, ["PAY_1", "PAY_2", "PAY_3", "PAY_4"]] = 0     # codifié 1 sur 4 mois alors qu'il paie chaque mois
-    # Niveau 2 : PAY_n = 1 sans facture due (BILL_AMT(n+1) <= 0) reprend la codification du mois d'avant, puis passes
-    # jusqu'à stabilité ; les 1 restants sans facture due passent à 0
-    for i in range(5, 0, -1):
-        condition = (df[f"BILL_AMT{i+1}"] <= 0) & (df[f"PAY_{i}"] == 1)
-        df.loc[condition, f"PAY_{i}"] = df.loc[condition, f"PAY_{i+1}"]
-    while True:
-        nb = 0
-        for i in range(5, 0, -1):
-            condition = (df[f"BILL_AMT{i+1}"] <= 0) & (df[f"PAY_{i}"] == 1) & (df[f"PAY_{i+1}"] != 1)
-            nb += condition.sum()
-            df.loc[condition, f"PAY_{i}"] = df.loc[condition, f"PAY_{i+1}"]
-        if nb == 0:
-            break
-    for i in range(1, 6):
-        df.loc[(df[f"PAY_{i}"] == 1) & (df[f"BILL_AMT{i+1}"] <= 0), f"PAY_{i}"] = 0
-    # Niveau 3 : ratios de paiement, puis PAY_1 = 1 sur une facture payée à 90 % ou plus reprend la codification d'août
-    for n in range(1, 6):
-        bill = df[f"BILL_AMT{n+1}"]
-        df[f"ratio_PAY_BILL{n}"] = (df[f"PAY_AMT{n}"] / bill.where(bill > 0) * 100).clip(lower=0, upper=200).fillna(100)
-    condition = (df["PAY_1"] == 1) & (df["PAY_2"] <= 0) & (df["BILL_AMT2"] > 0) & (df["ratio_PAY_BILL1"] >= 90)
-    df.loc[condition, "PAY_1"] = df.loc[condition, "PAY_2"]
-    # Niveau 4 : plafonds de plus de 500 000 NT$ (clientèle haut de gamme, atypique)
     plafond = df["LIMIT_BAL"] > 500000
-    return df[~plafond].copy(), retires_geants, retires_inactifs, df[plafond]
+    return (df[~(geant | inactif | plafond)].copy(), df[geant], df[inactif & ~geant], df[plafond & ~geant & ~inactif])
 
 
 # ------------------------------------------------------------------------------
-# Niveau 5 : copie des fonctions du contentieux de src/02_01_nettoyage.ipynb (définition 2)
+# Niveau 2 : correction des codifications 1 (copie de src/02_01_nettoyage.ipynb ; modèles de src/02_02_modele_sorties_retard)
 # ------------------------------------------------------------------------------
-def corriger_faux_codage(d):
+DECISIONS_CODIF_1 = {6783: {4: 0, 3: 0, 2: 0}, 11498: {4: 2, 3: 2, 2: 2}, 892: {3: 0, 2: 0}, 1967: {3: 0, 2: 0},
+                     5645: {2: 0}, 19195: {2: 2}, 25176: {2: 2}}   # ID : {n : nouvelle valeur de PAY_n}
+
+
+def _corriger_codifications_1(d):
+    """Codifications 1 d'avril à août (PAY_6 à PAY_2) ; d indexé par ID."""
+    d = d.copy()
+    for n in range(6, 1, -1):
+        for k in d.index[(d[f"PAY_{n}"] == 1) & (d[f"BILL_AMT{n - 1}"] <= 0)]:
+            saines = [d.at[k, f"PAY_{j}"] for j in range(n + 1, 7) if d.at[k, f"PAY_{j}"] <= 0]
+            if saines:
+                d.at[k, f"PAY_{n}"] = saines[0]
+    for n in range(5, 1, -1):
+        regle = (d[f"PAY_{n}"] == 1) & (d[f"BILL_AMT{n}"] <= 0) & (d[f"PAY_{n + 1}"] <= 0)
+        d.loc[regle, f"PAY_{n}"] = d.loc[regle, f"PAY_{n + 1}"]
+    for id_client, valeurs in DECISIONS_CODIF_1.items():
+        if id_client in d.index:
+            for n, v in valeurs.items():
+                if d.at[id_client, f"PAY_{n}"] == 1:
+                    d.at[id_client, f"PAY_{n}"] = v
+    return d
+
+
+def _exemples_du_mois(d, n):
+    """Variables des modèles de 02_02 pour le mois n, en colonnes relatives (m1 = mois précédent)."""
+    bloc = pd.DataFrame(index=d.index)
+    for k in range(1, 6):
+        bloc[f"codif_m{k}"] = d[f"PAY_{n + k}"].mask(d[f"PAY_{n + k}"] >= 2, 2).astype(float) if n + k <= 6 else np.nan
+    for k in range(0, 6):
+        bloc[f"solde_m{k}"] = d[f"BILL_AMT{n + k}"] if n + k <= 6 else np.nan
+        bloc[f"paiement_m{k}"] = d[f"PAY_AMT{n + k}"] if n + k <= 6 else np.nan
+    bloc["LIMIT_BAL"] = d["LIMIT_BAL"]
+    return bloc
+
+
+@st.cache_resource
+def _modeles_codification_1():
+    import pickle
+    dossier = BASE_DIR / "src" / "modeles_pay1"
+    synthese = json.loads((dossier / "synthese.json").read_text(encoding="utf-8"))
+    modeles = {}
+    for nom, info in synthese["modeles"].items():
+        with open(dossier / info["fichier"], "rb") as f:
+            modeles[nom] = (pickle.load(f), info["seuil"])
+    return synthese, modeles
+
+
+def nettoyage_niveau_2(df):
+    """Codifications 1 d'avril à août corrigées, puis celle de septembre : client sain en août → la codification d'août ;
+    en retard en août → sortie (-1) si les trois modèles de 02_02 l'annoncent, sinon retard maintenu (2).
+    La codification de la banque est gardée dans PAY_1_original. Renvoie aussi le nombre de 1 de septembre corrigés."""
+    d = _corriger_codifications_1(df.set_index("ID", drop=False))
+    synthese, modeles = _modeles_codification_1()
+    uns = d["PAY_1"] == 1
+    sains, retard = uns & (d["PAY_2"] <= 0), uns & (d["PAY_2"] >= 2)
+    corrigee = d["PAY_1"].copy()
+    corrigee[sains] = d.loc[sains, "PAY_2"]
+    if retard.any():
+        X = _exemples_du_mois(d.loc[retard], 1)[synthese["variables"]]
+        voix = sum(((m.predict_proba(X)[:, 1] if hasattr(m, "predict_proba") else m.decision_function(X)) >= s).astype(int)
+                   for m, s in modeles.values())
+        corrigee[retard] = np.where(voix >= synthese["voix_necessaires"], -1, 2)
+    d["PAY_1_original"] = d["PAY_1"]
+    d["PAY_1"] = corrigee.astype(int)
+    return d.reset_index(drop=True), int(uns.sum())
+
+
+# ------------------------------------------------------------------------------
+# Niveau 3 : uniformisation des codifications 2 d'avril à juin, puis statut à M et indicateurs de retard et d'incident
+# (copie de src/02_01_nettoyage.ipynb, fonctions de 05_02_EDA_incidents)
+# ------------------------------------------------------------------------------
+def _uniformiser_retards(d):
+    d2 = d.copy()
+    for n in (6, 5, 4):   # avril, mai, juin, dans l'ordre
+        facture, paiement = d2[f"BILL_AMT{n}"], d2[f"PAY_AMT{n - 1}"]
+        cible = (facture > 0) & (paiement < 0.015 * facture) & d2[f"PAY_{n}"].isin([-1, 0, 1])
+        if n < 6:
+            cible &= d2[f"PAY_{n + 1}"].isin([-1, 0])   # client sain (hors -2) le mois précédent
+        d2.loc[cible, f"PAY_{n}"] = 2
+    return d2
+
+
+def _statut_incident(d):
     codes = d[PAY].copy()
-    faux_codage = pd.Series(False, index=d.index)
-    surveillance = pd.Series(False, index=d.index)
-    for m in range(1, 6):
-        faux_2 = (d[f'PAY_{m}'] >= 2) & (d[f'PAY_{m+1}'] < 2) & (d[f'BILL_AMT{m+1}'] <= 0)
-        paiement_avant = d[f'PAY_AMT{m+1}'] > 0
-        encours_avant = d[f'BILL_AMT{m+2}'] > 0 if m + 2 <= 6 else pd.Series(False, index=d.index)
-        fc = faux_2 & (paiement_avant | encours_avant)
-        surveillance |= faux_2 & ~fc
-        faux_codage |= fc
-        a_corriger = faux_2.copy()
-        for k in range(m, 0, -1):
-            a_corriger &= (d[f'PAY_{k}'] >= 2) & (d[f'BILL_AMT{k+1}'] <= 0)
-            codes.loc[a_corriger, f'PAY_{k}'] = d.loc[a_corriger, f'PAY_{m+1}']
-    return codes, faux_codage, surveillance
-
-
-def recodage_pay1(d, codes):
-    transition = (codes['PAY_2'] >= 2) & (codes['PAY_1'] <= 1)
-    ratio = (d['PAY_AMT1'] / d['BILL_AMT2'].where(d['BILL_AMT2'] > 0) * 100).fillna(0)
-    sans_paiement_2_mois = (d['PAY_AMT1'] == 0) & (d['PAY_AMT2'] == 0)
-    factures_exigibles = (d['BILL_AMT3'] > 0) & (d['BILL_AMT2'] > 0)
-    code_avant = pd.Series(0, index=d.index)
-    a_chercher = pd.Series(True, index=d.index)
-    for k in range(3, 7):
-        trouve = a_chercher & (codes[f'PAY_{k}'] < 2)
-        code_avant[trouve] = codes.loc[trouve, f'PAY_{k}']
-        a_chercher &= ~trouve
-    code_avant = code_avant.clip(upper=0).replace(-2, -1)
-    return pd.Series(np.select([transition & sans_paiement_2_mois & factures_exigibles, transition & (ratio >= 90)],
-                               [2, code_avant], default=codes['PAY_1']), index=d.index)
-
-
-def indicateurs_ctx(d, codes):
-    pay1 = codes['PAY_1']
-    ratio_m1 = (d['PAY_AMT1'] / d['BILL_AMT2'].where(d['BILL_AMT2'] > 0) * 100).fillna(0)
-    ratio_m2 = (d['PAY_AMT2'] / d['BILL_AMT3'].where(d['BILL_AMT3'] > 0) * 100).fillna(0)
-    retard_paye = (pay1 >= 2) & ((ratio_m1 >= 90) | (ratio_m2 >= 90))
-    retard_paye_serie = retard_paye & (codes['PAY_2'] >= 2)
-    retard_paye_isole = retard_paye & ~retard_paye_serie
-    au_ctx_m = (pay1 >= 2) & ~retard_paye
-    retard = (codes >= 2).to_numpy()
-    passage_ctx = np.zeros(len(d), bool)
+    niveaux = codes.values
+    simple_retard_avril = (d["PAY_AMT6"] >= d["BILL_AMT5"]).values
+    retard = niveaux >= 2
+    passage_incident = np.zeros(len(d), bool)
     retard_regularise = np.zeros(len(d), bool)
-    mois_sortie = np.full(len(d), -1)
-    mois_regularisation = np.full(len(d), -1)
-    nb_mois_ctx = np.zeros(len(d), int)
+    mois_sortie = np.full(len(d), -1.0)
+    mois_regularisation = np.full(len(d), -1.0)
     for i, r in enumerate(retard):
-        if r[0]:
-            fin = 0
-            while fin + 1 < 6 and r[fin + 1]:
-                fin += 1
-            if au_ctx_m.iat[i] or retard_paye_serie.iat[i]:
-                nb_mois_ctx[i] = fin + 1
         k = 1
         while k < 6:
             if r[k] and not r[k - 1]:
                 fin = k
                 while fin + 1 < 6 and r[fin + 1]:
                     fin += 1
-                if fin > k or fin == 5:
-                    if not passage_ctx[i]:
+                serie = fin > k or niveaux[i, k:fin + 1].max() >= 3
+                if fin == 5 and not serie:
+                    serie = not simple_retard_avril[i]   # 2 isolé en avril : incident sauf simple retard
+                if serie:
+                    if not passage_incident[i]:
                         mois_sortie[i] = k
-                        if nb_mois_ctx[i] == 0:
-                            nb_mois_ctx[i] = fin - k + 1
-                    passage_ctx[i] = True
+                    passage_incident[i] = True
                 else:
                     if not retard_regularise[i]:
                         mois_regularisation[i] = k
@@ -848,37 +868,80 @@ def indicateurs_ctx(d, codes):
                 k = fin + 1
             else:
                 k += 1
+    passage_incident = pd.Series(passage_incident, index=d.index)
+    retard_regularise = pd.Series(retard_regularise, index=d.index)
+    incident_m = ((codes["PAY_1"] >= 2) & (codes["PAY_2"] >= 2)) | (codes["PAY_1"] >= 3)
+    retard_imminent = (codes["PAY_1"] >= 2) & ~incident_m
+    statut = pd.Series(np.select([incident_m, retard_imminent, passage_incident, retard_regularise],
+                                 ["En incident", "Retard imminent", "Sorti de l'incident", "Retard régularisé"],
+                                 default="Jamais en retard"), index=d.index)
     mois_sortie = pd.Series(mois_sortie, index=d.index)
-    mois_sortie[au_ctx_m] = -1
-    mois_sortie[retard_paye_serie] = 0
+    mois_sortie[incident_m] = -1
     mois_regularisation = pd.Series(mois_regularisation, index=d.index)
-    mois_regularisation[retard_paye_isole] = 0
-    mois_regularisation[au_ctx_m] = -1
-    flag_ctx = (pd.Series(passage_ctx, index=d.index) | au_ctx_m | retard_paye_serie).astype(int)
-    flag_retard = ((pd.Series(retard_regularise, index=d.index) | retard_paye_isole) & ~au_ctx_m).astype(int)
-    nb_mois_ctx = pd.Series(nb_mois_ctx, index=d.index).where(flag_ctx == 1, 0)
-    return pd.DataFrame({'FLAG_CTX': flag_ctx, 'MOIS_SORTIE_CTX': mois_sortie.astype(int), 'FLAG_RETARD': flag_retard,
-                         'MOIS_SORTIE_RETARD': mois_regularisation.astype(int), 'NB_MOIS_CTX': nb_mois_ctx.astype(int)})
+    mois_regularisation[incident_m] = np.nan
+    return pd.DataFrame({"STATUT_INCIDENT": statut, "MOIS_SORTIE_INCIDENT": mois_sortie,
+                         "FLAG_INCIDENT": (passage_incident | incident_m).astype(int), "MOIS_SORTIE_RETARD": mois_regularisation,
+                         "FLAG_RETARD": (retard_regularise & ~incident_m).astype(int), "FLAG_RETARD_IMMINENT": retard_imminent.astype(int)})
 
 
-def niveau_5(df):
-    df = df.copy()
-    codes, faux_codage, surveillance = corriger_faux_codage(df)
-    codes['PAY_1'] = recodage_pay1(df, codes)
-    indicateurs = indicateurs_ctx(df, codes)
-    df[PAY] = codes.astype(int)
-    df['FAUX_CODAGE'] = faux_codage.astype(int)
-    df['SURVEILLANCE_RECENTE'] = surveillance.astype(int)
-    for col in indicateurs.columns:
-        df[col] = indicateurs[col]
-    return df
+def _nb_mois_retard_incident(d):
+    niveaux = d[PAY].values
+    simple_retard_avril = (d["PAY_AMT6"] >= d["BILL_AMT5"]).values
+    nb_retard = np.zeros(len(d), int)
+    nb_incident = np.zeros(len(d), int)
+    for i, v in enumerate(niveaux):
+        r = v >= 2
+        k = 0
+        while k < 6:
+            if r[k] and (k == 0 or not r[k - 1]):
+                fin = k
+                while fin + 1 < 6 and r[fin + 1]:
+                    fin += 1
+                serie = fin > k or v[k:fin + 1].max() >= 3
+                if fin == 5 and not serie:
+                    serie = not simple_retard_avril[i]
+                if serie:
+                    nb_incident[i] += fin - k + 1
+                else:
+                    nb_retard[i] += 1
+                k = fin + 1
+            else:
+                k += 1
+    return pd.Series(nb_retard, index=d.index), pd.Series(nb_incident, index=d.index)
+
+
+def nettoyage_niveau_3(df):
+    """Uniformisation des codifications 2 d'avril à juin, puis statut à M et indicateurs. Renvoie aussi le nombre de
+    codifications passées à 2."""
+    avant = df[PAY].copy()
+    d = _uniformiser_retards(df)
+    nb_uniformisees = int((d[PAY] != avant).values.sum())
+    statuts = _statut_incident(d)
+    for col in statuts.columns:
+        d[col] = statuts[col]
+    d["NB_MOIS_RETARD"], d["NB_MOIS_INCIDENT"] = _nb_mois_retard_incident(d)
+    return d, nb_uniformisees
+
+
+def nettoyage_complet(df):
+    """Les trois niveaux du nettoyage, comme src/02_01_nettoyage.ipynb. Renvoie (clients gardés, retirés pour paiement géant,
+    retirés comme comptes inactifs, retirés pour plafond atypique, détail des corrections)."""
+    gardes, geants, inactifs, plafonds = nettoyage_niveau_1(df)
+    gardes, nb_uns = nettoyage_niveau_2(gardes)
+    gardes, nb_uniformisees = nettoyage_niveau_3(gardes)
+    return gardes, geants, inactifs, plafonds, {"uns_septembre": nb_uns, "retards_uniformises": nb_uniformisees}
 
 
 # ------------------------------------------------------------------------------
-# Colonnes du modèle : copie de lab_ML/creation_datasets_ML.ipynb (PAY_habituel, CUMUL_INCIDENT)
+# Colonnes du modèle : copie de lab_ML/creation_datasets_ML.ipynb (celles que peut demander le modèle final)
 # ------------------------------------------------------------------------------
 def colonnes_du_modele(d):
     d = d.copy()
+    for n in range(1, 6):
+        bill = d[f"BILL_AMT{n + 1}"]
+        d[f"ratio_PAY_BILL{n}"] = (d[f"PAY_AMT{n}"] / bill.where(bill > 0) * 100).clip(lower=0, upper=200).fillna(100)
+    for n in range(1, 7):
+        d[f"ratio_BILL_LIMIT{n}"] = np.minimum((np.maximum(d[f"BILL_AMT{n}"], 0) / d["LIMIT_BAL"]) * 100, 200)
     codifs = pd.DataFrame({n: d[f"PAY_{n}"].clip(upper=2) for n in range(1, 7)})
 
     def codification_habituelle(ligne):
@@ -892,9 +955,17 @@ def colonnes_du_modele(d):
     return d
 
 
-def au_contentieux(d):
-    return (d["FLAG_CTX"] == 1) & (d["MOIS_SORTIE_CTX"] == -1)
+# ------------------------------------------------------------------------------
+# Règles métier : les deux populations retirées du ML, chacune à part (statut à M)
+# ------------------------------------------------------------------------------
+def aux_regles(d):
+    """Clients confiés aux règles métier : en incident à M ou en retard imminent."""
+    return d["STATUT_INCIDENT"].isin(list(NIVEAUX_REGLES))
 
+
+def niveau_regle(d):
+    """Niveau de règle de chaque client (« En incident (règle) », « Retard imminent (règle) »), vide pour les autres."""
+    return d["STATUT_INCIDENT"].map(NIVEAUX_REGLES)
 
 # Lecture des clients dans la base, par l'API (une ligne au format du fichier d'origine par client)
 def ligne_depuis_api(fiche, historique):
@@ -959,10 +1030,10 @@ def systemes_sur_clients_demo():
     bruts = pd.read_csv(dossier / "clients_bruts_demo.csv", sep=";", encoding="utf-8-sig").set_index("ID").loc[liste["ID"]].reset_index()
     assert (projet["dpnm"].values == bruts["dpnm"].values).all(), "Défaut constaté différent entre les deux fichiers"
 
-    ml_14 = joblib.load(dossier / "model_ml_14.joblib")
-    ctx = au_contentieux(projet).values
+    final = joblib.load(dossier / "modele_final.joblib")
+    ctx = aux_regles(projet).values
     proba = np.full(len(projet), np.nan)
-    proba[~ctx] = ml_14["modele"].predict_proba(projet.loc[~ctx, ml_14["variables"]])[:, 1]
+    proba[~ctx] = final["modele"].predict_proba(projet.loc[~ctx, final["variables"]])[:, 1]
 
     brut = joblib.load(dossier / "demo_3_modeles_plis.joblib")
     pli_du_client = {i: numero for numero, ids in enumerate(brut["ids_non_vus"]) for i in ids}
@@ -974,15 +1045,18 @@ def systemes_sur_clients_demo():
         if dans_pli.any():
             score_brut[dans_pli] = modele.predict_proba(bruts.loc[dans_pli, brut["variables"]])[:, 1]
 
-    sortie = pd.DataFrame({"ID": projet["ID"], "dpnm": projet["dpnm"], "contentieux": ctx, "proba_ml14": proba, "score_brut": score_brut})
+    # « contentieux » et « proba_ml14 » : anciens noms lus par les pages 8.1 et 8.2, gardés jusqu'à leur réécriture
+    sortie = pd.DataFrame({"ID": projet["ID"], "dpnm": projet["dpnm"], "regles": ctx, "proba_modele": proba, "contentieux": ctx,
+                           "proba_ml14": proba, "score_brut": score_brut})
     for n in range(1, 7):
         sortie[f"PAY_{n}_origine"] = bruts[f"PAY_{n}"].values
     return sortie
 
 
 def score_systeme_projet(d):
-    """Score de tri du système du projet : le contentieux en tête (au-dessus de toute probabilité), puis la probabilité de ml_14."""
-    return np.where(d["contentieux"], 2.0, d["proba_ml14"])
+    """Score de tri du système du projet : les deux populations des règles métier en tête (au-dessus de toute probabilité),
+    puis la probabilité du modèle final."""
+    return np.where(d["regles"], 2.0, d["proba_modele"])
 
 
 def precision_au_rappel(y, score, rappel):

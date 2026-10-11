@@ -4,8 +4,8 @@ from streamlit_pages.commun import *
 
 # ==============================================================================
 # PAGE 7.3, DÉMO 2 : test grandeur nature, à partir de la base de données (API), fichier d'origine en secours
-# Tout est refait en direct : nettoyage (niveaux 1 à 5 de src/02_01_nettoyage.ipynb), périmètre, colonnes du modèle
-# (lab_ML/creation_datasets_ML.ipynb), règle du contentieux, modèle. Les fonctions de traitement (commun.py) sont des copies de ces
+# Tout est refait en direct : nettoyage (les trois niveaux de src/02_01_nettoyage.ipynb), périmètre, colonnes du modèle
+# (lab_ML/creation_datasets_ML.ipynb), règles métier (population en incident, retard imminent), modèle. Les fonctions de traitement (commun.py) sont des copies de ces
 # notebooks : le contrôle en bas de page compare, client par client, le résultat au jeu de données du projet.
 # Clients : ceux de la démo 1 (jamais vus par le modèle) et 20 % des clients retirés avant le ML
 # (lab_ML/demo_ML/creation_demo_ML.ipynb, section 5).
@@ -20,7 +20,7 @@ PAUSE = 0.6   # secondes entre deux étapes affichées, pour que le public suive
 
 @st.cache_resource
 def charger_modele():
-    return joblib.load(DOSSIER_DEMO / "model_ml_14.joblib")
+    return joblib.load(DOSSIER_DEMO / "modele_final.joblib")
 
 
 # ==============================================================================
@@ -30,24 +30,24 @@ bornes = json.loads((DOSSIER_DEMO / "bornes_niveaux.json").read_text(encoding="u
 CHEMIN_BRUTS = DOSSIER_DEMO / "clients_bruts_demo.csv"
 reserve = pd.read_csv(CHEMIN_BRUTS, sep=";", encoding="utf-8-sig")
 
-GROUPES = ["Retiré par le nettoyage", "Sans encours en septembre", "Contentieux (règle)",
+GROUPES = ["Retiré par le nettoyage", "Sans encours en septembre", "En incident (règle)", "Retard imminent (règle)",
            "Très haut risque", "Haut risque", "Risque modéré", "Risque faible"]
+NIVEAUX_MODELE = GROUPES[4:]
 
 
 def classer(lot):
-    """Traitement complet d'un lot : groupe de chaque client (nettoyage, périmètre, règle, niveau de risque du modèle)."""
-    nettoyes, geants, inactifs, plafonds = nettoyage_niveaux_1_a_4(lot)
-    nettoyes = niveau_5(nettoyes)
+    """Traitement complet d'un lot : groupe de chaque client (nettoyage, périmètre, règles métier, niveau de risque du modèle)."""
+    nettoyes = nettoyage_complet(lot)[0]
     perimetre = colonnes_du_modele(nettoyes[(nettoyes["BILL_AMT1"] > 0) & (nettoyes["LIMIT_BAL"] <= 500000)])
     groupe = pd.Series(GROUPES[0], index=lot["ID"].to_numpy())
     groupe[nettoyes.loc[nettoyes["BILL_AMT1"] <= 0, "ID"]] = GROUPES[1]
-    regle = au_contentieux(perimetre)
-    groupe[perimetre.loc[regle, "ID"]] = GROUPES[2]
+    regle = aux_regles(perimetre)
+    groupe[perimetre.loc[regle, "ID"]] = niveau_regle(perimetre[regle]).to_numpy()
     hors_ctx = perimetre[~regle]
     if len(hors_ctx):
         proba = enregistre["modele"].predict_proba(hors_ctx[VARIABLES])[:, 1]
         groupe[hors_ctx["ID"]] = np.select([proba >= bornes["tres_haut_risque"], proba >= bornes["haut_risque"], proba >= bornes["risque_modere"]],
-                                           GROUPES[3:6], GROUPES[6])
+                                           NIVEAUX_MODELE[:3], NIVEAUX_MODELE[3])
     return groupe, nettoyes
 
 
@@ -60,6 +60,8 @@ def taux_par_groupe(date_modification):
 
 
 groupe_reserve, taux_groupe = taux_par_groupe(CHEMIN_BRUTS.stat().st_mtime)
+# Colonnes comparées au jeu de données du projet, client par client (avec les codifications PAY_n)
+COLONNES_CONTROLE = ["PAY_1_original", "STATUT_INCIDENT", "NB_MOIS_INCIDENT", "NB_MOIS_RETARD", "CUMUL_INCIDENT", "PAY_habituel"]
 
 def ecarts_base_fichier(lignes):
     """Nombre de clients dont la ligne lue dans la base diffère de celle du fichier d'origine (hors EDUCATION et MARRIAGE,
@@ -72,11 +74,11 @@ def ecarts_base_fichier(lignes):
 entete_partie_7()
 st.header("7.3 Démo 2 : test grandeur nature, de la base de données à la décision", anchor="demo-2")
 st.markdown(f"""
-Cette fois, rien n'est préparé : les clients sont lus **dans la base de données du projet, par l'API REST** (partie 2), avec les valeurs du fichier d'origine de l'UCI, et **tout est refait en direct** : le nettoyage, les corrections de codification, le périmètre, la règle du contentieux et le modèle. Si l'API ne répond pas, les mêmes clients sont lus dans le fichier d'origine, en secours. La base n'est jamais modifiée : les clients y sont seulement lus, et le nettoyage se fait en mémoire, dans l'application, juste avant la règle et le modèle.
+Cette fois, rien n'est préparé : les clients sont lus **dans la base de données du projet, par l'API REST** (partie 2), avec les valeurs du fichier d'origine de l'UCI, et **tout est refait en direct** : le nettoyage, les corrections de codification, le périmètre, les règles métier (population en incident, retard imminent) et le modèle. Si l'API ne répond pas, les mêmes clients sont lus dans le fichier d'origine, en secours. La base n'est jamais modifiée : les clients y sont seulement lus, et le nettoyage se fait en mémoire, dans l'application, juste avant les règles et le modèle.
 
 La réserve compte **{nombre_fr(len(reserve))} clients**, tous inconnus du modèle : ceux de la démo 1, et 20 % des clients que le projet a retirés avant le machine learning. Un client pris au hasard dans le fichier d'origine aurait de fortes chances d'avoir servi à l'apprentissage : une fois traité, le modèle le reconnaîtrait, et son score serait trop beau.
 
-**Le périmètre** : les clients qui ont un encours à rembourser fin septembre (`BILL_AMT1 > 0`) et un plafond de 500 000 NT$ au plus. C'est sur eux seuls que s'appliquent la règle du contentieux et le modèle (partie 5). Après le nettoyage, les clients de la réserve qui entrent dans le périmètre sont **exactement ceux de la démo 1**.
+**Le périmètre** : les clients qui ont un encours à rembourser fin septembre (`BILL_AMT1 > 0`) et un plafond de 500 000 NT$ au plus. C'est sur eux seuls que s'appliquent les règles métier et le modèle (partie 5). Après le nettoyage, les clients de la réserve qui entrent dans le périmètre sont **exactement ceux de la démo 1**.
 """)
 
 with st.expander("Voir les premières lignes du fichier d'origine, dont la base reprend les valeurs"):
@@ -131,15 +133,17 @@ with col_lot:
                 st.write(f"📥 **{nombre_fr(len(lot))} clients lus dans le fichier d'origine**, tirés au hasard dans la réserve (tirage n° {numero}).")
             time.sleep(PAUSE)
             debut = time.perf_counter()
-            nettoyes, geants, inactifs, plafonds = nettoyage_niveaux_1_a_4(lot)
-            st.write(f"🧹 **Nettoyage** : {nombre_fr(len(geants))} paiements géants, {nombre_fr(len(inactifs))} comptes inactifs "
-                     f"et {nombre_fr(len(plafonds))} plafonds atypiques retirés ; codifications sans facture due corrigées.")
+            nettoyes, geants, inactifs, plafonds = nettoyage_niveau_1(lot)
+            st.write(f"🧹 **Nettoyage, niveau 1** : {nombre_fr(len(geants))} paiements géants, {nombre_fr(len(inactifs))} comptes inactifs "
+                     f"et {nombre_fr(len(plafonds))} plafonds atypiques retirés.")
             time.sleep(PAUSE)
-            avant = nettoyes[PAY].copy()
-            nettoyes = niveau_5(nettoyes)
-            corriges = (nettoyes[PAY] != avant).any(axis=1).sum()
-            st.write(f"🔧 **Corrections du contentieux** (niveau 5) : {nombre_fr(corriges)} clients aux codifications corrigées "
-                     f"(faux retards, mois de transition), indicateurs du contentieux calculés.")
+            nettoyes, nb_uns = nettoyage_niveau_2(nettoyes)
+            st.write(f"🔧 **Niveau 2** : codifications 1 corrigées, dont {nombre_fr(nb_uns)} en septembre (codification d'août après un mois sain ; "
+                     "sortie ou retard maintenu, estimé par trois modèles, après un retard).")
+            time.sleep(PAUSE)
+            nettoyes, nb_uniformisees = nettoyage_niveau_3(nettoyes)
+            st.write(f"🔧 **Niveau 3** : {nombre_fr(nb_uniformisees)} codifications d'avril à juin passées à 2 (moins de 1,5 % de la facture payé, "
+                     "règle de la banque en juillet-août) ; statut à M et indicateurs de retard et d'incident calculés.")
             time.sleep(PAUSE)
             sans_encours = nettoyes[nettoyes["BILL_AMT1"] <= 0]
             perimetre = colonnes_du_modele(nettoyes[(nettoyes["BILL_AMT1"] > 0) & (nettoyes["LIMIT_BAL"] <= 500000)])
@@ -147,14 +151,16 @@ with col_lot:
             st.write(f"🎯 **Périmètre** : {nombre_fr(len(sans_encours))} clients sans encours en septembre (encours nul ou négatif) écartés ; "
                      f"colonnes du modèle calculées. Traitement complet en {nombre_fr(duree_traitement, 0)} millisecondes.")
             time.sleep(PAUSE)
-            regle = au_contentieux(perimetre)
-            st.write(f"⚖️ **Règle du contentieux** : {nombre_fr(regle.sum())} clients au contentieux, prédits en défaut et retirés.")
+            regle = aux_regles(perimetre)
+            en_incident, imminent = perimetre["STATUT_INCIDENT"] == "En incident", perimetre["STATUT_INCIDENT"] == "Retard imminent"
+            st.write(f"⚖️ **Règles métier** : {nombre_fr(en_incident.sum())} clients en incident et {nombre_fr(imminent.sum())} en retard imminent, "
+                     "prédits en défaut et retirés.")
             time.sleep(PAUSE)
             hors_ctx = perimetre[~regle]
             if regle_seule:
                 proba = np.full(len(hors_ctx), np.nan)
                 signale = np.zeros(len(hors_ctx), dtype=bool)
-                st.write(f"🤖 **Le modèle** : non utilisé ({choix}) ; les {nombre_fr(len(hors_ctx))} clients hors contentieux ne sont pas déclarés en défaut.")
+                st.write(f"🤖 **Le modèle** : non utilisé ({choix}) ; les {nombre_fr(len(hors_ctx))} autres clients ne sont pas déclarés en défaut.")
             else:
                 debut = time.perf_counter()
                 proba = enregistre["modele"].predict_proba(hors_ctx[VARIABLES])[:, 1] if len(hors_ctx) else np.array([])
@@ -167,10 +173,11 @@ with col_lot:
             statut.update(label=f"Lot n° {numero} traité", state="complete", expanded=False)
 
         groupes = {"Retirés par le nettoyage": pd.concat([geants, inactifs, plafonds]), "Sans encours en septembre": sans_encours,
-                   "Contentieux (règle)": perimetre[regle], "Déclarés en défaut par le modèle": hors_ctx[signale], "Non déclarés en défaut par le modèle": hors_ctx[~signale]}
+                   "En incident (règle)": perimetre[en_incident], "Retard imminent (règle)": perimetre[imminent],
+                   "Déclarés en défaut par le modèle": hors_ctx[signale], "Non déclarés en défaut par le modèle": hors_ctx[~signale]}
         st.session_state.dernier_lot_2 = {"numero": numero, "choix": choix, "total": (len(lot), int(lot["dpnm"].sum())), "ecarts_base": ecarts,
                                           "groupes": {n: (len(g), int(g["dpnm"].sum())) for n, g in groupes.items()},
-                                          "perimetre": perimetre[["ID"] + PAY + ["FLAG_CTX", "MOIS_SORTIE_CTX", "CUMUL_INCIDENT", "PAY_habituel"]],
+                                          "perimetre": perimetre[["ID"] + PAY + COLONNES_CONTROLE],
                                           "proba": pd.Series(proba, index=hors_ctx["ID"].to_numpy())}
         st.session_state.historique_lots_2.append({
             "Lot": numero, "Clients": len(lot), "Part visée": choix, "Source": "API" if duree_lecture is not None else "Fichier",
@@ -183,9 +190,9 @@ with col_lot:
         total_clients, total_defauts = dernier["total"]
         st.markdown(f"**Résultat du lot n° {dernier['numero']}** ({dernier['choix']}) : {nombre_fr(total_clients)} clients, "
                     f"taux de défaut constaté de tout le lot {nombre_fr(total_defauts / total_clients * 100, 1)} %")
-        couleurs = [NIVEAUX_DEMO["Retiré par le nettoyage"][0], NIVEAUX_DEMO["Sans encours en septembre"][0], NIVEAUX_DEMO["Contentieux (règle)"][0],
-                    couleur_signales(CHOIX[dernier["choix"]]), NIVEAUX_DEMO["Risque faible"][0]]
-        for col, (nom, (clients, defauts)), couleur in zip(st.columns(5), dernier["groupes"].items(), couleurs):
+        couleurs = [NIVEAUX_DEMO["Retiré par le nettoyage"][0], NIVEAUX_DEMO["Sans encours en septembre"][0], NIVEAUX_DEMO["En incident (règle)"][0],
+                    NIVEAUX_DEMO["Retard imminent (règle)"][0], couleur_signales(CHOIX[dernier["choix"]]), NIVEAUX_DEMO["Risque faible"][0]]
+        for col, (nom, (clients, defauts)), couleur in zip(st.columns(6), dernier["groupes"].items(), couleurs):
             col.markdown(f"<div style='border-left: 6px solid {couleur}; padding-left: 10px; min-height: 3em;'><b>{nom}</b></div>", unsafe_allow_html=True)
             carte_chiffre(col, "Clients", nombre_fr(clients), couleur)
             carte_chiffre(col, "Taux de défaut constaté", f"{nombre_fr(defauts / clients * 100, 1)} %" if clients else "–", couleur,
@@ -201,20 +208,20 @@ with col_lot:
 
         noms = list(dernier["groupes"])
         restants, defauts_restants = [total_clients], [total_defauts]
-        for nom in noms[:3]:
-            restants.append(restants[-1] - dernier["groupes"][nom][0])
-            defauts_restants.append(defauts_restants[-1] - dernier["groupes"][nom][1])
-        noms_etapes = ["Clients lus", "Après le nettoyage", "Avec un encours en septembre (périmètre)", "Hors contentieux, vers le modèle"]
+        for etape in (noms[:1], noms[1:2], noms[2:4]):   # nettoyage, périmètre, puis les deux règles ensemble
+            restants.append(restants[-1] - sum(dernier["groupes"][nom][0] for nom in etape))
+            defauts_restants.append(defauts_restants[-1] - sum(dernier["groupes"][nom][1] for nom in etape))
+        noms_etapes = ["Clients lus", "Après le nettoyage", "Avec un encours en septembre (périmètre)", "Hors des deux populations, vers le modèle"]
         fig = figure_entonnoir([(nom, n, d, COULEURS["bleu_pale"]) for nom, n, d in zip(noms_etapes, restants, defauts_restants)]
                                + [("Non déclarés en défaut par le modèle", *dernier["groupes"]["Non déclarés en défaut par le modèle"], NIVEAUX_DEMO["Risque faible"][0])], 440)
 
         # Contrôle client par client : le traitement en direct redonne le jeu de données du projet (et donc la démo 1)
         reference = load_data().set_index("ID")
         calcule = dernier["perimetre"].set_index("ID")
-        colonnes_controle = PAY + ["FLAG_CTX", "MOIS_SORTIE_CTX", "CUMUL_INCIDENT", "PAY_habituel"]
+        colonnes_controle = PAY + COLONNES_CONTROLE
         ecarts = (calcule[colonnes_controle] != reference.loc[calcule.index, colonnes_controle]).any(axis=1).sum()
         st.caption(("✅" if ecarts == 0 else "⚠️") + f" Contrôle client par client : pour les {nombre_fr(len(calcule))} clients du périmètre, "
-                   f"les codifications corrigées, les indicateurs du contentieux et les colonnes du modèle calculés en direct sont "
+                   f"les codifications corrigées, le statut à M, les indicateurs de retard et d'incident et les colonnes du modèle calculés en direct sont "
                    + ("identiques à ceux" if ecarts == 0 else f"**différents pour {nombre_fr(ecarts)} clients** de ceux") +
                    f" du jeu de données du projet ([nettoyage]({NETTOYAGE})). Fichiers de la démo : [préparation]({PREPARATION}).")
         if dernier.get("ecarts_base") is not None:
@@ -236,7 +243,7 @@ if "dernier_lot_2" in st.session_state:
 if st.session_state.historique_lots_2:
     st.subheader("Les lots déjà injectés", anchor="historique")
     st.markdown("""
-Relancez plusieurs lots de **200 clients**, puis de **toute la réserve** : sur un petit lot, les taux de défaut constatés changent beaucoup d'un tirage à l'autre, car chaque groupe ne compte que quelques dizaines de clients, parfois moins. Sur toute la réserve, ceux du système (contentieux, signalés, écartés) retrouvent ceux de la démo 1 et de l'[évaluation finale]({}). **Un taux ne veut rien dire sans assez de clients derrière.**
+Relancez plusieurs lots de **200 clients**, puis de **toute la réserve** : sur un petit lot, les taux de défaut constatés changent beaucoup d'un tirage à l'autre, car chaque groupe ne compte que quelques dizaines de clients, parfois moins. Sur toute la réserve, ceux du système (règles métier, signalés, non signalés) retrouvent ceux de la démo 1 et de l'[évaluation finale]({}). **Un taux ne veut rien dire sans assez de clients derrière.**
 """.format(EVALUATION))
     st.dataframe(pd.DataFrame(st.session_state.historique_lots_2), hide_index=True, width='stretch')
     if st.button("Effacer les lots"):
@@ -251,7 +258,8 @@ Relancez plusieurs lots de **200 clients**, puis de **toute la réserve** : sur 
 st.subheader("2. Un client à la fois", anchor="client")
 ORIGINES = {"Tous les clients de la réserve": GROUPES, "Parmi les clients retirés par le nettoyage": GROUPES[:1],
             "Parmi les clients hors périmètre (sans encours en septembre)": GROUPES[1:2],
-            "Parmi les clients au contentieux": GROUPES[2:3], "Parmi les autres clients": GROUPES[3:]}
+            "Parmi les clients en incident": GROUPES[2:3], "Parmi les clients en retard imminent": GROUPES[3:4],
+            "Parmi les autres clients": GROUPES[4:]}
 st.markdown("""
 Le client est lu **dans la base de données du projet, par l'API REST** (partie 2), comme le ferait un outil branché sur le système d'information d'une banque. La base contient les 30 000 clients, dont ceux qui ont servi à l'apprentissage : seuls les identifiants de la réserve, **jamais vus par le modèle**, sont proposés.
 """)
@@ -313,7 +321,8 @@ if "lu_api_2" in st.session_state:
                ["<b>Paiement du mois (NT$)</b>", *[nombre_fr(b[f"PAY_AMT{n}"]) for n, _ in MOIS_CHRONO]]]
     tableau_html(["", *[m for _, m in MOIS_CHRONO]], lignes, largeurs=[28] + [12] * 6)
     if len(nettoye) and (nettoye.iloc[0][PAY].to_numpy() != b[PAY].to_numpy()).any():
-        st.caption("Le nettoyage a corrigé au moins une codification de ce client (codification sans facture due, faux retard ou mois de transition).")
+        st.caption("Le nettoyage a corrigé au moins une codification de ce client (codification 1 en attente, ou retard d'avril à juin "
+                   "uniformisé sur la règle de juillet-août).")
 
     st.markdown("**Le traitement, étape par étape**")
     if groupe_client == GROUPES[0]:
@@ -324,11 +333,15 @@ if "lu_api_2" in st.session_state:
     elif groupe_client == GROUPES[1]:
         encadre_niveau(groupe_client, f"🎯 Nettoyage passé. **Écarté au périmètre** : encours de {nombre_fr(b['BILL_AMT1'])} NT$ fin septembre, rien à rembourser en octobre.")
     elif groupe_client == GROUPES[2]:
-        encadre_niveau(groupe_client, f"⚖️ Nettoyage et périmètre passés. **Au contentieux** : retard de deux mois ou plus pendant au moins deux mois d'affilée, "
-                       f"sans sortie constatée ({int(nettoye.iloc[0]['NB_MOIS_CTX'])} mois au contentieux). Prédit en défaut par la règle, sans passer par le modèle.")
+        encadre_niveau(groupe_client, f"⚖️ Nettoyage et périmètre passés. **En incident** en septembre : deux retards d'affilée en août et septembre, "
+                       f"ou un retard grave en septembre ({int(nettoye.iloc[0]['NB_MOIS_INCIDENT'])} mois en incident sur la période). "
+                       "Prédit en défaut par la règle, sans passer par le modèle.")
+    elif groupe_client == GROUPES[3]:
+        encadre_niveau(groupe_client, "⚖️ Nettoyage et périmètre passés. **Retard imminent** : un seul retard, posé par la banque en septembre après un mois "
+                       "d'août sain ; la banque a déjà jugé la facture de septembre impayée. Prédit en défaut par la règle, sans passer par le modèle.")
     else:
         signale = groupe_client in SIGNALES_DEMO[CHOIX[choix]]
-        encadre_niveau(groupe_client, f"🤖 Nettoyage, périmètre et règle du contentieux passés. Le modèle le classe en **{groupe_client}**. "
+        encadre_niveau(groupe_client, f"🤖 Nettoyage, périmètre et règles métier passés. Le modèle le classe en **{groupe_client}**. "
                                       f"Client **{'déclaré' if signale else 'non déclaré'} en défaut par le modèle** "
                                       + mention_seuil(choix))
     st.markdown(f"Dans la réserve, le taux de défaut constaté des clients de ce groupe est de **{nombre_fr(taux_groupe[groupe_client], 1)} %**.")

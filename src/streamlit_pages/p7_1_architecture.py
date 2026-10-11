@@ -13,7 +13,7 @@ PREPARATION_3 = f"{GH_RACINE}/lab_ML/demo_ML/creation_demo_3.ipynb"
 
 @st.cache_resource
 def charger_modele():
-    return joblib.load(DOSSIER_DEMO / "model_ml_14.joblib")
+    return joblib.load(DOSSIER_DEMO / "modele_final.joblib")
 
 
 enregistre = charger_modele()
@@ -118,7 +118,7 @@ tableau_html(["Composant", "Rôle", "Où il tourne", "Fichier"], [
      "dans l'application", "page 7.3, copie de <code>02_01_nettoyage</code> et <code>creation_datasets_ML</code>"],
     ["<b>Modèle et seuils</b>", f"{enregistre['nom']} de la version <code>{enregistre['scenario']}</code>, {len(enregistre['variables'])} variables, "
      "entraîné sur le jeu d'entraînement seul ; seuils des niveaux de risque fixés sur ce même jeu", "dans l'application",
-     "<code>lab_ML/demo_ML/model_ml_14.joblib</code>, <code>bornes_niveaux.json</code>"],
+     "<code>lab_ML/demo_ML/modele_final.joblib</code>, <code>bornes_niveaux.json</code>"],
     ["<b>Modèle et niveaux de risque de la démo 3</b>", f"CatBoost sur les 23 variables d'origine, en 5 modèles de plis : chaque client est noté par celui qui ne l'a pas vu ; "
      f"{len(classes_3['bornes_rappel']) + 1} niveaux de risque, fixés par lecture de la courbe de précision", "dans l'application",
      f"<code>lab_ML/demo_ML/demo_3_modeles_plis.joblib</code>, <code>demo_3_classes.json</code>, préparés par <a href='{PREPARATION_3}'>creation_demo_3</a>"],
