@@ -42,7 +42,7 @@ st.markdown("Les données changent, et la méthode aussi : elle devient automati
 tableau_html(["", "Première itération", "Nouvelle démarche"], [
     ["<b>Population</b>", "Tout le dataset, population en incident comprise", "Clients actifs en gestion normale ; la population en incident et le retard imminent sont confiés aux règles métier"],
     ["<b>Préparation des variables</b>", "Codifications de paiement traitées comme des catégories ordonnées : un retard rare, absent des clients d'apprentissage, pouvait être lu comme celui d'un excellent payeur",
-     "Codifications traitées comme des nombres (un cran par mois de retard) ; paiements passés au logarithme, pour que les petits et moyens paiements ne soient pas écrasés par quelques très gros remboursements ; toutes les variables mises à la même échelle"],
+     "Codifications traitées comme des catégories sans ordre, une colonne par valeur : ce sont des étiquettes posées par la banque, pas des mesures ; paiements, factures et plafond passés au logarithme, pour que les petits et moyens montants ne soient pas écrasés par quelques très gros ; toutes les variables mises à la même échelle"],
     ["<b>Réglage des modèles</b>", "Recherche (GridSearch), puis grilles retouchées à la main pour limiter le surapprentissage",
      "Une boucle automatique : elle corrige elle-même ses grilles, tour après tour, et s'arrête quand le modèle est stable"],
     ["<b>Point de décision</b>", "Seuil de 0,5 pour tous les modèles : chacun trouvait une part différente des défauts",
@@ -80,16 +80,16 @@ Certains modèles ne savent pas s'arrêter pile au taux de rappel minimal : beau
 # ------------------------------------------------------------------------------
 st.subheader("4. Enrichir le socle, scénario par scénario", anchor="scenarios")
 st.markdown("""
-**La méthode a d'abord été éprouvée sur un socle** : les seules variables d'origine du dataset. Le meilleur modèle, CatBoost, n'y a pas progressé : il garde la performance de l'ajustement à la main, mais **sans surapprentissage**, donc avec un score enfin crédible. Ce qui a changé, ce sont les autres modèles. Jugés au même taux de rappel minimal, puis nourris de variables mises en forme (codifications traitées comme des nombres, paiements et factures passés au logarithme), ils l'ont tous rejoint : **les six modèles sont à égalité**, et la régression logistique, le plus simple et le plus explicable, fait jeu égal avec le plus complexe.
+**La méthode a d'abord été éprouvée sur un socle** : les seules variables d'origine du dataset. Le meilleur modèle, CatBoost, n'y a pas progressé : il garde la performance de l'ajustement à la main, mais **sans surapprentissage**, donc avec un score enfin crédible. Ce qui a changé, ce sont les autres modèles. Jugés au même taux de rappel minimal, puis nourris de variables mises en forme (codifications traitées comme des catégories, paiements, factures et plafond passés au logarithme), ils l'ont tous rejoint : **les six modèles sont à égalité**, et la régression logistique, le plus simple et le plus explicable, fait jeu égal avec le plus complexe.
 
 **La méthode est fiable, rigoureuse et reproductible, et elle met chaque modèle en pleine possession de ses moyens, sans en désavantager aucun.** Elle a alors été figée : elle n'a plus changé d'un scénario à l'autre. Le socle a donné ce que ses variables permettaient ; pour monter plus haut, il faut de nouvelles informations.
 
 **Les scénarios ont ensuite enrichi ce socle, petit groupe de variables par petit groupe.** Ces variables venaient en grande partie de l'**exploration déjà réalisée**, qui les a construites et en a montré le lien avec le risque :
 - l'**utilisation du plafond**, mois par mois (page 4.2) ;
 - les **ratios de paiement** et le **type d'usage de la carte**, du paiement comptant au crédit qui ne se rembourse pas (page 4.3), avec la régularité du comportement de paiement ;
-- la **codification habituelle** du client, hors retards ;
+- la **codification habituelle** du client ;
 - la **vie du compte** : ouverture ou réveil pendant la période (page 4.4) ;
-- l'**historique des retards** : leur nombre, leur durée, la sortie d'un retard (pages 4.6 et 5.2).
+- l'**historique des retards et des incidents** : retards isolés et passages en incident, leur nombre de mois, le mois de la sortie (pages 4.6 et 5.2).
 
 D'autres variables ont été créées au fil des résultats, comme des signaux de rupture de comportement.
 

@@ -24,7 +24,7 @@ classes_3 = json.loads((DOSSIER_DEMO / "demo_3_classes.json").read_text(encoding
 entete_partie_7()
 st.header("7.1 L'architecture : de la base de données à la décision", anchor="architecture")
 st.markdown("""
-Déployer le modèle, c'est le rendre utilisable en dehors des notebooks où il a été construit : des données arrivent, le système les traite et rend une décision, sans intervention à la main. Ici, tout le chemin est rejoué **en direct** : la lecture des clients dans la base, le nettoyage, la règle du contentieux, le modèle et la décision. Pour la démo 3, le niveau de risque de chaque client est aussi **enregistré dans la base**, comme le ferait une banque qui le recalcule chaque mois.
+Déployer le modèle, c'est le rendre utilisable en dehors des notebooks où il a été construit : des données arrivent, le système les traite et rend une décision, sans intervention à la main. Ici, tout le chemin est rejoué **en direct** : la lecture des clients dans la base, le nettoyage, les règles métier (population en incident et retard imminent), le modèle et la décision. Pour la démo 3, le niveau de risque de chaque client est aussi **enregistré dans la base**, comme le ferait une banque qui le recalcule chaque mois.
 """)
 
 # ------------------------------------------------------------------------------
@@ -42,14 +42,14 @@ digraph {
     bdd -> api [dir=both];
     subgraph cluster_app {
         label="Application Streamlit : traitement en direct, en mémoire"; fontname="Helvetica"; fontsize=10; style="rounded"; color="#888888"; labelloc="b"; labeljust="l";
-        nett [fillcolor="#fff3e0", label="Nettoyage\n(niveaux 1 à 5)"];
+        nett [fillcolor="#fff3e0", label="Nettoyage\n(niveaux 1 à 3)"];
         perim [fillcolor="#fff3e0", label="Périmètre\n(encours en\nseptembre)"];
         cols [fillcolor="#fff3e0", label="Colonnes\ndu modèle"];
-        regle [fillcolor="#f3d6e0", label="Règle du\ncontentieux"];
+        regle [fillcolor="#f3d6e0", label="Règles métier\n(incident,\nretard imminent)"];
         modele [fillcolor="#f3d6e0", label="Modèle\n(CatBoost)"];
         decision [fillcolor="#d9f0e3", label="Décision et\nniveau de risque"];
         nett -> perim -> cols -> regle;
-        regle -> decision [label="au contentieux"];
+        regle -> decision [label="en incident à M\nou en retard imminent"];
         regle -> modele [label="les autres"];
         modele -> decision [label="seuil choisi"];
     }
@@ -59,7 +59,7 @@ digraph {
     modele_f -> modele [style=dotted];
 }
 """, width="stretch")
-st.caption("La démo 1 part des données du projet, déjà nettoyées : elle entre directement à la règle du contentieux. La démo 2 lit les données brutes "
+st.caption("La démo 1 part des données du projet, déjà nettoyées : elle entre directement aux règles métier. La démo 2 lit les données brutes "
            "dans la base, par l'API, et refait tout le chemin ; le fichier d'origine sert de secours si l'API ne répond pas (tirets). "
            "Pointillés : les fichiers lus par le modèle. Rien n'est écrit dans la base.")
 
@@ -114,7 +114,7 @@ tableau_html(["Composant", "Rôle", "Où il tourne", "Fichier"], [
      "Render (offre gratuite)", "<code>src/04_01_api.py</code>"],
     ["<b>Application</b>", "le site : elle demande les clients à l'API, puis fait tout le traitement et affiche la décision",
      "Streamlit Community Cloud", "<code>src/04_02_streamlit_app.py</code> et <code>src/streamlit_pages/</code>"],
-    ["<b>Nettoyage et colonnes</b>", "mêmes règles que le projet : corrections de codification, indicateurs du contentieux, colonnes du modèle",
+    ["<b>Nettoyage et colonnes</b>", "mêmes règles que le projet : corrections des codifications, statut à M (population en incident, retard imminent), colonnes du modèle",
      "dans l'application", "page 7.3, copie de <code>02_01_nettoyage</code> et <code>creation_datasets_ML</code>"],
     ["<b>Modèle et seuils</b>", f"{enregistre['nom']} de la version <code>{enregistre['scenario']}</code>, {len(enregistre['variables'])} variables, "
      "entraîné sur le jeu d'entraînement seul ; seuils des niveaux de risque fixés sur ce même jeu", "dans l'application",
@@ -144,7 +144,7 @@ st.markdown("**Le système du projet (démos 1 et 2)**")
 tableau_html(["Ce que fait le système", "Ce qu'il ne fait pas"], [
     ["Il lit des clients au format du fichier d'origine : une fiche et six mois d'historique, d'avril à septembre 2005, avec les codifications de la banque",
      "Il ne traite pas d'autres données sans être réentraîné : une autre banque, une autre période ou d'autres codifications sortent de ce qu'il a appris"],
-    ["Il applique le nettoyage du projet, puis la règle du contentieux, puis le modèle, et rend pour chaque client une décision et un niveau de risque",
+    ["Il applique le nettoyage du projet, puis les règles métier (population en incident, retard imminent), puis le modèle, et rend pour chaque client une décision et un niveau de risque",
      "Il ne décide pas à la place d'un humain : c'est un outil pour classer les clients et traiter d'abord les plus risqués, pas pour sanctionner"],
     ["Il déclare en défaut selon le seuil choisi par l'utilisateur, fixé à l'avance sur le jeu d'entraînement",
      "Il ne donne pas de probabilité de défaut fiable pour un client seul : il donne un niveau de risque, et le taux de défaut constaté dans ce niveau"],

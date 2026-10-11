@@ -15,7 +15,8 @@ HYPOTHESES = f"{GH_RACINE}/docs/hypotheses_et_conclusions.md"
 
 df = load_data()
 s12 = df[(df["BILL_AMT1"] > 0) & (df["LIMIT_BAL"] <= 500000)]
-hors_ctx = s12[~((s12["FLAG_CTX"] == 1) & (s12["MOIS_SORTIE_CTX"] == -1))]
+# Population du ML : sans les clients en incident à M ni en retard imminent (statut à M, comme creation_datasets_ML)
+hors_ctx = s12[~s12["STATUT_INCIDENT"].isin(["En incident", "Retard imminent"])]
 # Même découpage que lab_ML/creation_datasets_ML.ipynb : 80/20, stratifié sur dpnm, graine 42
 train_ml, _ = train_test_split(hors_ctx, test_size=0.2, stratify=hors_ctx["dpnm"], random_state=42)
 taux_hasard = train_ml["dpnm"].mean() * 100
@@ -78,7 +79,7 @@ fig.update_layout(yaxis_title="Score décisionnel F2 (validation)", yaxis_range=
                   legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
                   xaxis_tickangle=-45)
 st.plotly_chart(fig, width='stretch')
-st.caption(f"Score décisionnel F2 de chaque modèle à son propre rappel (au moins le taux de rappel minimal de 60 %), moyenne des cinq mesures sur l'entraînement ({nombre_fr(len(train_ml))} clients hors contentieux) : c'est le score qui a servi à comparer les scénarios (page 6.2). Axe vertical resserré sur les scores, pour rendre les écarts visibles : ils restent de l'ordre de quelques millièmes. SVM et KNN, en dehors des trois meilleurs, ont été retirés pour les deux derniers scénarios. Chiffres repris tels quels du fichier de résultats du machine learning, résumé dans le [journal des scénarios]({JOURNAL_ML}) : ce fichier n'est pas dans le dépôt.")
+st.caption(f"Score décisionnel F2 de chaque modèle à son propre rappel (au moins le taux de rappel minimal de 60 %), moyenne des cinq mesures sur l'entraînement ({nombre_fr(len(train_ml))} clients, sans la population en incident ni le retard imminent) : c'est le score qui a servi à comparer les scénarios (page 6.2). Axe vertical resserré sur les scores, pour rendre les écarts visibles : ils restent de l'ordre de quelques millièmes. SVM et KNN, en dehors des trois meilleurs, ont été retirés pour les deux derniers scénarios. Chiffres repris tels quels du fichier de résultats du machine learning, résumé dans le [journal des scénarios]({JOURNAL_ML}) : ce fichier n'est pas dans le dépôt.")
 
 st.markdown(f"""
 **Les modèles apprennent bien quelque chose** : environ 27 clients signalés sur 100 font défaut, contre {nombre_fr(taux_hasard, 0)} sur 100 pour des clients tirés au hasard.
@@ -97,7 +98,7 @@ Ni les unes ni les autres ne font mieux. Leur effet **dépend du modèle** : un 
 
 Une chose était sûre : **les liens vus pendant l'exploration ne se sont pas montrés aussi forts qu'espéré.** Ils sont réels entre des groupes de clients (parties 4 et 5), mais ils ne suffisent pas à dire, client par client, qui fera défaut.
 
-Il faut aussi rappeler que **cette base est la plus difficile** : les défauts les plus visibles, ceux du contentieux, sont partis à la règle métier (partie 5), et il ne reste que des clients en gestion normale, aux défauts beaucoup moins évidents. L'explication du plateau n'est venue qu'après, une fois le modèle figé : elle fait l'objet de la page 6.5.
+Il faut aussi rappeler que **cette base est la plus difficile** : les défauts les plus visibles, ceux de la population en incident et du retard imminent, sont partis aux règles métier (partie 5), et il ne reste que des clients en gestion normale, aux défauts beaucoup moins évidents. L'explication du plateau n'est venue qu'après, une fois le modèle figé : elle fait l'objet de la page 6.5.
 """)
 
 # ------------------------------------------------------------------------------
