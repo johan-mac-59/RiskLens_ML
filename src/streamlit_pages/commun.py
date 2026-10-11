@@ -269,15 +269,18 @@ def encadre_interactif(cle, invitation=None):
 TRANCHES_AGE = ['21-25', '26-30', '31-35', '36-40', '41-50', '51+']
 
 
-def simulateur_profil(d, cle, phrase_population, nom_moyenne):
+def simulateur_profil(d, cle, phrase_population, nom_moyenne, populations=None):
+    """populations (facultatif) : {libellé : (données, phrase_population, nom_moyenne)}, choisies dans une case en tête du simulateur."""
     mappings = load_mappings()
     genre_map = {int(k): v for k, v in mappings.get("genre", {}).items()}
     marital_map = {int(k): v for k, v in mappings.get("statut_marital", {}).items()}
     scolaire_map = {int(k): v.replace("License", "Licence") for k, v in mappings.get("niveau_scolaire", {}).items()}
-    taux_moyen = d["dpnm"].mean() * 100
-
     with encadre_interactif(cle, invitation="À vous de tester : choisissez un profil de client et découvrez son taux de défaut de paiement"):
         st.subheader("🧮 Simulateur de risque par profil", anchor=cle.replace("_", "-"))
+        if populations:
+            choix = st.selectbox("Population", options=list(populations), key=f"{cle}_population")
+            d, phrase_population, nom_moyenne = populations[choix]
+        taux_moyen = d["dpnm"].mean() * 100
         st.markdown(f"Vous aussi, calculez le taux de défaut de paiement selon les critères choisis, {phrase_population}.")
 
         st.info("Sélectionnez les critères du client hypothétique.")
