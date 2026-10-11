@@ -19,7 +19,7 @@ Les codifications posent deux problèmes face à leur documentation :
 
 Pour savoir ce que la banque a voulu dire, chaque codification est confrontée à la facture qu'elle juge et au paiement fait le mois suivant (page « 1. Les données », section 1.2). Toutes les analyses portent sur les **données d'origine**, avant toute correction : l'EDA_lab ([05_01_EDA_lab.ipynb]({GH}/05_01_EDA_lab.ipynb), partie « Les codifications face aux factures et aux paiements » et partie « Les ratios de paiement ») et l'étude de la codification 1, EDA_codification1 ([05_04_EDA_codification1.ipynb]({GH}/05_04_EDA_codification1.ipynb)).
 
-Lues avec le bon paiement, la plupart des incohérences apparentes disparaissent : les codifications décrivent le paiement du client. Il reste deux vraies questions, qui ont chacune donné un niveau du nettoyage.
+Lues avec le bon paiement, la plupart des incohérences apparentes disparaissent : les codifications décrivent le paiement du client. Il reste deux vraies questions.
 """)
 
 # ------------------------------------------------------------------------------
@@ -90,7 +90,7 @@ En juillet-août, il faut donc payer à la fois une part de la facture (au moins
 
 La banque a donc resserré sa règle en juillet, en pleine crise, en part comme en montant. Pour un modèle, le même comportement (ne pas payer) donnerait un retard en août mais pas en mai.
 
-**Règle retenue (niveau 3 du nettoyage)** : d'avril à juin, une facture positive payée à moins de 1,5 % le mois suivant, chez un client codifié -1, 0 ou 1 ce mois-là et -1 ou 0 le mois précédent, est codifiée 2, comme le fait la banque à partir de juillet. Le seuil de 1,5 % est celui que la banque appliquait déjà avant juillet, sans le plancher de 1 000 NT$, qui n'existait pas encore. Exception : après un -2, la banque accepte un paiement différé de plus d'un mois sans poser de retard (EDA_lab, cellule 102) ; ces clients ne sont pas touchés.
+Seule exception : après un -2, la banque accepte un paiement différé de plus d'un mois sans poser de retard (EDA_lab, cellule 102).
 
 Les retards posés sur une facture nulle ne sont pas, eux, des anomalies : ce sont tous de nouveaux retards, suivis d'une facture et d'un retard qui continue le mois suivant. Le client se ressert de sa carte et ne paie pas (EDA_lab, cellules 29 et 30).
 """)
@@ -118,16 +118,14 @@ st.markdown(f"""
 La codification de septembre (`PAY_1`) juge la facture de fin septembre sur le paiement d'octobre, absent du dataset. Si les données ont été extraites avant que ce paiement soit traité, la banque ne pouvait pas encore trancher : le 1 marque cette attente (EDA_codification1, sections 1, 2 et 6).
 - **D'avril à août, personne ne passe par 1** : un client sain reste sain ou passe directement en retard, un client en retard en sort ou y reste. En septembre, le 1 prend la place **à la fois de sorties du retard et de retards maintenus**.
 - **Deux sortes de 1** : après un retard en août, la facture reste due et la question est ouverte (le client sort-il du retard ?) ; après un mois sain, le 1 porte surtout sur des clients **sans facture de septembre**, pour qui il n'y a presque rien à juger.
-
-**Une étude complète les remplace (niveau 2 du nettoyage)** : chaque 1 reçoit la codification que la banque aurait posée, d'après l'EDA_codification1 et les modèles de [02_02_modele_sorties_retard.ipynb]({GH}/02_02_modele_sorties_retard.ipynb). Les quelques 1 d'avril à août sont tranchés avec le paiement du mois suivant ; en septembre, un 1 après un mois sain reprend la codification d'août, et un 1 après un retard est estimé, sortie ou retard maintenu, par trois modèles appris sur les clients que la banque a tranchés. La codification de la banque reste conservée à part (`PAY_1_original`). Cette codification de septembre corrigée est une **estimation**, pas la décision de la banque.
 """)
 
 # ------------------------------------------------------------------------------
 st.subheader("5. Des retards figés", anchor="retards-figes")
 st.markdown("""
-Un client qui ne paie pas voit son retard monter d'un cran chaque mois. Pourtant, **530 clients restent codifiés 2 pendant les 6 mois**, qu'ils paient un peu ou rien du tout (EDA_lab, partie « Les retards sur les six mois », cellule 130). La codification semble décrochée du paiement, comme si ces clients étaient gérés hors du circuit normal, par exemple par un service de recouvrement. Ces clients, avec tous ceux dont le retard s'installe, sont étudiés dans la partie 5, consacrée à la population en incident.
+Un client qui ne paie pas voit son retard monter d'un cran chaque mois. Pourtant, **530 clients restent codifiés 2 pendant les 6 mois**, qu'ils paient un peu ou rien du tout (EDA_lab, partie « Les retards sur les six mois », cellule 130). La codification semble décrochée du paiement, comme si ces clients étaient gérés hors du circuit normal, par exemple par un service de recouvrement.
 """)
 
 st.info("""
-**Ce que révèlent les codifications** : lues avec la facture qu'elles jugent et le paiement du mois suivant, elles décrivent le comportement du client : -2 pas de crédit à rembourser, -1 une facture soldée, 0 un crédit renouvelable, 2 et plus un impayé. Deux points demandent une correction : la banque a été plus souple d'avril à juin qu'à partir de juillet (niveau 3), et la codification 1 attend en septembre un paiement d'octobre que le dataset ne contient pas (niveau 2). Les règles qui en découlent sont détaillées sur la page « 3.5 Décisions ».
+**Ce que révèlent les codifications** : lues avec la facture qu'elles jugent et le paiement du mois suivant, elles décrivent le comportement du client : -2 pas de crédit à rembourser, -1 une facture soldée, 0 un crédit renouvelable, 2 et plus un impayé. Deux points restent à traiter : la banque a été plus souple d'avril à juin qu'à partir de juillet, et la codification 1 attend en septembre un paiement d'octobre que le dataset ne contient pas. Les règles qui en découlent sont détaillées sur la page « 3.5 Décisions ».
 """)
