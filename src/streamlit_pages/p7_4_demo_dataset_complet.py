@@ -57,16 +57,20 @@ def noter(lot):
     return score
 
 
+# Places du projet, de la plus risquée à la moins risquée ; les deux premières sont déclarées en défaut par les règles métier
+PLACES_PROJET = ["En incident à M", "Retard imminent", "Dans le périmètre, clients du ML", "Hors périmètre (nettoyage, sans encours, plafond)"]
+
+
 def regle_metier(lot):
-    """Règle du projet : nettoyage, périmètre, puis contentieux à M ; renvoie aussi où le projet place chaque client."""
-    nettoyes, _, _, _ = nettoyage_niveaux_1_a_4(lot)
-    nettoyes = niveau_5(nettoyes)
-    dans_perimetre = (nettoyes["BILL_AMT1"] > 0) & (nettoyes["LIMIT_BAL"] <= 500000)
-    ctx = set(nettoyes.loc[dans_perimetre & au_contentieux(nettoyes), "ID"])
-    perimetre = set(nettoyes.loc[dans_perimetre, "ID"])
-    place = lot["ID"].map(lambda i: "Au contentieux" if i in ctx else ("Hors contentieux, dans le périmètre" if i in perimetre
-                                                                       else "Hors périmètre (nettoyage, sans encours)"))
-    return lot["ID"].isin(ctx), place
+    """Règles du projet (population en incident à M, retard imminent) ; renvoie aussi où le projet place chaque client.
+    Le statut est lu dans les données du projet (STATUT_INCIDENT, niveau 3 du nettoyage) : le nettoyage ne se refait pas
+    en direct (corrections client par client et modèles de 02_02 au niveau 2). Un client absent a été retiré au niveau 1."""
+    projet = load_data().set_index("ID")
+    dans_perimetre = (projet["BILL_AMT1"] > 0) & (projet["LIMIT_BAL"] <= 500000)
+    place_projet = pd.Series(np.select([projet["STATUT_INCIDENT"] == "En incident", projet["STATUT_INCIDENT"] == "Retard imminent", dans_perimetre],
+                                       PLACES_PROJET[:3], PLACES_PROJET[3]), index=projet.index)
+    place = lot["ID"].map(place_projet).fillna(PLACES_PROJET[3])
+    return place.isin(PLACES_PROJET[:2]), place
 
 
 def mesures(nom, declares, y):
@@ -162,7 +166,7 @@ def figure_tranches(y, score, ids):
 entete_partie_7()
 st.header("7.4 Démo 3 : tout le dataset d'origine, un modèle sur les données brutes", anchor="demo-3")
 st.markdown(f"""
-Cette démonstration porte sur **les {nombre_fr(len(TOUS_LES_IDS))} clients** du dataset d'origine, lus dans la base par l'API (en lecture seule : la base n'est jamais modifiée), **sans rien retirer** : ni nettoyage, ni règle du contentieux, ni périmètre. Elle répond à la problématique sans le travail du projet : **peut-on prévoir le défaut à partir du seul comportement des six derniers mois ?** Le modèle est le CatBoost de l'[essai du comparatif global]({ESSAI}), entraîné sur les 23 variables d'origine.
+Cette démonstration porte sur **les {nombre_fr(len(TOUS_LES_IDS))} clients** du dataset d'origine, lus dans la base par l'API (en lecture seule : la base n'est jamais modifiée), **sans rien retirer** : ni nettoyage, ni population en incident, ni retard imminent, ni périmètre. Elle répond à la problématique sans le travail du projet : **peut-on prévoir le défaut à partir du seul comportement des six derniers mois ?** Le modèle est le CatBoost de l'[essai du comparatif global]({ESSAI}), entraîné sur les 23 variables d'origine.
 
 **Chaque client est noté par un modèle qui ne l'a jamais vu.** Un modèle entraîné sur tout le dataset aurait vu tout le dataset : on utilise donc cinq modèles, chacun entraîné sur 80 % des clients ; chaque client est noté par celui qui ne l'a pas appris.
 """)
@@ -213,8 +217,8 @@ with col_lot:
             time.sleep(PAUSE)
             debut = time.perf_counter()
             declare_regle, place = regle_metier(lot)
-            st.write(f"⚖️ **Pour comparer, la règle métier du projet** (nettoyage, périmètre, contentieux) : {nombre_fr(declare_regle.sum())} clients "
-                     f"au contentieux, en {nombre_fr((time.perf_counter() - debut) * 1000, 0)} millisecondes.")
+            st.write(f"⚖️ **Pour comparer, la règle métier du projet** (nettoyage, périmètre, population en incident et retard imminent) : "
+                     f"{nombre_fr(declare_regle.sum())} clients déclarés en défaut, en {nombre_fr((time.perf_counter() - debut) * 1000, 0)} millisecondes.")
             time.sleep(PAUSE)
             st.write("🔍 **Vérification** : comparaison avec le défaut constaté en octobre 2005.")
             statut.update(label=f"Lot n° {numero} traité", state="complete", expanded=False)
@@ -367,7 +371,7 @@ if "client_3" in st.session_state:
             st.markdown("- **Niveau de risque** calculé en direct : la prédiction enregistrée dans la base est indisponible"
                         + (f" ({prediction['erreur']})." if prediction.get("erreur") else "."))
         regle, place = regle_metier(brut)
-        st.markdown(f"- **Règle métier du projet**, pour comparer : {place.iloc[0].lower()}"
+        st.markdown(f"- **Règle métier du projet**, pour comparer : « {place.iloc[0]} »"
                     + (", donc déclaré en défaut par la règle." if regle.iloc[0] else "."))
         st.markdown("- **Données** : brutes, telles qu'elles sont dans la base ; le modèle de cette démonstration ne reçoit aucune correction. "
                     "Le modèle ne donne pas une probabilité fiable pour un client seul (les défauts ont plus de poids pendant l'apprentissage) : "
@@ -386,27 +390,27 @@ if "dernier_lot_3" in st.session_state:
     tete = np.zeros(len(y), dtype=bool)
     tete[np.argsort(-d["score"])[:int(regle.sum())]] = True
     st.markdown("""
-Le projet a pris un autre chemin : une **règle métier**, le contentieux, pour les clients figés en retard, puis un modèle pour les autres (parties 5 et 6). La règle est calculée ici sur les mêmes clients, pour comparaison : nettoyage du projet, périmètre, puis contentieux à M.
+Le projet a pris un autre chemin : des **règles métier** pour deux populations, la **population en incident à M** (retards qui durent) et le **retard imminent** (facture de septembre déjà jugée impayée par la banque), puis un modèle pour les autres (parties 5 et 6). Pour comparer, la place de chaque client est lue dans les données du projet (statut à M, niveau 3 du nettoyage) : les clients de ces deux populations sont déclarés en défaut par la règle.
 """)
     tableau_html(["", "Défauts détectés", "Taux de rappel", "Précision des défauts prédits", "Clients déclarés en défaut", "Score décisionnel F2"], [
-        mesures("Règle métier seule (contentieux)", regle, y),
+        mesures("Règle métier seule (population en incident et retard imminent)", regle, y),
         mesures(f"Modèle seul ({d['choix']})", modele, y),
         mesures("Modèle seul, autant de déclarés que la règle", tete, y),
     ], largeurs=[28, 15, 12, 15, 15, 15])
-    st.caption("« Autant de déclarés que la règle » : les clients les mieux notés par le modèle, en même nombre que les clients au contentieux. "
+    st.caption("« Autant de déclarés que la règle » : les clients les mieux notés par le modèle, en même nombre que les clients déclarés par la règle. "
                "À nombre égal d'alertes, lequel a le plus souvent raison ?")
     lignes = []
-    for nom in ["Au contentieux", "Hors contentieux, dans le périmètre", "Hors périmètre (nettoyage, sans encours)"]:
+    for nom in PLACES_PROJET:
         groupe = modele & (place == nom)
         lignes.append([f"<b>{nom}</b>", nombre_fr(groupe.sum()), f"{nombre_fr(groupe.sum() / max(modele.sum(), 1) * 100, 1)} %",
                        f"{nombre_fr(y[groupe].mean() * 100, 1)} %" if groupe.any() else "–"])
     st.markdown("**Qui le modèle déclare-t-il en défaut ? Là où le projet place ces clients**")
     tableau_html(["", "Clients déclarés par le modèle", "Part des déclarés", "Taux de défaut constaté"], lignes, largeurs=[40, 20, 20, 20])
-    part_ctx = (modele & regle).sum() / max(modele.sum(), 1) * 100
+    part_regle = (modele & regle).sum() / max(modele.sum(), 1) * 100
     prec_regle = (regle & y).sum() / max(regle.sum(), 1) * 100
     prec_tete = (tete & y).sum() / max(tete.sum(), 1) * 100
     st.info(f"""
-**Ce que répond cette démonstration à la problématique.** Sur les données brutes, le comportement des six derniers mois permet de prévoir une partie des défauts. Mais **{nombre_fr(part_ctx, 0)} % des clients que le modèle déclare en défaut sont des clients au contentieux**, que la règle métier repère déjà, sans machine learning et de façon explicable. À nombre égal d'alertes, la règle a raison dans {nombre_fr(prec_regle, 0)} % des cas, le modèle dans {nombre_fr(prec_tete, 0)} %. Le gros de ce qui est prévisible tient dans les retards de paiement que la banque a déjà codifiés : c'est ce qui a conduit le projet à confier ces clients à la règle, et le reste au modèle (parties 5 et 6).
+**Ce que répond cette démonstration à la problématique.** Sur les données brutes, le comportement des six derniers mois permet de prévoir une partie des défauts. Mais **{nombre_fr(part_regle, 0)} % des clients que le modèle déclare en défaut sont dans la population en incident ou en retard imminent**, que les règles métier repèrent déjà, sans machine learning et de façon explicable. À nombre égal d'alertes, la règle a raison dans {nombre_fr(prec_regle, 0)} % des cas, le modèle dans {nombre_fr(prec_tete, 0)} %. Le gros de ce qui est prévisible tient dans les retards de paiement que la banque a déjà codifiés : c'est ce qui a conduit le projet à confier ces clients aux règles métier, et le reste au modèle (parties 5 et 6).
 """)
 
 # ==============================================================================
