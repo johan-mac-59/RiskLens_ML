@@ -20,11 +20,15 @@ dette_avril = df_accueil['BILL_AMT6'].clip(lower=0).sum()
 dette_sept = df_accueil['BILL_AMT1'].clip(lower=0).sum()
 parts_remb = [np.minimum(df_accueil[f'PAY_AMT{n - 1}'], df_accueil[f'BILL_AMT{n}'].clip(lower=0)).sum()
               / df_accueil[f'BILL_AMT{n}'].clip(lower=0).sum() * 100 for n in range(2, 7)]
-# 5.6 : la règle du contentieux sur le jeu de test (utilisé une seule fois)
+# 5.5 : la population en incident sur le jeu de test (utilisé une seule fois)
 ctx_test = test_accueil['STATUT'] == "En incident"
 part_ctx = ctx_test.mean() * 100
 precision_ctx = test_accueil.loc[ctx_test, 'dpnm'].mean() * 100
 captes_ctx = test_accueil.loc[ctx_test, 'dpnm'].sum() / test_accueil['dpnm'].sum() * 100
+# 5.5 : les deux populations réunies (en incident et retard imminent), sur tout le périmètre
+deux_s12 = s12_accueil['STATUT'].isin(["En incident", "Retard imminent"])
+part_deux = deux_s12.mean() * 100
+captes_deux = s12_accueil.loc[deux_s12, 'dpnm'].sum() / s12_accueil['dpnm'].sum() * 100
 
 st.markdown(f"""
 **RiskLens ML** est une mission Data & IA complète visant à transformer des données transactionnelles historiques en un outil d'aide à la décision pour la gestion du risque crédit.
@@ -74,9 +78,9 @@ Ma démarche adopte un prisme résolument **orienté métier**. En combinant une
 L'analyse est terminée, du nettoyage au déploiement. Voici ses conclusions, partie par partie :
 - **Les données (partie 1)** : {nombre_fr(ent_accueil.loc['origine', 'clients'])} clients d'une banque taïwanaise, suivis d'avril à septembre 2005, en pleine crise des cartes de crédit. {nombre_fr(TAUX_DEFAUT_ORIGINE, 1)} % font défaut en octobre, un taux bien plus élevé que celui d'un portefeuille bancaire ordinaire.
 - **La base de données et l'API (partie 2)** : les données sont rangées dans une base relationnelle et exposées par une API REST, comme dans le système d'information d'une banque.
-- **Comprendre le jeu de données (partie 3)** : un fichier complet, mais des anomalies à expliquer avant toute analyse. Les codifications de paiement ne sont pas un fait brut : c'est une étiquette de la banque, mise à jour avec un mois de décalage sur le paiement. Très peu de lignes sont retirées ({nombre_fr(ent_accueil.loc['sans_paiements_geants', 'retires'])} paiements géants, {nombre_fr(ent_accueil.loc['sans_comptes_inactifs', 'retires'])} comptes inactifs, {nombre_fr(ent_accueil.loc['sans_plafonds_atypiques', 'retires'])} plafonds atypiques) : il reste {nombre_fr(ent_accueil.loc['sans_plafonds_atypiques', 'clients'])} clients.
+- **Comprendre le jeu de données (partie 3)** : un fichier complet, mais des anomalies à expliquer avant toute analyse. Les codifications de paiement ne sont pas un fait brut : c'est une étiquette de la banque, qui juge la facture d'un mois sur le paiement fait le mois suivant. La banque se montre plus souple d'avril à juin qu'à partir de juillet, et la codification 1 de septembre attend un paiement d'octobre absent du dataset : les deux sont corrigées au nettoyage. Très peu de lignes sont retirées ({nombre_fr(ent_accueil.loc['sans_paiements_geants', 'retires'])} paiements géants, {nombre_fr(ent_accueil.loc['sans_comptes_inactifs', 'retires'])} comptes inactifs, {nombre_fr(ent_accueil.loc['sans_plafonds_atypiques', 'retires'])} plafonds atypiques) : il reste {nombre_fr(ent_accueil.loc['sans_plafonds_atypiques', 'clients'])} clients.
 - **L'analyse exploratoire (partie 4)** : le profil des clients ne pèse que modérément sur le risque ; ce sont les comportements qui comptent. Un client qui ne rembourse rien fait défaut à {nombre_fr(defaut_type.get('Ne paie rien', 0))} %, un payeur au comptant à {nombre_fr(defaut_type.get('Paiement comptant', 0))} %. La dette totale des clients augmente de {nombre_fr((dette_sept / dette_avril - 1) * 100)} % en six mois, alors qu'ils n'en remboursent chaque mois que {nombre_fr(min(parts_remb))} à {nombre_fr(max(parts_remb))} %. Et le risque grimpe avec les codifications de retard accumulées : de {nombre_fr(defaut_incident.get(0, 0))} % sans aucune à {nombre_fr(defaut_incident.get(6, 0))} % pour un retard sur les six mois.
-- **La population contentieuse (partie 5)** : des clients figés en retard et un modèle qui plafonnait ont conduit à isoler une sous-population par une **règle métier explicable**, deux codifications de retard d'affilée, soit au moins 90 jours. Sur des clients jamais vus, elle ne retient que {nombre_fr(part_ctx)} % des clients, mais {nombre_fr(precision_ctx)} % d'entre eux font défaut, et elle capte ainsi {nombre_fr(captes_ctx)} % des défauts, sans aucun modèle.
+- **La population en incident (partie 5)** : des clients figés en retard et un modèle qui plafonnait ont conduit à isoler une sous-population par une **règle métier explicable** : deux codifications de retard d'affilée, ou une seule de 3 ou plus. Sur des clients jamais vus, elle ne retient que {nombre_fr(part_ctx)} % des clients, mais {nombre_fr(precision_ctx)} % d'entre eux font défaut, et elle capte {nombre_fr(captes_ctx)} % des défauts, sans aucun modèle. Le **retard imminent**, défaut d'octobre déjà codifié par la banque, est mis à part : ensemble, les deux populations réunissent {nombre_fr(part_deux)} % des clients et {nombre_fr(captes_deux)} % des défauts.
 - **Le machine learning (partie 6)** : sur les autres clients, tous les modèles et toutes les variables atteignent le même plafond. Le modèle retenu, sans aucune donnée démographique, range les clients par niveau de risque, du très haut risque (un client sur deux en défaut) au risque faible (un sur dix). Environ un tiers des défauts ont le profil des bons clients et ne s'annoncent pas dans les données.
 - **Le déploiement (partie 7)** : la règle puis le modèle tournent en direct, de la base de données à la décision, sur des clients jamais vus, et retrouvent les résultats de l'évaluation.
 - **La réponse (partie 8)** : oui, en partie. Le comportement des six derniers mois prévoit une grande part des défauts et classe les clients par niveau de risque, avec un AUC un peu au-dessus du 0,77 de l'étude : défi relevé, de peu. Il ne désigne pas à coup sûr ceux qui feront défaut.
@@ -103,11 +107,11 @@ digraph {
     audit [fillcolor="#d9f0e3", label="✅ Audit et\nnettoyage structurel\n(niveau 0)"];
     bdd [fillcolor="#d9f0e3", label="✅ Base SQLite\net API REST"];
     eda1 [fillcolor="#d9f0e3", label="✅ Analyse\nexploratoire"];
-    nett [fillcolor="#d9f0e3", label="✅ Nettoyage\nniveaux 1 à 3"];
+    nett [fillcolor="#d9f0e3", label="✅ Nettoyage\nniveaux 1 et 2"];
     ml1 [fillcolor="#eeeeee", label="⏹ Machine learning\n1re itération"];
     blocage [style="rounded,filled,dashed", fillcolor="#fde2e4", color="#CC6677", label="Blocage : les performances plafonnent,\nune sous-population est détectée"];
-    eda2 [fillcolor="#d9f0e3", label="✅ Analyse\ndu contentieux"];
-    ctx [fillcolor="#d9f0e3", label="✅ Définition métier\ndu contentieux\n(nettoyage niveau 5)"];
+    eda2 [fillcolor="#d9f0e3", label="✅ Analyse des retards\net incidents de paiement"];
+    ctx [fillcolor="#d9f0e3", label="✅ Définition métier :\npopulation en incident\net retard imminent\n(nettoyage niveau 3)"];
     ml2 [fillcolor="#d9f0e3", label="✅ Machine learning\n2e itération,\nsur les autres clients"];
     deploi [fillcolor="#d9f0e3", label="✅ Déploiement :\nrègle + modèle en direct,\nde la base à la décision"];
     dash [shape=plaintext, style="", label="✅ Dashboard Streamlit, construit au fil de l'analyse,\npuis slides de restitution qui le résument"];
