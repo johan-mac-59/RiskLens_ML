@@ -399,39 +399,30 @@ def cellule_codif(valeur):
 # ==============================================================================
 # PARTIE 5 : LA POPULATION CONTENTIEUSE
 # ==============================================================================
-# Statuts lus dans les indicateurs du niveau 5 du nettoyage (docs/colonnes_creees.md, « Lire les statuts ») :
-# aucune colonne de statut n'est créée, comme le prévoit la documentation. Ordre : du plus risqué au moins risqué
-# Couleurs, toutes tirées de la palette « Safe » de Plotly : bordeaux = contentieux, rouge pâle = entrée en retard
-# (graphiques d'entrées, comme les codifications 2 et plus), bleu nuit = sortie du contentieux, jaune = sortie du retard
-# (retard isolé régularisé), vert-bleu = aucun incident (plus clair que le bordeaux, qu'il touche dans le disque),
-# violet = retard payé (sortie présumée en octobre)
+# Statut à M de chaque client, lu dans STATUT_INCIDENT (niveau 3 du nettoyage, docs/colonnes_creees.md). Ordre : du plus
+# risqué au moins risqué. Couleurs, toutes tirées de la palette « Safe » de Plotly : bordeaux = en incident, violet = retard
+# imminent (population à part), bleu nuit = sorti de l'incident, jaune = retard régularisé, vert-bleu = jamais en retard
 STATUTS_CTX = {
-    "Au contentieux": COULEURS["bordeaux"],
-    "Retard payé en septembre": COULEURS["violet"],
-    "Sorti du contentieux": COULEURS["mauve"],
-    "Retard isolé régularisé": COULEURS["jaune"],
-    "Aucun incident": COULEURS["turquoise"],
+    "En incident": COULEURS["bordeaux"],
+    "Retard imminent": COULEURS["violet"],
+    "Sorti de l'incident": COULEURS["mauve"],
+    "Retard régularisé": COULEURS["jaune"],
+    "Jamais en retard": COULEURS["turquoise"],
 }
 NOMS_STATUTS = list(STATUTS_CTX)
 # Libellés sur deux lignes pour les axes des graphiques étroits
 LIBELLES_STATUTS = {
-    "Au contentieux": "Au<br>contentieux",
-    "Retard payé en septembre": "Retard payé<br>en septembre",
-    "Sorti du contentieux": "Sorti du<br>contentieux",
-    "Retard isolé régularisé": "Retard isolé<br>régularisé",
-    "Aucun incident": "Aucun<br>incident",
+    "En incident": "En<br>incident",
+    "Retard imminent": "Retard<br>imminent",
+    "Sorti de l'incident": "Sorti de<br>l'incident",
+    "Retard régularisé": "Retard<br>régularisé",
+    "Jamais en retard": "Jamais<br>en retard",
 }
 
 
 def statut_contentieux(d):
-    """Statut de chaque client à la fin de la période, lu dans FLAG_CTX, MOIS_SORTIE_CTX, FLAG_RETARD et MOIS_SORTIE_RETARD."""
-    au_ctx = (d["FLAG_CTX"] == 1) & (d["MOIS_SORTIE_CTX"] == -1)
-    # Retard de septembre payé à 90 % ou plus : fin de série (MOIS_SORTIE_CTX = 0) ou retard isolé (MOIS_SORTIE_RETARD = 0)
-    retard_paye = ((d["FLAG_CTX"] == 1) & (d["MOIS_SORTIE_CTX"] == 0)) | ((d["FLAG_RETARD"] == 1) & (d["MOIS_SORTIE_RETARD"] == 0))
-    sorti = (d["FLAG_CTX"] == 1) & d["MOIS_SORTIE_CTX"].between(1, 5)
-    isole = (d["FLAG_RETARD"] == 1) & d["MOIS_SORTIE_RETARD"].between(1, 4)
-    statut = np.select([au_ctx, retard_paye, sorti, isole], NOMS_STATUTS[:4], default=NOMS_STATUTS[4])
-    return pd.Series(pd.Categorical(statut, categories=NOMS_STATUTS), index=d.index)
+    """Statut de chaque client à M, lu dans STATUT_INCIDENT."""
+    return pd.Series(pd.Categorical(d["STATUT_INCIDENT"], categories=NOMS_STATUTS), index=d.index)
 
 
 @st.cache_data
@@ -463,12 +454,12 @@ def donnees_partie_5():
 def entete_partie_5(df, s12, train, test, renvoi_genese=True):
     """En-tête court et global, repris sur toutes les pages de la partie 5 (renvoi_genese=False sur la page 5.1 elle-même).
     Le périmètre et le découpage entraînement / test sont présentés en page 5.1, pas ici."""
-    st.title("⚖️ 5. La population contentieuse : des retards figés à une règle métier")
+    st.title("⚖️ 5. La population en incident : des retards figés à une règle métier")
     renvoi = " La genèse de l'étude, l'hypothèse qui relie ses anomalies et sa méthode sont présentées en page « 5.1 La genèse »." if renvoi_genese else ""
     st.markdown(f"""
     Tout part de clients figés en retard, au taux de défaut anormalement élevé, et d'un modèle de machine learning qui plafonnait. L'étude a d'abord posé des règles candidates, fondées sur la logique métier. En les confrontant aux montants, elle a découvert des anomalies de codification et les a corrigées. Elle a ensuite vérifié et ajusté la définition sur le jeu d'entraînement, puis l'a validée une seule fois sur le jeu de test. Les corrections ont enfin été inscrites dans le nettoyage, et contrôlées.
 
-    Le résultat est la **population contentieuse** : une sous-population définie par une règle métier **explicable et traçable**, prédite en défaut sans modèle. Rien n'est perdu en chemin : aucun client n'est supprimé, chaque correction laisse une trace, et l'historique des retards est transmis au machine learning sous forme de **nouvelles variables** (partie 6).{renvoi}
+    Le résultat est la **population en incident** : une sous-population définie par une règle métier **explicable et traçable**, prédite en défaut sans modèle. Rien n'est perdu en chemin : aucun client n'est supprimé, chaque correction laisse une trace, et l'historique des retards est transmis au machine learning sous forme de **nouvelles variables** (partie 6).{renvoi}
     """)
 
 

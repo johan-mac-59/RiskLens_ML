@@ -43,7 +43,7 @@ tableau_html(ENTETES, [
      "Le contexte de la crise est expliqué (partie 0) ; aucune conclusion n'est étendue à d'autres périodes ou d'autres banques",
      "Revalider sur les données de la banque concernée : une crise du crédit à la consommation peut se reproduire ailleurs, sous d'autres formes ; la méthode peut servir, les chiffres décrivent ce portefeuille"],
     ["<b>Des valeurs incohérentes</b> : montants aberrants, codifications posées sur des dettes nulles", gravite("Moyenne"),
-     "Nettoyage par niveaux, chaque correction justifiée par la logique métier et documentée (partie 3, page 5.2)",
+     "Nettoyage par niveaux, chaque correction justifiée par la logique métier et documentée (partie 3)",
      "Valider les corrections avec les équipes de la banque"],
     ["<b>Un contentieux reconstruit</b> à partir des codifications, jamais confirmé par la banque", gravite("Moyenne"),
      "Définition par une règle métier, vérifiée sans la cible puis avec elle (pages 5.3 à 5.5)",

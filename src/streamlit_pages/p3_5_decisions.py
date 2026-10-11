@@ -88,7 +88,7 @@ st.subheader("Le nettoyage métier, niveau 2 : la codification 1 remplacée")
 tableau_decisions([
     ("Quelques dizaines de codifications 1 d'avril à août, chez une poignée de clients",
      "Tranchées avec le paiement du mois suivant : la dernière codification saine si le solde suivant est nul, celle du mois précédent si aucune facture n'était due, puis client par client",
-     "Pour ces mois, le paiement qui règle la facture est connu : on peut dire quelle codification la banque aurait posée.",
+     f"Pour ces mois, le paiement qui règle la facture est connu : on peut dire quelle codification la banque aurait posée. Repère tiré de ce que fait la banque : en sortant d'un retard, un client revient le plus souvent sur la codification qu'il avait avant (un payeur au comptant redevient -1, un client en crédit renouvelable redevient 0) (<a href=\"{GH}/05_04_EDA_codification1.ipynb\">05_04_EDA_codification1.ipynb</a>, section 3).",
      voir("p3_3_codifications", "codification-1", "3.3, point 4")),
     ("Des codifications 1 en septembre chez des clients sains en août, le plus souvent sans facture de septembre",
      "Remplacées par la codification d'août",
@@ -96,7 +96,7 @@ tableau_decisions([
      voir("p3_3_codifications", "codification-1", "3.3, point 4")),
     ("Des codifications 1 en septembre chez des clients en retard en août : sortie du retard ou retard maintenu, en attente du paiement d'octobre",
      "Sortie du retard (-1) si les trois modèles de 02_02 l'annoncent, sinon retard maintenu (2) ; la codification de la banque est gardée dans <code>PAY_1_original</code>",
-     f"Le paiement d'octobre est absent du dataset : la sortie est estimée à partir de l'historique du client, par trois modèles appris sur les clients que la banque a tranchés (<a href=\"{GH}/02_02_modele_sorties_retard.ipynb\">02_02_modele_sorties_retard.ipynb</a>). C'est une estimation, pas la décision de la banque.",
+     f"Le paiement d'octobre est absent du dataset : la sortie est estimée à partir de l'historique du client, par trois modèles appris sur les clients que la banque a tranchés ; en septembre, les clients qu'elle sort du retard sont presque tous codifiés -1 (05_04_EDA_codification1, section 2), d'où la codification retenue pour une sortie (<a href=\"{GH}/02_02_modele_sorties_retard.ipynb\">02_02_modele_sorties_retard.ipynb</a>). C'est une estimation, pas la décision de la banque.",
      voir("p3_3_codifications", "codification-1", "3.3, point 4")),
 ])
 

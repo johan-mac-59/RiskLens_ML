@@ -21,7 +21,7 @@ dette_sept = df_accueil['BILL_AMT1'].clip(lower=0).sum()
 parts_remb = [np.minimum(df_accueil[f'PAY_AMT{n - 1}'], df_accueil[f'BILL_AMT{n}'].clip(lower=0)).sum()
               / df_accueil[f'BILL_AMT{n}'].clip(lower=0).sum() * 100 for n in range(2, 7)]
 # 5.6 : la règle du contentieux sur le jeu de test (utilisé une seule fois)
-ctx_test = test_accueil['STATUT'] == "Au contentieux"
+ctx_test = test_accueil['STATUT'] == "En incident"
 part_ctx = ctx_test.mean() * 100
 precision_ctx = test_accueil.loc[ctx_test, 'dpnm'].mean() * 100
 captes_ctx = test_accueil.loc[ctx_test, 'dpnm'].sum() / test_accueil['dpnm'].sum() * 100
