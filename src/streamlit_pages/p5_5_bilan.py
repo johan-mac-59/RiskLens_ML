@@ -1,7 +1,7 @@
 from streamlit_pages.commun import *
 
 # ==============================================================================
-# PARTIE 5.6 : PEU DE CLIENTS, BEAUCOUP DE DÉFAUTS
+# PARTIE 5.5 : PEU DE CLIENTS, BEAUCOUP DE DÉFAUTS
 # Bilan de la règle de retrait (clients au contentieux, prédits en défaut) : entraînement, test (utilisé une seule
 # fois dans l'étude, règle figée) et données d'origine (05_02_EDA_incidents, sections 7, 9 et 9.1).
 # Entraînement et test recalculés en direct ; les données d'origine (30 000 lignes) ne sont pas dans le dépôt :
@@ -17,7 +17,7 @@ ORIGINE = {"clients": 30000, "ctx": 3013, "vp": 2124, "fp": 889, "precision": 70
 
 def bilan(d):
     """Mesures de la règle : les clients au contentieux sont tous prédits en défaut."""
-    ctx = d['STATUT'] == "Au contentieux"
+    ctx = d['STATUT'] == "En incident"
     y = d['dpnm']
     return {
         "clients": len(d), "ctx": int(ctx.sum()), "part_clients": ctx.mean() * 100,
@@ -31,7 +31,7 @@ b_train, b_test = bilan(train), bilan(test)
 entete_partie_5(df, s12, train, test)
 
 st.markdown("---")
-st.header("5.6 Peu de clients, beaucoup de défauts : une règle métier qui prédit déjà un tiers des défauts", anchor="bilan")
+st.header("5.5 Peu de clients, beaucoup de défauts : une règle métier qui prédit déjà un tiers des défauts", anchor="bilan")
 st.markdown("""
 La règle est maintenant définie, décrite et vérifiée sur l'entraînement. Elle sert à une décision simple : **les clients au contentieux sont retirés du machine learning et prédits en défaut**, sans modèle. Cette page mesure ce que vaut cette décision, d'abord sur l'entraînement, puis sur des clients que la règle n'a jamais vus.
 """)
@@ -41,7 +41,7 @@ st.subheader("1. Un client sur dix, un tiers des défauts", anchor="concentratio
 jeux = ["Entraînement", "Test"]
 bilans = [b_train, b_test]
 fig_conc = go.Figure()
-for nom, cle, couleur in (("Part des clients du jeu", "part_clients", COULEURS["gris"]), ("Part des défauts du jeu", "captes", STATUTS_CTX["Au contentieux"])):
+for nom, cle, couleur in (("Part des clients du jeu", "part_clients", COULEURS["gris"]), ("Part des défauts du jeu", "captes", STATUTS_CTX["En incident"])):
     valeurs = [b[cle] for b in bilans]
     fig_conc.add_trace(go.Bar(x=jeux, y=valeurs, name=nom, marker_color=couleur,
                               text=[f"{nombre_fr(v, 1)} %" for v in valeurs], textposition='outside',

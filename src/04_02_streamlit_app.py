@@ -93,10 +93,10 @@ pages = {
     ],
     "5. La population en incident : des retards figés à une règle métier": [
         st.Page("streamlit_pages/p5_1_genese.py", title="5.1 La genèse : des anomalies de codification à l'étude de la population en incident", icon=":material/lightbulb:"),
-        st.Page("streamlit_pages/p5_3_definition.py", title="5.3 La définition du contentieux : deux codifications de retard d'affilée, soit au moins 90 jours", icon=":material/policy:"),
-        st.Page("streamlit_pages/p5_4_comportements.py", title="5.4 Des comportements distincts, sans même regarder le défaut", icon=":material/compare_arrows:"),
-        st.Page("streamlit_pages/p5_5_risque.py", title="5.5 Le défaut confirme la définition : très fréquent au contentieux, et d'autant plus que le retard a duré", icon=":material/trending_up:"),
-        st.Page("streamlit_pages/p5_6_bilan.py", title="5.6 Peu de clients, beaucoup de défauts : une règle métier qui prédit déjà un tiers des défauts", icon=":material/verified:"),
+        st.Page("streamlit_pages/p5_2_definition.py", title="5.2 La définition : la population en incident, et le retard imminent à part", icon=":material/policy:"),
+        st.Page("streamlit_pages/p5_3_comportements.py", title="5.3 Des comportements distincts, sans même regarder le défaut", icon=":material/compare_arrows:"),
+        st.Page("streamlit_pages/p5_4_risque.py", title="5.4 Le défaut confirme la définition : très fréquent au contentieux, et d'autant plus que le retard a duré", icon=":material/trending_up:"),
+        st.Page("streamlit_pages/p5_5_bilan.py", title="5.5 Peu de clients, beaucoup de défauts : une règle métier qui prédit déjà un tiers des défauts", icon=":material/verified:"),
     ],
     "6. Le machine learning": [
         st.Page("streamlit_pages/p6_1_historique.py", title="6.1 L'historique : une première itération qui a buté sur un plafond, et mené à l'étude du contentieux", icon=":material/history_edu:"),

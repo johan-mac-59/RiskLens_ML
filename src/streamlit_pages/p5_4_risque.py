@@ -1,9 +1,9 @@
 from streamlit_pages.commun import *
 
 # ==============================================================================
-# PARTIE 5.5 : LE RISQUE SUIT LE STATUT
+# PARTIE 5.4 : LE RISQUE SUIT LE STATUT
 # Validation de la définition avec le défaut, sur le jeu d'entraînement uniquement
-# (05_02_EDA_incidents, section 6 ; 05_04_EDA_codification1, section 5.1 pour NB_MOIS_CTX).
+# (05_02_EDA_incidents, section 6 ; 05_04_EDA_codification1, section 5.1 pour NB_MOIS_INCIDENT).
 # Le défaut sert à vérifier que la règle a un sens, jamais à la régler. Colonnes lues dans le CSV.
 # ==============================================================================
 df, s12, train, test = donnees_partie_5()
@@ -34,7 +34,7 @@ def barres_taux(t, couleurs, titre_x, hauteur=420):
 entete_partie_5(df, s12, train, test)
 
 st.markdown("---")
-st.header("5.5 Le défaut confirme la définition : très fréquent au contentieux, et d'autant plus que le retard a duré", anchor="risque")
+st.header("5.4 Le défaut confirme la définition : très fréquent au contentieux, et d'autant plus que le retard a duré", anchor="risque")
 st.markdown(f"""
 La définition est fixée (page 5.3) et les comportements qu'elle sépare sont distincts (page 5.4). Vient maintenant le défaut, mais **uniquement sur le jeu d'entraînement** ({nombre_fr(len(train))} clients, {nombre_fr(taux_train, 1)} % de défaut en moyenne) : il sert à vérifier que la règle a un sens métier, pas à la régler. Aucun seuil n'a été modifié au vu de ces résultats.
 
@@ -54,14 +54,14 @@ st.markdown(f"""
 
 # ------------------------------------------------------------------------------
 st.subheader("2. Au contentieux : même une entrée récente est très risquée", anchor="duree-contentieux")
-ctx_train = train[train['STATUT'] == "Au contentieux"]
-groupes_duree = pd.Series(np.select([ctx_train['NB_MOIS_CTX'] == 1, ctx_train['NB_MOIS_CTX'] == 6],
+ctx_train = train[train['STATUT'] == "En incident"]
+groupes_duree = pd.Series(np.select([ctx_train['NB_MOIS_INCIDENT'] == 1, ctx_train['NB_MOIS_INCIDENT'] == 6],
                                     ["Entrés en septembre (1 mois)", "Les 6 mois"], default="2 à 5 mois"), index=ctx_train.index)
 groupes_duree = pd.Categorical(groupes_duree, categories=["Entrés en septembre (1 mois)", "2 à 5 mois", "Les 6 mois"])
 par_duree = stats(ctx_train, groupes_duree)
 col_g, col_t = st.columns([3, 2])
 with col_g:
-    st.plotly_chart(barres_taux(par_duree, STATUTS_CTX["Au contentieux"], "Durée du passage en cours au contentieux (NB_MOIS_CTX)"), width='stretch')
+    st.plotly_chart(barres_taux(par_duree, STATUTS_CTX["En incident"], "Durée du passage en cours au contentieux (NB_MOIS_INCIDENT)"), width='stretch')
 entre, milieu, six = (par_duree.iloc[i] for i in range(3))
 with col_t:
     st.markdown(f"""
@@ -72,22 +72,22 @@ with col_t:
 
 # ------------------------------------------------------------------------------
 st.subheader("3. Sortis du contentieux : le risque grandit avec la durée du passage", anchor="sortis")
-st.markdown("Pour les clients sortis du contentieux pendant la période, deux informations sont disponibles : **combien de temps ils y sont restés** (`NB_MOIS_CTX`) et **quand ils en sont sortis** (`MOIS_SORTIE_CTX`). Les deux sont liées : un long passage ne peut s'être terminé que récemment (cinq codifications de retard d'affilée finissent forcément en septembre). Les deux graphiques les montrent séparément, le tableau croisé les démêle.")
-sortis = train[train['STATUT'] == "Sorti du contentieux"]
-par_nb = stats(sortis, sortis['NB_MOIS_CTX'].astype(int))
-par_mois = stats(sortis, sortis['MOIS_SORTIE_CTX'].astype(int)).sort_index(ascending=False)   # chronologique : mai -> septembre
+st.markdown("Pour les clients sortis du contentieux pendant la période, deux informations sont disponibles : **combien de temps ils y sont restés** (`NB_MOIS_INCIDENT`) et **quand ils en sont sortis** (`MOIS_SORTIE_INCIDENT`). Les deux sont liées : un long passage ne peut s'être terminé que récemment (cinq codifications de retard d'affilée finissent forcément en septembre). Les deux graphiques les montrent séparément, le tableau croisé les démêle.")
+sortis = train[train['STATUT'] == "Sorti de l'incident"]
+par_nb = stats(sortis, sortis['NB_MOIS_INCIDENT'].astype(int))
+par_mois = stats(sortis, sortis['MOIS_SORTIE_INCIDENT'].astype(int)).sort_index(ascending=False)   # chronologique : mai -> septembre
 par_mois.index = [MOIS_NOM[m] for m in par_mois.index]
 col_nb, col_mois = st.columns(2)
 with col_nb:
     st.markdown("#### Selon la durée du passage")
-    st.plotly_chart(barres_taux(par_nb, STATUTS_CTX["Sorti du contentieux"], "Mois de retard consécutifs (NB_MOIS_CTX)"), width='stretch')
+    st.plotly_chart(barres_taux(par_nb, STATUTS_CTX["Sorti de l'incident"], "Mois de retard consécutifs (NB_MOIS_INCIDENT)"), width='stretch')
 with col_mois:
     st.markdown("#### Selon le mois de sortie")
-    st.plotly_chart(barres_taux(par_mois, STATUTS_CTX["Sorti du contentieux"], "Mois de la dernière sortie (MOIS_SORTIE_CTX)"), width='stretch')
+    st.plotly_chart(barres_taux(par_mois, STATUTS_CTX["Sorti de l'incident"], "Mois de la dernière sortie (MOIS_SORTIE_INCIDENT)"), width='stretch')
 
 # Tableau croisé : taux de défaut (nombre de clients) selon la durée et le mois de sortie
-croise_taux = pd.crosstab(sortis['NB_MOIS_CTX'].astype(int), sortis['MOIS_SORTIE_CTX'].astype(int), values=sortis['dpnm'], aggfunc='mean') * 100
-croise_n = pd.crosstab(sortis['NB_MOIS_CTX'].astype(int), sortis['MOIS_SORTIE_CTX'].astype(int))
+croise_taux = pd.crosstab(sortis['NB_MOIS_INCIDENT'].astype(int), sortis['MOIS_SORTIE_INCIDENT'].astype(int), values=sortis['dpnm'], aggfunc='mean') * 100
+croise_n = pd.crosstab(sortis['NB_MOIS_INCIDENT'].astype(int), sortis['MOIS_SORTIE_INCIDENT'].astype(int))
 ordre_mois = sorted(croise_taux.columns, reverse=True)
 croise_taux, croise_n = croise_taux[ordre_mois], croise_n.reindex(columns=ordre_mois)
 texte = [[f"{nombre_fr(t, 1)} %<br>({nombre_fr(n)})" if pd.notna(t) else "" for t, n in zip(lt, ln)]
@@ -98,7 +98,7 @@ fig_croise = go.Figure(go.Heatmap(
     text=texte, texttemplate="%{text}", textfont=dict(size=TAILLE_ETIQUETTE),
     colorscale=[[0, "#F6E8EE"], [1, COULEURS["bordeaux"]]], colorbar=dict(title="Défaut (%)"),
     hovertemplate="Durée %{y}, sortie en %{x}<br>%{text}<extra></extra>", xgap=3, ygap=3))
-fig_croise.update_layout(xaxis_title="Mois de la dernière sortie", yaxis_title="Durée du passage (NB_MOIS_CTX)", height=430,
+fig_croise.update_layout(xaxis_title="Mois de la dernière sortie", yaxis_title="Durée du passage (NB_MOIS_INCIDENT)", height=430,
                          separators=", ", margin=dict(t=20))
 st.plotly_chart(fig_croise, width='stretch')
 st.caption("Comment lire : chaque case donne le taux de défaut des clients sortis du contentieux, et entre parenthèses leur nombre. Les cases vides sont impossibles (un passage de 5 mois ne peut se terminer qu'en septembre) ou inexistantes. Les couleurs foncées signalent les taux les plus élevés.")
@@ -109,17 +109,17 @@ st.markdown(f"""
 - **Plus le passage au contentieux a duré, plus le risque est élevé** : de {nombre_fr(nb_min['taux'], 1)} % pour un seul mois à {nombre_fr(nb_max['taux'], 1)} % pour cinq mois. À mois de sortie égal, l'effet demeure : parmi les clients sortis en septembre, le défaut passe de {nombre_fr(col_sept.iloc[0], 1)} % ({col_sept.index[0]} mois de passage) à {nombre_fr(col_sept.iloc[-1], 1)} % ({col_sept.index[-1]} mois).
 - **Une sortie récente reste fragile** : les clients sortis en septembre font défaut à {nombre_fr(par_mois.loc['Septembre', 'taux'], 1)} %, contre {nombre_fr(par_mois.loc['Mai', 'taux'], 1)} % pour ceux sortis en mai. Entre les deux, l'effet du mois de sortie est moins régulier que celui de la durée.
 - **Le passage d'un seul mois ne concerne que les retards isolés d'avril**, comptés au contentieux par prudence (page 5.3) : leur risque, le plus bas des clients sortis, se rapproche de celui des retards isolés. C'est vraisemblablement un mélange de vrais retards isolés et de fins de séries commencées avant avril. La règle n'est pas modifiée pour autant : on ne change pas une décision métier au vu du défaut.
-- La durée (`NB_MOIS_CTX`) apporte donc une information que le mois de sortie (`MOIS_SORTIE_CTX`) n'a pas : les deux sont transmis au machine learning.
+- La durée (`NB_MOIS_INCIDENT`) apporte donc une information que le mois de sortie (`MOIS_SORTIE_INCIDENT`) n'a pas : les deux sont transmis au machine learning.
 """)
 
 # ------------------------------------------------------------------------------
 st.subheader("4. Retards isolés : le risque s'efface avec le temps", anchor="retards-isoles")
-isoles = train[train['STATUT'] == "Retard isolé régularisé"]
+isoles = train[train['STATUT'] == "Retard régularisé"]
 par_regul = stats(isoles, isoles['MOIS_SORTIE_RETARD'].astype(int)).sort_index(ascending=False)
 par_regul.index = [MOIS_NOM[m] for m in par_regul.index]
 col_g4, col_t4 = st.columns([3, 2])
 with col_g4:
-    st.plotly_chart(barres_taux(par_regul, STATUTS_CTX["Retard isolé régularisé"], "Mois de la régularisation (MOIS_SORTIE_RETARD)"), width='stretch')
+    st.plotly_chart(barres_taux(par_regul, STATUTS_CTX["Retard régularisé"], "Mois de la régularisation (MOIS_SORTIE_RETARD)"), width='stretch')
 with col_t4:
     plus_ancien, plus_recent = par_regul.iloc[0], par_regul.iloc[-1]
     st.markdown(f"""
@@ -147,12 +147,12 @@ def retard_sur_facture_payee(d, mois):
 
 historique_paye = retard_sur_facture_payee(train, range(2, 6))
 septembre_paye = retard_sur_facture_payee(train, [1])
-comptant_sain = (train['STATUT'] == "Aucun incident") & (train['TYPE_USAGE'] == "Paiement comptant")
+comptant_sain = (train['STATUT'] == "Jamais en retard") & (train['TYPE_USAGE'] == "Paiement comptant")
 GROUPES_PAYE = [
     ("Retard posé sur une facture payée, de mai à août", historique_paye),
     ("Retard posé sur une facture payée, en septembre", septembre_paye),
     ("Comparaison : payeurs au comptant sans incident", comptant_sain),
-    ("Comparaison : au contentieux", train['STATUT'] == "Au contentieux"),
+    ("Comparaison : au contentieux", train['STATUT'] == "En incident"),
 ]
 st.markdown(f"""
 Il existe des retards posés sur une facture **réelle, payée en entier**, le mois même et le mois précédent : le client a tout réglé, et la banque le codifie pourtant en retard. Ces codifications **n'ont pas été corrigées**, et c'est un choix ([05_02_EDA_incidents.ipynb](https://github.com/johan-mac-59/RiskLens_ML/blob/main/src/05_02_EDA_incidents.ipynb), cellule 18).
@@ -175,7 +175,7 @@ st.markdown(f"""
 # SIMULATEUR : TAUX DE DÉFAUT PAR PROFIL, PARMI LES CLIENTS AU CONTENTIEUX À M (DATASET STREAMLIT COMPLET)
 # (fonction simulateur_profil de commun.py, la même qu'en 4.1)
 # ==============================================================================
-ctx_dataset = df[(df["FLAG_CTX"] == 1) & (df["MOIS_SORTIE_CTX"] == -1)]
+ctx_dataset = df[(df["FLAG_INCIDENT"] == 1) & (df["MOIS_SORTIE_INCIDENT"] == -1)]
 simulateur_profil(ctx_dataset, "simulateur-contentieux",
                   f"en direct sur les {nombre_fr(len(ctx_dataset))} clients au contentieux en septembre",
                   "des clients au contentieux")
