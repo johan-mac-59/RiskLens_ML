@@ -2,7 +2,7 @@ from streamlit_pages.commun import *
 
 # ==============================================================================
 # PARTIE 3.4 : LES PLAFONDS
-# Résultats repris de l'EDA_lab (cellules 204 et 205), calculés sur les 30 000
+# Résultats repris de l'EDA_lab (partie « L'utilisation du plafond et la vie des comptes », cellules 178 et 179), calculés sur les 30 000
 # clients des données d'origine (fichier absent du dépôt).
 # ==============================================================================
 BCE = "https://data.ecb.europa.eu/data/datasets/EXR/EXR.A.TWD.EUR.SP00.A"
@@ -19,7 +19,7 @@ Le plafond (`LIMIT_BAL`) est le montant de crédit que la banque accorde à chaq
 st.subheader("Une cassure brutale au-delà de 500 000 NT\\$", anchor="cassure")
 st.markdown("Répartition des plafonds par tranches de 50 000 NT\\$, sur les 30 000 clients des données d'origine :")
 
-# Comptages repris de l'EDA_lab, cellule 204 : LIMIT_BAL par tranches de 50 000 NT$ (bornes hautes incluses)
+# Comptages repris de l'EDA_lab, cellule 178 : LIMIT_BAL par tranches de 50 000 NT$ (bornes hautes incluses)
 tranches = [f"{b // 1000} à {(b + 50000) // 1000} k" for b in range(0, 1000000, 50000)]
 clients = [7676, 4822, 3902, 3978, 2905, 2154, 1206, 1553, 573, 1025,
            76, 51, 37, 19, 17, 5, 0, 0, 0, 1]
@@ -35,7 +35,7 @@ fig_plafonds.add_annotation(x=9.5, y=max(clients), text="500 000 NT$", showarrow
 fig_plafonds.update_layout(height=460, xaxis_title="Plafond (milliers de NT$)", yaxis_title="Nombre de clients",
                            xaxis_tickangle=-45, margin=dict(t=30))
 st.plotly_chart(fig_plafonds, width="stretch")
-st.caption("Tranches de 50 000 NT\\$, borne haute incluse (la tranche « 450 à 500 k » contient les plafonds de 500 000 NT\\$). En rouge : les plafonds de plus de 500 000 NT\\$. Répartition calculée sur les 30 000 clients des données d'origine (EDA_lab, cellule 204).")
+st.caption("Tranches de 50 000 NT\\$, borne haute incluse (la tranche « 450 à 500 k » contient les plafonds de 500 000 NT\\$). En rouge : les plafonds de plus de 500 000 NT\\$. Répartition calculée sur les 30 000 clients des données d'origine (EDA_lab, partie « L'utilisation du plafond et la vie des comptes », cellule 178).")
 
 st.markdown("""
 - **Jusqu'à 500 000 NT\\$, les clients se répartissent sur toutes les tranches** : 1 025 clients encore entre 450 000 et 500 000 NT\\$, dont 722 pile à 500 000 NT\\$, un palier rond que la banque semble utiliser comme plafond de référence.
@@ -68,7 +68,7 @@ st.dataframe(pd.DataFrame({
     "N'ont jamais utilisé plus de 10 % du plafond": ["28,9 %", "35,9 %"],
     "Ont utilisé au moins la moitié du plafond": ["46,7 %", "30,1 %"],
 }), hide_index=True, width="stretch")
-st.caption("Calcul fait sur les 30 000 clients des données d'origine : facture maximale de BILL_AMT1 à BILL_AMT6, divisée par le plafond (EDA_lab, cellule 205).")
+st.caption("Calcul fait sur les 30 000 clients des données d'origine : facture maximale de BILL_AMT1 à BILL_AMT6, divisée par le plafond (EDA_lab, cellule 179).")
 st.markdown("""
 Les clients aux plafonds élevés **utilisent deux fois moins leur crédit** : la moitié d'entre eux n'a jamais dépassé 21 % de son plafond, contre 43 % pour les autres clients. Plus d'un sur trois s'en sert à peine, et moins d'un sur trois en utilise la moitié. Leur carte ressemble davantage à un moyen de paiement disponible qu'à un crédit dont ils auraient besoin.
 """)
