@@ -126,7 +126,7 @@ Trois raisons font choisir `ml_14` :
 
 Dans `ml_14`, les quatre modèles restants sont eux aussi à égalité. **CatBoost**, en tête de cette version, a été désigné comme modèle de décision avant la lecture du test, avec le seuil qui atteint le taux de rappel minimal ; les autres sont gardés pour information. Il est jugé sur le test en page 6.4.
 """)
-st.caption(f"Détail de chaque scénario et de chaque décision : [journal des scénarios]({JOURNAL_ML}), section 2. Duel fin : `lab_ML/duel_fin_ml14_ml15.ipynb` (validation croisée répétée, test t corrigé de Nadeau et Bengio). Raisonnement complet : [hypothèses et conclusions]({HYPOTHESES}), H8, H9 et H14.")
+st.caption(f"Détail de chaque scénario et de chaque décision : [journal des scénarios]({JOURNAL_ML}), section 2. Raisonnement complet : [hypothèses et conclusions]({HYPOTHESES}), H8, H9 et H14.")
 
 st.info("""
 **Ce qu'il faut retenir** : ajouter les variables de l'exploration, qu'elles décrivent le client ou cherchent un signal d'alerte, groupe par groupe ou toutes ensemble, ne fait pas sortir les modèles d'un plateau : environ 27 clients signalés sur 100 font défaut, quel que soit le scénario, et tous les écarts restent dans la zone d'incertitude de la mesure. Leur effet varie d'un modèle à l'autre, sans jamais dépasser le bruit : les liens vus pendant l'exploration distinguent des groupes, ils ne suffisent pas à prédire le défaut de chaque client. La version finale est donc la plus simple : 21 variables, sans aucune donnée démographique, avec CatBoost comme modèle de décision.

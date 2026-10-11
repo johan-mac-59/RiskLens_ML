@@ -14,9 +14,9 @@ Ce document garde la trace des hypothèses formulées pendant le projet, des pre
 
 Les scores plafonnent hors contentieux, quelles que soient les variables, les réglages ou les modèles.
 - Scénarios : score décisionnel F2 entre 0,482 et 0,489 au rappel minimal de 60 % (`ml_0` à `ml_15`), précision des défauts prédits autour de 27 %, ROC AUC autour de 0,71 (`tableau_ML.md`).
-- Modèles poussés sans contrainte de surapprentissage : aucun ne dépasse `ml_11` (`diagnostic_capacite.ipynb`).
+- Modèles poussés sans contrainte de surapprentissage : aucun ne dépasse `ml_11` (`diagnostic_capacite.ipynb`, notebook de l'ancienne itération, retiré le 11/10/2026 ; il reste dans l'historique du dépôt).
 - Réglages élargis : aucun effet sur le meilleur modèle (`ml_14` face à `ml_12`, 0,485 → 0,485).
-- Colonnes supplémentaires : dans le bruit, même mesurées finement (`duel_fin_ml14_ml15.ipynb` : +0,0026 sur 50 plis, t corrigé = 0,79).
+- Colonnes supplémentaires : dans le bruit, même mesurées finement (`duel_fin_ml14_ml15.ipynb`, notebook de l'ancienne itération, retiré le 11/10/2026 ; il reste dans l'historique du dépôt : +0,0026 sur 50 plis, t corrigé = 0,79).
 - Petite population reprise : dans le bruit (`ml_16` : +0,0003, t = 0,33).
 
 ### H2. Une part des défauts est imprévisible avec ces données ✅
@@ -80,7 +80,7 @@ Sur les clients du train ML, plis des scénarios, score décisionnel F2 au rappe
 
 ### H8. Les colonnes construites aident la régression logistique, sans que le gain soit démontrable ✅
 
-- La régression logistique gagne avec les colonnes de `ml_11` (gain réel sur 5 plis face à `ml_4`, +0,007), mais ce gain ne résiste pas à la mesure fine (`duel_fin_ml14_ml15.ipynb` : +0,0054, 40 plis sur 50, t corrigé = 1,65).
+- La régression logistique gagne avec les colonnes de `ml_11` (gain réel sur 5 plis face à `ml_4`, +0,007), mais ce gain ne résiste pas à la mesure fine (`duel_fin_ml14_ml15.ipynb`, notebook de l'ancienne itération, retiré le 11/10/2026 ; il reste dans l'historique du dépôt : +0,0054, 40 plis sur 50, t corrigé = 1,65).
 - Elle profite aussi de petits groupes que les arbres ne peuvent pas isoler : par exemple `EDUCATION` = 4, 306 clients du train avec 6,5 % de défaut (`controles_cible.ipynb`).
 
 ### H9. Plus de variables ne fait pas un meilleur modèle : à score égal, le plus simple ✅
