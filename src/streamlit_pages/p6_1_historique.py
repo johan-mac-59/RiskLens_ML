@@ -12,14 +12,14 @@ TABLEAU_ML = f"{GH_RACINE}/lab_ML/1ere_iteration/tableau_ML.md"
 
 entete_partie_6()
 st.markdown("---")
-st.header("6.1 L'historique : une première itération qui a buté sur un plafond, et mené à l'étude du contentieux", anchor="historique")
+st.header("6.1 L'historique : une première itération qui a buté sur un plafond, et mené à l'étude de la population en incident", anchor="historique")
 
 # ------------------------------------------------------------------------------
-st.subheader("1. Une première itération, menée avant l'étude du contentieux", anchor="premiere-iteration")
+st.subheader("1. Une première itération, menée avant l'étude de la population en incident", anchor="premiere-iteration")
 st.markdown(f"""
-Ce site suit un ordre logique : les données, leur nettoyage, l'exploration, la population contentieuse, puis le machine learning. **Dans les faits, la première itération du machine learning a eu lieu avant l'étude du contentieux** : c'est elle qui, en butant sur un plafond, a conduit à cette étude.
+Ce site suit un ordre logique : les données, leur nettoyage, l'exploration, la population en incident, puis le machine learning. **Dans les faits, la première itération du machine learning a eu lieu avant l'étude de la population en incident** : c'est elle qui, en butant sur un plafond, a conduit à cette étude.
 
-Cette première itération a porté sur **tout le dataset, population contentieuse comprise**, puisqu'elle n'était pas encore définie. Sa démarche :
+Cette première itération a porté sur **tout le dataset, population en incident comprise**, puisqu'elle n'était pas encore définie. Sa démarche :
 - un découpage au hasard en un jeu d'**entraînement** (80 %) et un jeu de **test** (20 %), avec la même part de défauts dans les deux ;
 - **six modèles** comparés au départ : régression logistique, SVM, réseau de neurones (MLP), plus proches voisins (KNN), forêt aléatoire (RandomForest) et CatBoost ; les trois meilleurs (CatBoost, RandomForest et régression logistique) ont ensuite été gardés pour aller plus vite ;
 - des réglages (hyperparamètres) cherchés par **GridSearch**, en validation croisée sur l'entraînement ;
@@ -42,7 +42,7 @@ Ce qu'ils ont appris :
 - **ne garder que les clients qui ont une dette en septembre relève nettement les performances**, de tous les modèles, et a un sens métier : on ne prédit pas le défaut d'un crédit qui n'est pas utilisé ;
 - **écarter les plafonds atypiques** (page « 3.4 Les plafonds ») ne change presque rien au score, mais recentre les modèles sur la clientèle standard.
 
-Ces deux filtres forment le périmètre appelé **S12**, retenu pour la suite. C'est aussi celui de l'étude du contentieux. Le filtre des clients endettés seul (`S3`) garde un score un peu plus élevé, mais l'écart est plus petit que la variation d'un pli de validation à l'autre : les deux sont à égalité, et `S12` a été préféré pour sa raison métier.
+Ces deux filtres forment le périmètre appelé **S12**, retenu pour la suite. C'est aussi celui de l'étude de la population en incident. Le filtre des clients endettés seul (`S3`) garde un score un peu plus élevé, mais l'écart est plus petit que la variation d'un pli de validation à l'autre : les deux sont à égalité, et `S12` a été préféré pour sa raison métier.
 """)
 
 # ------------------------------------------------------------------------------
@@ -65,7 +65,7 @@ etapes = [
     ("S12_1", "+ utilisation du plafond", 0.6877),
     ("S12_5", "+ ratio de paiement habituel", 0.6878),
     ("S12_6", "+ ancienneté du compte", 0.6885),
-    ("S12_7", "+ variable de contentieux", 0.6875),
+    ("S12_7", "+ variable d'incident", 0.6875),
 ]
 experiences = scenarios_niveau3 + etapes
 libelles = [f"{e[0]}<br>{e[1]}" for e in experiences]
@@ -81,7 +81,7 @@ fig_plafond.add_annotation(x=(len(scenarios_niveau3) - 1) / 2, y=0.93, text="<b>
 fig_plafond.add_annotation(x=separation + len(etapes) / 2, y=0.93, text="<b>Nouvelles variables</b> (périmètre S12)", showarrow=False, font_size=TAILLE_ETIQUETTE)
 fig_plafond.update_layout(yaxis_title="Score de décision (validation)", yaxis_range=[0, 1], height=480, separators=", ", showlegend=False)
 st.plotly_chart(fig_plafond, width='stretch')
-st.caption(f"Score de décision du meilleur modèle à chaque étape conservée, en validation croisée sur l'entraînement, sur le dataset incluant la population contentieuse. Ne figurent que les scénarios et les variables gardés (`S11`, gardé un temps, a ensuite été remplacé par `S12`, qui l'inclut), avec les deux points de départ (`S1`, `S12_0`) et la variable de contentieux (`S12_7`). Chiffres repris tels quels du [tableau de suivi de la première itération]({TABLEAU_ML}), sections 2 et 3 : ces modèles ne sont pas dans le dépôt.")
+st.caption(f"Score de décision du meilleur modèle à chaque étape conservée, en validation croisée sur l'entraînement, sur le dataset incluant la population en incident. Ne figurent que les scénarios et les variables gardés (`S11`, gardé un temps, a ensuite été remplacé par `S12`, qui l'inclut), avec les deux points de départ (`S1`, `S12_0`) et la variable d'incident (`S12_7`). Chiffres repris tels quels du [tableau de suivi de la première itération]({TABLEAU_ML}), sections 2 et 3 : ces modèles ne sont pas dans le dépôt.")
 
 ecart_total = max(e[2] for e in etapes) - min(e[2] for e in etapes)
 st.markdown(f"""
@@ -91,30 +91,30 @@ st.markdown(f"""
 """)
 
 # ------------------------------------------------------------------------------
-st.subheader("4. Le coup d'arrêt : une variable de contentieux sans effet", anchor="arret")
+st.subheader("4. Le coup d'arrêt : une variable d'incident sans effet", anchor="arret")
 st.markdown(f"""
 En parallèle, l'analyse exploratoire avait repéré des clients **figés à {codif('2')}** sur les six mois, qui font défaut à 77,55 % (page 5.1). Une variable a alors été ajoutée aux modèles pour les signaler (scénario `S12_7`) : un client figé à {codif('2')}, ou dont le retard redescend à {codif('2')} sans paiement. Les clients ainsi signalés faisaient défaut à **71,27 %**.
 
-**Et pourtant, le score n'a pas bougé.** Les arbres de décision utilisaient à peine cette variable, et élargir leurs réglages n'y a rien changé. Les modèles avaient sans doute déjà repéré ces clients par leurs codifications : la variable ne leur apprenait rien de neuf. C'est ce que confirme, après coup, le modèle de l'étape précédente (`S12_6`) : il prédit en défaut tous les clients que la règle du contentieux, définie ensuite, place au contentieux (page 8.2).
+**Et pourtant, le score n'a pas bougé.** Les arbres de décision utilisaient à peine cette variable, et élargir leurs réglages n'y a rien changé. Les modèles avaient sans doute déjà repéré ces clients par leurs codifications : la variable ne leur apprenait rien de neuf. C'est ce que confirme, après coup, le modèle de l'étape précédente (`S12_6`) : il prédit en défaut tous les clients que la règle de l'incident, définie ensuite, place en incident (page 8.2).
 
-Le diagnostic : **le dataset mélangeait deux populations**, des clients en gestion normale et des clients en gestion contentieuse, au comportement et au risque très différents. Un seul modèle les apprend mal ensemble, et il passe surtout son effort à reconnaître les seconds, ce qu'une règle métier fait de façon plus simple et explicable. Plutôt que de forcer les modèles, **le machine learning a été arrêté** pour comprendre cette population, la définir et la traiter à part : c'est **l'étude du contentieux, présentée en partie 5**.
+Le diagnostic : **le dataset mélangeait deux populations**, des clients en gestion normale et des clients en incident de paiement, au comportement et au risque très différents. Un seul modèle les apprend mal ensemble, et il passe surtout son effort à reconnaître les seconds, ce qu'une règle métier fait de façon plus simple et explicable. Plutôt que de forcer les modèles, **le machine learning a été arrêté** pour comprendre cette population, la définir et la traiter à part : c'est **l'étude de la population en incident, présentée en partie 5**.
 
-La variable de `S12_7` reposait sur une première définition, abandonnée depuis : la définition retenue est celle de la page 5.3.
+La variable de `S12_7` reposait sur une première définition, abandonnée depuis : la définition retenue est celle de la page 5.2.
 """)
 
 st.info("""
-**Ce qu'il faut retenir** : la première itération du machine learning, menée sur tout le dataset, a comparé six modèles, plusieurs niveaux de nettoyage et de nombreux scénarios. Elle a fixé le périmètre (les clients qui ont une dette, hors plafonds atypiques), confirmé le poids de la codification de septembre, puis buté sur un plafond : ni les nouvelles variables, ni une variable de contentieux ne faisaient progresser les modèles. Ce blocage a révélé deux populations mélangées et lancé l'étude du contentieux (partie 5).
+**Ce qu'il faut retenir** : la première itération du machine learning, menée sur tout le dataset, a comparé six modèles, plusieurs niveaux de nettoyage et de nombreux scénarios. Elle a fixé le périmètre (les clients qui ont une dette, hors plafonds atypiques), confirmé le poids de la codification de septembre, puis buté sur un plafond : ni les nouvelles variables, ni une variable d'incident ne faisaient progresser les modèles. Ce blocage a révélé deux populations mélangées et lancé l'étude de la population en incident (partie 5).
 """)
 
 
 # ==============================================================================
 # SIMULATEUR : TAUX DE DÉFAUT PAR PROFIL, SUR LA POPULATION LAISSÉE AU MACHINE LEARNING
-# Dataset Streamlit, périmètre S12 (dette en septembre, plafond <= 500 000 NT$), sans les clients au contentieux à M :
-# la population de lab_ML/creation_datasets_ML.ipynb (train + test). Fonction simulateur_profil de commun.py (4.1, 5.5)
+# Dataset Streamlit, périmètre S12 (dette en septembre, plafond <= 500 000 NT$), sans les clients en incident à M ni en retard imminent :
+# la population de lab_ML/creation_datasets_ML.ipynb (train + test). Fonction simulateur_profil de commun.py (4.1, 5.4)
 # ==============================================================================
 df = load_data()
 hors_ctx = df[(df["BILL_AMT1"] > 0) & (df["LIMIT_BAL"] <= 500000)
-              & ~((df["FLAG_CTX"] == 1) & (df["MOIS_SORTIE_CTX"] == -1))]
+              & ~df["STATUT_INCIDENT"].isin(["En incident", "Retard imminent"])]
 simulateur_profil(hors_ctx, "simulateur-ml",
-                  f"en direct sur les {nombre_fr(len(hors_ctx))} clients hors du contentieux, ceux qu'étudie le machine learning",
-                  "des clients hors du contentieux")
+                  f"en direct sur les {nombre_fr(len(hors_ctx))} clients hors de la population en incident et du retard imminent, ceux qu'étudie le machine learning",
+                  "des clients étudiés par le machine learning")
