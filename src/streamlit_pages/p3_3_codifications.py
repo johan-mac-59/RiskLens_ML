@@ -76,8 +76,19 @@ st.dataframe(pd.DataFrame(
 st.markdown("""
 - **En juillet et en août, la règle est stricte** : presque tous les impayés sont mis en retard, dès 100 NT$ de facture (EDA_lab, partie « Les codifications face aux factures et aux paiements », cellule 32). Un paiement de moins de 1,5 % de la facture, ou de moins de 1 000 NT$, est presque toujours mis en retard ; pour rester sain dans 98 % des cas, il faut payer environ 3 % de la facture (EDA_lab, cellules 98 et 105).
 - **En avril, mai et juin, la banque est plus souple** : une grande partie des impayés reste codifiée saine, d'autant plus que la facture est petite, et payer environ 1,5 % de la facture suffit à rester sain.
+""")
+st.markdown("**En juillet-août, le montant payé compte aussi.** Parmi les clients sains le mois précédent qui paient entre 3 et 10 % de leur facture (assez, en part de la facture), part mise en retard selon le montant payé (EDA_lab, cellule 105 ; factures d'au moins 100 NT$) :")
+# Regroupement des tranches « 3 à 5 % » et « 5 à 10 % » du tableau juillet-août de l'EDA_lab, cellule 105 (moyenne pondérée par le nombre de factures)
+st.dataframe(pd.DataFrame({
+    "Montant payé": ["Moins de 1 000 NT$", "1 000 NT$ pile", "1 001 à 1 500 NT$", "Plus de 1 500 NT$"],
+    "Factures": [34, 224, 2681, 18315],
+    "Mis en retard": ["97,1 %", "26,3 %", "1,5 %", "0,4 %"],
+}), hide_index=True, width="stretch", column_config={"Factures": st.column_config.Column(alignment="left")})
+st.caption("Pourcentages calculés en regroupant les tranches « 3 à 5 % » et « 5 à 10 % » de part payée du tableau juillet-août de la cellule 105.")
+st.markdown("""
+En juillet-août, il faut donc payer à la fois une part de la facture (au moins 1,5 % environ) et un montant d'au moins 1 000 NT$, ou la facture entière si elle est plus petite ; entre 1 000 et 1 500 NT$, c'est une zone grise. En mai-juin, ce plancher n'existe pas : seule la part payée compte. Le plancher ne touche que quelques centaines de factures, car presque tous les clients qui paient 3 % ou plus de leur facture paient aussi plus de 1 000 NT$.
 
-La banque a donc resserré sa règle en juillet, en pleine crise. Pour un modèle, le même comportement (ne pas payer) donnerait un retard en août mais pas en mai.
+La banque a donc resserré sa règle en juillet, en pleine crise, en part comme en montant. Pour un modèle, le même comportement (ne pas payer) donnerait un retard en août mais pas en mai.
 
 **Règle retenue (niveau 3 du nettoyage)** : d'avril à juin, une facture positive payée à moins de 1,5 % le mois suivant, chez un client codifié -1, 0 ou 1 ce mois-là et -1 ou 0 le mois précédent, est codifiée 2, comme le fait la banque à partir de juillet. Le seuil de 1,5 % est celui que la banque appliquait déjà avant juillet, sans le plancher de 1 000 NT$, qui n'existait pas encore. Exception : après un -2, la banque accepte un paiement différé de plus d'un mois sans poser de retard (EDA_lab, cellule 102) ; ces clients ne sont pas touchés.
 
