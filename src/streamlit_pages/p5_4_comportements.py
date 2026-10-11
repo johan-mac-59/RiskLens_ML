@@ -2,7 +2,7 @@ from streamlit_pages.commun import *
 
 # ==============================================================================
 # PARTIE 5.4 : DES COMPORTEMENTS DISTINCTS, SANS REGARDER LE DÉFAUT
-# Reprend la description des statuts de 05_02_EDA_contentieux (section 4), sur tout le périmètre et sans dpnm.
+# Reprend la description des statuts de 05_02_EDA_incidents (section 4), sur tout le périmètre et sans dpnm.
 # Indicateurs construits sur les seuls montants (plafond, dette, paiements, TYPE_USAGE) : la comparaison avec un
 # statut défini sur les codifications est donc une vérification indépendante. Colonnes lues dans le CSV.
 # ==============================================================================

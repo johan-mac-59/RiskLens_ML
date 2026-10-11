@@ -11,7 +11,7 @@ from streamlit_pages.commun import *
 #    repris tels quels : les probabilités hors pli ne sont pas dans le dépôt.
 # ==============================================================================
 GH_RACINE = "https://github.com/johan-mac-59/RiskLens_ML/blob/main"
-CONTENTIEUX = f"{GH_RACINE}/src/05_02_EDA_contentieux.ipynb"
+CONTENTIEUX = f"{GH_RACINE}/src/05_02_EDA_incidents.ipynb"
 EVALUATION = f"{GH_RACINE}/lab_ML/evaluation_finale_test.ipynb"
 NIVEAUX_GLOBAL = f"{GH_RACINE}/lab_ML/comparatif_global/niveaux_de_risque_global.ipynb"
 HYPOTHESES = f"{GH_RACINE}/docs/hypotheses_et_conclusions.md"
@@ -21,7 +21,7 @@ ESSAI_CTX = f"{GH_RACINE}/lab_ML/comparatif_global/essai_jeu_corrige_deux_popula
 # 1. La règle seule (mêmes calculs que la page 5.6)
 # ------------------------------------------------------------------------------
 df, s12, train, test = donnees_partie_5()
-# 05_02_EDA_contentieux, cellules 41 et 45 : règle appliquée aux 30 000 lignes d'origine (codifications brutes, aucun filtre)
+# 05_02_EDA_incidents, cellules 41 et 45 : règle appliquée aux 30 000 lignes d'origine (codifications brutes, aucun filtre)
 ORIGINE = {"precision": 70.49, "captes": 32.01}
 
 
@@ -104,7 +104,7 @@ La règle du contentieux (deux codifications de retard d'affilée, sans sortie c
 
 **Sans aucun modèle, une règle fondée sur les codifications de la banque prédit donc déjà un tiers des défauts**, et n'importe quel conseiller peut l'appliquer et l'expliquer. Ces codifications ne reflètent pas fidèlement le comportement du client : ce sont des étiquettes posées par la banque, parfois en décalage avec les paiements (pages 3.3 et 5.2). C'est pourquoi la règle les lit après correction des faux retards, et en tenant compte des paiements de septembre. Ce tiers des défauts est donc prévu par **l'étiquette de la banque**, plus que par le comportement lui-même.
 """)
-st.caption(f"Entraînement et test du découpage de la partie 5 : calculés en direct (détail en page 5.6). Données d'origine : résultats de l'étude, repris tels quels ([05_02_EDA_contentieux.ipynb]({CONTENTIEUX}), cellules 41 et 45).")
+st.caption(f"Entraînement et test du découpage de la partie 5 : calculés en direct (détail en page 5.6). Données d'origine : résultats de l'étude, repris tels quels ([05_02_EDA_incidents.ipynb]({CONTENTIEUX}), cellules 41 et 45).")
 st.markdown(f"""
 **Pourquoi prédire en défaut tout le contentieux, sans exception ?** Trois clients au contentieux sur dix ne font pas défaut : des modèles ont donc été entraînés sur ces seuls clients, pour repérer ceux qui vont en sortir. Avec une exigence métier stricte, ne sortir un client du contentieux que s'il a au moins neuf chances sur dix de payer, car sortir à tort un client qui sera en défaut revient à abandonner une créance, **aucun modèle ne trouve de clients à sortir** sans risquer de sortir des clients en défaut. Au contentieux, les modèles trient à peine mieux que le hasard (ROC AUC d'environ 0,55 à 0,61), avec ou sans les codifications : rien dans les six mois de données ne distingue les clients qui paieront. **La règle reste donc la seule décision défendable** pour ces clients.
 """)

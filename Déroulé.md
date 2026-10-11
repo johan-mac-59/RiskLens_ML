@@ -72,7 +72,7 @@ chargement de l'API via la commande Bash 'uvicorn src.04_01_api:app --reload'
 - Télécharger la base de données après identification sécurisée : '@app.get("/admin/telecharger-db")'
 
 ## EDA
-Notebooks : [EDA laboratoire](/src/05_01_EDA_lab.ipynb) (exploration), [EDA codification 1](/src/05_04_EDA_codification1.ipynb) (étude dédiée des PAY_n = 1), [EDA contentieux](/src/05_02_EDA_contentieux.ipynb) (population contentieuse).
+Notebooks : [EDA laboratoire](/src/05_01_EDA_lab.ipynb) (exploration), [EDA codification 1](/src/05_04_EDA_codification1.ipynb) (étude dédiée des PAY_n = 1), [EDA contentieux](/src/05_02_EDA_incidents.ipynb) (population contentieuse).
 
 ### Lecture des codifications PAY_n
 Je constate une codification des colonnes 'PAY_n' différente de ce qui est décrit dans la documentation. Si on écarte les erreurs humaines, informatiques et autres, il se dégage une tendance claire, confirmée par les montants :
@@ -138,7 +138,7 @@ Après le niveau 2, il reste 15 lignes avec une codification 1 en PAY_2 ou PAY_3
 - 692 lignes présentant des paiements sur des comptes à encours négatifs : expliqués majoritairement par des paiements supérieurs aux sommes dues
 
 ### Population contentieuse (CTX)
-[EDA contentieux](/src/05_02_EDA_contentieux.ipynb)  
+[EDA contentieux](/src/05_02_EDA_incidents.ipynb)  
 Une poche de clients au taux de défaut très élevé plafonnait les performances du ML. Je l'isole par une règle métier : ces clients sont retirés du dataset ML et prédits en défaut.  
 Méthode : split train / test fait avant toute analyse, règles justifiées par la logique métier, `dpnm` utilisé uniquement pour valider sur le train, test utilisé une seule fois.  
 Définition retenue (définition 2) :

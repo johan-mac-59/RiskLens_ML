@@ -2,7 +2,7 @@ from streamlit_pages.commun import *
 
 # ==============================================================================
 # PARTIE 5.3 : LA DÉFINITION DU CONTENTIEUX
-# Définition 2, retenue (05_02_EDA_contentieux, section 6), appliquée aux codifications corrigées (niveau 5).
+# Définition 2, retenue (05_02_EDA_incidents, section 6), appliquée aux codifications corrigées (niveau 5).
 # Statuts lus dans les indicateurs du niveau 5 (statut_contentieux, commun.py) ; aucune colonne créée.
 # Page sans le défaut : la règle est décrite, illustrée et dénombrée sur tout le périmètre ; sa validation
 # avec le taux de défaut vient en 5.5 (entraînement) et 5.6 (test).
@@ -23,7 +23,7 @@ CTRL_REMIS_DEPUIS_1, CTRL_REMIS_DEPUIS_SAIN = 73, 45
 CTRL_CODIFS_MODIFIEES, CTRL_CLIENTS_MODIFIES, CTRL_RETARDS_NEUTRALISES = 566, 346, 442
 taux_train = train['dpnm'].mean() * 100
 
-# 05_02_EDA_contentieux, cellule 14 (train, codifications d'origine) : clients avec une seule codification de retard, hors septembre
+# 05_02_EDA_incidents, cellule 14 (train, codifications d'origine) : clients avec une seule codification de retard, hors septembre
 UN_SEUL_RETARD, SUR_VRAIE_FACTURE, SUR_FACTURE_NULLE, EN_AVRIL = 2146, 1738, 1, 407
 
 entete_partie_5(df, s12, train, test)
@@ -37,7 +37,7 @@ Les codifications sont désormais corrigées (page « 5.2 Chercher le contentieu
 # ------------------------------------------------------------------------------
 st.subheader("1. Un retard isolé n'est pas un contentieux", anchor="retard-isole")
 st.markdown(f"""
-Un client peut n'avoir qu'**une seule codification** de retard sur toute la période. Dans l'étude, {nombre_fr(UN_SEUL_RETARD)} clients de l'entraînement étaient dans ce cas : quand on peut le vérifier, ce retard porte presque toujours sur **une vraie facture** ({nombre_fr(SUR_VRAIE_FACTURE)} cas, contre {SUR_FACTURE_NULLE} seul sur une facture nulle ; les {EN_AVRIL} retards d'avril ne sont pas vérifiables, faute de connaître mars). Le client a payé en retard, puis a régularisé le mois suivant : c'est le **fonctionnement normal d'un crédit** ([05_02_EDA_contentieux.ipynb]({GH}/src/05_02_EDA_contentieux.ipynb), cellules 14 et 15).
+Un client peut n'avoir qu'**une seule codification** de retard sur toute la période. Dans l'étude, {nombre_fr(UN_SEUL_RETARD)} clients de l'entraînement étaient dans ce cas : quand on peut le vérifier, ce retard porte presque toujours sur **une vraie facture** ({nombre_fr(SUR_VRAIE_FACTURE)} cas, contre {SUR_FACTURE_NULLE} seul sur une facture nulle ; les {EN_AVRIL} retards d'avril ne sont pas vérifiables, faute de connaître mars). Le client a payé en retard, puis a régularisé le mois suivant : c'est le **fonctionnement normal d'un crédit** ([05_02_EDA_incidents.ipynb]({GH}/src/05_02_EDA_incidents.ipynb), cellules 14 et 15).
 
 À l'inverse, **deux codifications de retard d'affilée** signifient que la dette n'a pas été régularisée le mois suivant. Une codification {codif('2')} correspond déjà, a priori, à au moins 60 jours sans paiement (page 5.2) : deux codifications {codif('2')} d'affilée signifient donc **au moins 90 jours de retard**. Le retard s'installe. C'est ce seuil, et non un retard ponctuel, que l'étude a **choisi comme frontière entre la gestion standard et le contentieux**. Le dataset ne dit pas où la banque place elle-même cette frontière : c'est une définition de travail, fondée sur la logique métier.
 """)

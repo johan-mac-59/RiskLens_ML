@@ -8,7 +8,7 @@ st.title("🏦 RiskLens ML — Analyse & Prédiction du Risque Crédit 💳")
 
 # ------------------------------------------------------------------------------
 # Chiffres de « Ce que l'analyse va montrer », calculés en direct (parties 3 à 5)
-# Données d'origine (30 000 lignes, absentes du dépôt) : taux de défaut repris de 05_02_EDA_contentieux, cellule 41
+# Données d'origine (30 000 lignes, absentes du dépôt) : taux de défaut repris de 05_02_EDA_incidents, cellule 41
 TAUX_DEFAUT_ORIGINE = 22.12
 ent_accueil = load_entonnoir()
 df_accueil, s12_accueil, train_accueil, test_accueil = donnees_partie_5()

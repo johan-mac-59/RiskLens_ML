@@ -3,7 +3,7 @@ from streamlit_pages.commun import *
 # ==============================================================================
 # PARTIE 5.6 : PEU DE CLIENTS, BEAUCOUP DE DÉFAUTS
 # Bilan de la règle de retrait (clients au contentieux, prédits en défaut) : entraînement, test (utilisé une seule
-# fois dans l'étude, règle figée) et données d'origine (05_02_EDA_contentieux, sections 7, 9 et 9.1).
+# fois dans l'étude, règle figée) et données d'origine (05_02_EDA_incidents, sections 7, 9 et 9.1).
 # Entraînement et test recalculés en direct ; les données d'origine (30 000 lignes) ne sont pas dans le dépôt :
 # leurs résultats sont repris du notebook, source citée (décision D19).
 # ==============================================================================
@@ -11,7 +11,7 @@ GH = "https://github.com/johan-mac-59/RiskLens_ML/blob/main/src"
 
 df, s12, train, test = donnees_partie_5()
 
-# 05_02_EDA_contentieux, cellules 41 et 45 : règle appliquée aux 30 000 lignes d'origine (codifications brutes, aucun filtre)
+# 05_02_EDA_incidents, cellules 41 et 45 : règle appliquée aux 30 000 lignes d'origine (codifications brutes, aucun filtre)
 ORIGINE = {"clients": 30000, "ctx": 3013, "vp": 2124, "fp": 889, "precision": 70.49, "captes": 32.01, "reste": 16.72}
 
 
@@ -61,7 +61,7 @@ with col_t:
 # ------------------------------------------------------------------------------
 st.subheader("2. Une règle stable sur des clients qu'elle n'a jamais vus", anchor="stabilite")
 st.markdown(f"""
-Le jeu de **test** a été mis de côté dès le début de l'étude. Il n'a été utilisé **qu'une seule fois**, une fois la règle figée, et rien n'a été ajusté ensuite ([05_02_EDA_contentieux.ipynb]({GH}/05_02_EDA_contentieux.ipynb), section 7). C'est ce qui garantit que la règle n'a pas été taillée sur mesure pour les clients étudiés. Cette page ne fait qu'en afficher le résultat.
+Le jeu de **test** a été mis de côté dès le début de l'étude. Il n'a été utilisé **qu'une seule fois**, une fois la règle figée, et rien n'a été ajusté ensuite ([05_02_EDA_incidents.ipynb]({GH}/05_02_EDA_incidents.ipynb), section 7). C'est ce qui garantit que la règle n'a pas été taillée sur mesure pour les clients étudiés. Cette page ne fait qu'en afficher le résultat.
 
 La règle a aussi été appliquée aux **30 000 clients des données d'origine**, sans aucun nettoyage ni filtre (section 9). Ce n'est pas un test indépendant, puisque ces données contiennent l'entraînement, mais cela montre ce que donne la règle sur le fichier tel que la banque l'a fourni.
 """)
@@ -96,7 +96,7 @@ figes = (train[[f'PAY_{i}' for i in range(1, 7)]] == 2).all(axis=1)
 sains_figes = (train.loc[figes, 'dpnm'] == 0).mean() * 100
 st.markdown(f"""
 - **Environ {nombre_fr(100 - b_train['precision'], 0)} clients sur 100 placés au contentieux ne font pas défaut** ({nombre_fr(b_train['fp'])} sur l'entraînement). C'est la contrepartie assumée d'une règle simple : un client qui s'en sort quand même sera traité comme un client à risque. Pour une banque, ce coût est celui d'une surveillance renforcée, à comparer au coût d'un défaut non anticipé.
-- **La cible elle-même n'est pas parfaite.** La façon dont le défaut d'octobre a été noté n'est pas documentée, et ce n'est pas le simple prolongement de la codification : parmi les {nombre_fr(int(figes.sum()))} clients de l'entraînement codifiés {codif('2')} sur les 6 mois, {nombre_fr(sains_figes)} % sont notés sans défaut, alors que leur codification ne bouge jamais. Une partie des fausses alertes vient peut-être de là ([05_02_EDA_contentieux.ipynb]({GH}/05_02_EDA_contentieux.ipynb), cellule 28).
+- **La cible elle-même n'est pas parfaite.** La façon dont le défaut d'octobre a été noté n'est pas documentée, et ce n'est pas le simple prolongement de la codification : parmi les {nombre_fr(int(figes.sum()))} clients de l'entraînement codifiés {codif('2')} sur les 6 mois, {nombre_fr(sains_figes)} % sont notés sans défaut, alors que leur codification ne bouge jamais. Une partie des fausses alertes vient peut-être de là ([05_02_EDA_incidents.ipynb]({GH}/05_02_EDA_incidents.ipynb), cellule 28).
 - La règle prédit donc le défaut **tel que la banque l'a noté en octobre 2005**, pas forcément un impayé définitif.
 - **Une piste pour la suite** : si le défaut d'octobre mêlait de vrais défauts et des statuts provisoires, comme la codification {codif('1')} de septembre, encore non tranchée par la banque, alors un modèle n'apprendrait plus seulement à prédire le défaut, mais aussi **la prochaine codification de la banque**. Ce serait un tout autre modèle, avec une autre question. Le dataset ne permet pas de le vérifier : la règle de calcul du défaut n'est pas documentée.
 """)

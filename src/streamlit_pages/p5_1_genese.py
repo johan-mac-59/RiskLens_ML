@@ -54,7 +54,7 @@ Ce n'est qu'une hypothèse : la documentation du dataset ne dit rien de son syst
 # ------------------------------------------------------------------------------
 st.subheader("4. Une étude du contentieux, puis des corrections inscrites au nettoyage", anchor="etude")
 st.markdown(f"""
-Les anomalies de codification, reprises dans les pages « 3.3 Les codifications » et « 4.6 Les retards », et le plafond du machine learning ont lancé **l'étude du contentieux** ([05_02_EDA_contentieux.ipynb]({GH}/05_02_EDA_contentieux.ipynb)). En cherchant à le définir, elle a d'abord mis au jour de faux retards et un mois de septembre en suspens, puis abouti à une définition. Les corrections qui en découlent ont ensuite été inscrites dans le nettoyage (niveau 5), qui ajoute aussi les indicateurs du contentieux.
+Les anomalies de codification, reprises dans les pages « 3.3 Les codifications » et « 4.6 Les retards », et le plafond du machine learning ont lancé **l'étude du contentieux** ([05_02_EDA_incidents.ipynb]({GH}/05_02_EDA_incidents.ipynb)). En cherchant à le définir, elle a d'abord mis au jour de faux retards et un mois de septembre en suspens, puis abouti à une définition. Les corrections qui en découlent ont ensuite été inscrites dans le nettoyage (niveau 5), qui ajoute aussi les indicateurs du contentieux.
 
 **Le but** : repérer les clients en gestion contentieuse par une **règle métier** simple et explicable, les prédire en défaut sans modèle, et laisser au machine learning une population au comportement plus homogène (partie 6).
 """)

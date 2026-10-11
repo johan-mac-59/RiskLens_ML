@@ -6,7 +6,7 @@ from streamlit_pages.commun import *
 # nulle : comptes (ré)activés et faux 2 ; septembre en suspens) → ce que fait la banque quand elle sort un client
 # du retard → corrections décidées (banque + logique métier), inscrites au niveau 5 du nettoyage.
 # La vérification des codifications 1 et le contrôle du niveau 5 sont en page 5.3, après la définition des règles.
-# Sources : 05_02_EDA_contentieux (sections 3.1 à 3.3 et 6.1), 05_04_EDA_codification1 (sections 5 à 7).
+# Sources : 05_02_EDA_incidents (sections 3.1 à 3.3 et 6.1), 05_04_EDA_codification1 (sections 5 à 7).
 # Calculé en direct sur le CSV (codifications corrigées, indicateurs du niveau 5) : profils des comptes concernés,
 # sorties de retard, taux de défaut (entraînement uniquement). Les codifications d'origine ne sont ni dans le CSV
 # ni dans le dépôt : les chiffres « avant correction » sont repris des notebooks, source citée (décision D19).
@@ -17,7 +17,7 @@ df, s12, train, test = donnees_partie_5()
 taux_train = train['dpnm'].mean() * 100
 
 # Résultats repris des notebooks (codifications d'origine, absentes du CSV)
-# 05_02_EDA_contentieux, cellules 8 et 9 : entrées en retard observées sur le train (cleaned3, codifications d'origine)
+# 05_02_EDA_incidents, cellules 8 et 9 : entrées en retard observées sur le train (cleaned3, codifications d'origine)
 NB_ENTREES, NB_FAUX_2, NB_FAUX_2_PAR_DEUX, PART_INACTIFS_AVANT = 4850, 151, 148, 70.9
 # 05_04_EDA_codification1, cellule 42 (et audit) : codifications 1 de septembre dans les données d'origine
 NB_CODIF_1_ORIGINE = 3688
@@ -77,7 +77,7 @@ C'est le postulat de départ : un client **entre** en retard quand sa codificati
 # ------------------------------------------------------------------------------
 st.subheader("2. Une anomalie : des retards posés sur une facture nulle", anchor="retards-sans-facture")
 st.markdown(f"""
-Sur les {nombre_fr(NB_ENTREES)} entrées en retard observées dans le jeu d'entraînement, **{NB_FAUX_2} sont posées alors que la facture à payer ce mois-là est nulle** : le client ne pouvait pas être en retard sur une somme qu'il ne devait pas. Ces retards ont un point commun frappant : **{NB_FAUX_2_PAR_DEUX} sur {NB_FAUX_2} arrivent par deux**, deux mois de suite codifiés {codif('2')} sans aucune facture à payer. {nombre_fr(PART_INACTIFS_AVANT, 1)} % concernent des comptes qui n'avaient eu aucune activité auparavant ([05_02_EDA_contentieux.ipynb]({GH}/05_02_EDA_contentieux.ipynb), cellules 8 et 9, codifications d'origine).
+Sur les {nombre_fr(NB_ENTREES)} entrées en retard observées dans le jeu d'entraînement, **{NB_FAUX_2} sont posées alors que la facture à payer ce mois-là est nulle** : le client ne pouvait pas être en retard sur une somme qu'il ne devait pas. Ces retards ont un point commun frappant : **{NB_FAUX_2_PAR_DEUX} sur {NB_FAUX_2} arrivent par deux**, deux mois de suite codifiés {codif('2')} sans aucune facture à payer. {nombre_fr(PART_INACTIFS_AVANT, 1)} % concernent des comptes qui n'avaient eu aucune activité auparavant ([05_02_EDA_incidents.ipynb]({GH}/05_02_EDA_incidents.ipynb), cellules 8 et 9, codifications d'origine).
 
 Une erreur de saisie se répartirait au hasard. Un schéma aussi régulier évoque plutôt **une procédure de la banque**. Ce que le client a fait le mois qui précède le premier retard distingue deux situations :
 """)
@@ -136,7 +136,7 @@ La correction ne doit pas pour autant effacer ce que la banque a voulu signaler.
 - `SURVEILLANCE_RECENTE` = 1 pour les comptes (ré)activés, dont la mise sous surveillance est un signal de risque ;
 - `FAUX_CODAGE` = 1 pour les faux 2, par sécurité, comme indicateur à tester en machine learning.
 
-**Une piste écartée** : un client **déjà en retard sur une vraie dette** qui la rembourse en totalité reste souvent codifié {codif('2')} quelque temps, alors qu'il ne doit plus rien : sa codification se retrouve elle aussi posée sur une facture nulle. Ces {codif('2')} ont été laissés tels quels. Maintenir un retard pendant un délai après le remboursement, avant de rouvrir la ligne de crédit, ressemble à une procédure normale de la banque. Seules les **entrées** en retard sur une facture nulle sont donc corrigées ; **un {codif('2')} qui prolonge un vrai retard n'est jamais modifié** ([05_02_EDA_contentieux.ipynb]({GH}/05_02_EDA_contentieux.ipynb), cellule 12).
+**Une piste écartée** : un client **déjà en retard sur une vraie dette** qui la rembourse en totalité reste souvent codifié {codif('2')} quelque temps, alors qu'il ne doit plus rien : sa codification se retrouve elle aussi posée sur une facture nulle. Ces {codif('2')} ont été laissés tels quels. Maintenir un retard pendant un délai après le remboursement, avant de rouvrir la ligne de crédit, ressemble à une procédure normale de la banque. Seules les **entrées** en retard sur une facture nulle sont donc corrigées ; **un {codif('2')} qui prolonge un vrai retard n'est jamais modifié** ([05_02_EDA_incidents.ipynb]({GH}/05_02_EDA_incidents.ipynb), cellule 12).
 """)
 
 # ------------------------------------------------------------------------------
@@ -200,7 +200,7 @@ tab_sorties = pd.crosstab(sorties['avant'], sorties['sortie'], normalize='index'
 effectifs_avant = sorties['avant'].value_counts()
 
 st.markdown(f"""
-Pour choisir les codifications de remplacement, l'étude a d'abord regardé ce que fait la banque elle-même quand elle sort un client du retard, sur les mois où l'issue est connue. Sur les {nombre_fr(len(toutes_sorties))} sorties de retard du jeu d'entraînement, d'avril à septembre ([05_02_EDA_contentieux.ipynb]({GH}/05_02_EDA_contentieux.ipynb), cellule 31, recalculé ici) :
+Pour choisir les codifications de remplacement, l'étude a d'abord regardé ce que fait la banque elle-même quand elle sort un client du retard, sur les mois où l'issue est connue. Sur les {nombre_fr(len(toutes_sorties))} sorties de retard du jeu d'entraînement, d'avril à septembre ([05_02_EDA_incidents.ipynb]({GH}/05_02_EDA_incidents.ipynb), cellule 31, recalculé ici) :
 - **elle remet presque toujours le client sur la codification qu'il avait avant son retard** : {nombre_fr(meme_codif)} % des sorties dont on connaît cette codification (graphique ci-dessous) ;
 - **elle ne le remet presque jamais à {codif('-2')}** ({nombre_fr(nb_sorties_moins2)} cas sur {nombre_fr(len(toutes_sorties))}) : les {nombre_fr(depuis_moins2.sum())} clients qui étaient à {codif('-2')} avant leur retard sont ressortis en {codif('-1')} ({nombre_fr(depuis_moins2.get(-1, 0))}) ou en {codif('0')} ({nombre_fr(depuis_moins2.get(0, 0))}) : un client qui vient de rembourser une dette n'est plus « sans consommation » ;
 - **quand le retard dure depuis avril**, la codification d'avant n'est pas connue : la banque fait alors ressortir en {codif('0')} dans {nombre_fr(sortie_inconnue_freq.get(0, 0))} % des cas.

@@ -83,7 +83,7 @@ Le schéma résume le parcours ; voici le détail de chaque étape, dans le mêm
 *   **Le blocage** : les performances plafonnent, et une sous-population de clients figés en retard apparaît. L'itération est arrêtée ; son archive est gardée telle quelle, comme trace des performances de référence.
 
 #### 5. Le contentieux : analyse et définition métier
-*   Recherche du périmètre de la population contentieuse, isolée par une règle métier (deux codifications de retard d'affilée, soit au moins 90 jours) : [EDA contentieux](src/05_02_EDA_contentieux.ipynb)
+*   Recherche du périmètre de la population contentieuse, isolée par une règle métier (deux codifications de retard d'affilée, soit au moins 90 jours) : [EDA contentieux](src/05_02_EDA_incidents.ipynb)
 *   Étude dédiée de la codification `PAY_n = 1` (statut provisoire du dernier mois, corrections retenues) : [EDA codification 1](src/05_04_EDA_codification1.ipynb)
 *   Corrections de codification et indicateurs du contentieux écrits au niveau 5 du nettoyage : [notebook de nettoyage](src/02_01_nettoyage.ipynb)
 

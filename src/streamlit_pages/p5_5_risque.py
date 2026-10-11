@@ -3,7 +3,7 @@ from streamlit_pages.commun import *
 # ==============================================================================
 # PARTIE 5.5 : LE RISQUE SUIT LE STATUT
 # Validation de la définition avec le défaut, sur le jeu d'entraînement uniquement
-# (05_02_EDA_contentieux, section 6 ; 05_04_EDA_codification1, section 5.1 pour NB_MOIS_CTX).
+# (05_02_EDA_incidents, section 6 ; 05_04_EDA_codification1, section 5.1 pour NB_MOIS_CTX).
 # Le défaut sert à vérifier que la règle a un sens, jamais à la régler. Colonnes lues dans le CSV.
 # ==============================================================================
 df, s12, train, test = donnees_partie_5()
@@ -132,7 +132,7 @@ st.subheader("5. Un retard posé sur une facture payée n'est pas anodin", ancho
 # Entrées en retard (PAY_n >= 2 alors que PAY_(n+1) < 2) posées sur une facture réelle (BILL_AMT(n+1) > 0) payée en entier
 # le mois même (PAY_AMTn >= BILL_AMT(n+1)) et le mois précédent (facture nulle ou payée en entier) : la codification suit
 # le paiement avec un mois de décalage, d'où les deux mois. Historique : mai à août (n = 5 à 2) ; septembre : n = 1.
-# Ces codifications ne sont pas corrigées (05_02_EDA_contentieux, cellule 18) : on mesure seulement leur risque.
+# Ces codifications ne sont pas corrigées (05_02_EDA_incidents, cellule 18) : on mesure seulement leur risque.
 
 
 def retard_sur_facture_payee(d, mois):
@@ -155,7 +155,7 @@ GROUPES_PAYE = [
     ("Comparaison : au contentieux", train['STATUT'] == "Au contentieux"),
 ]
 st.markdown(f"""
-Il existe des retards posés sur une facture **réelle, payée en entier**, le mois même et le mois précédent : le client a tout réglé, et la banque le codifie pourtant en retard. Ces codifications **n'ont pas été corrigées**, et c'est un choix ([05_02_EDA_contentieux.ipynb](https://github.com/johan-mac-59/RiskLens_ML/blob/main/src/05_02_EDA_contentieux.ipynb), cellule 18).
+Il existe des retards posés sur une facture **réelle, payée en entier**, le mois même et le mois précédent : le client a tout réglé, et la banque le codifie pourtant en retard. Ces codifications **n'ont pas été corrigées**, et c'est un choix ([05_02_EDA_incidents.ipynb](https://github.com/johan-mac-59/RiskLens_ML/blob/main/src/05_02_EDA_incidents.ipynb), cellule 18).
 
 Les règles de codification de la banque n'ont pas pu être entièrement percées, et la première itération du machine learning laissait déjà pressentir qu'elles portaient une information plus profonde que les montants. L'étude a donc cherché à **modifier le moins possible les codifications** : seuls les retards indéfendables, posés sur une facture nulle, sont corrigés (page 5.2), et même eux laissent une trace dans des colonnes créées pour l'occasion. Les autres anomalies, comme celle-ci, restent telles quelles ; elles sont simplement classées par les règles du contentieux. Que valent-elles face au défaut ?
 """)

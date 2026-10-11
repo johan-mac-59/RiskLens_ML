@@ -21,7 +21,7 @@ st.markdown(f"""
 En rassemblant l'audit, l'EDA_lab, l'étude de la codification 1 et celle du contentieux, les codifications de paiement présentent toute une série d'incohérences :
 - **des codifications absentes de la nomenclature officielle sont massivement employées** : 0 est la plus fréquente de toutes, et -2 concerne entre 9 et 16 % des clients selon le mois (voir la page « 3.1 Audit », graphique des codifications par mois) ;
 - **la codification 1, censée signaler un retard d'un mois, n'apparaît presque qu'en septembre**, le dernier mois : 12 % des clients ce mois-là, quasiment aucun avant (EDA_codification1, section 1) ;
-- **des retards sont posés alors qu'aucune facture n'était due** (EDA_lab, cellule 115), et ces faux retards arrivent presque toujours par deux mois consécutifs ([05_02_EDA_contentieux.ipynb]({GH}/05_02_EDA_contentieux.ipynb), section 3.2) ;
+- **des retards sont posés alors qu'aucune facture n'était due** (EDA_lab, cellule 115), et ces faux retards arrivent presque toujours par deux mois consécutifs ([05_02_EDA_incidents.ipynb]({GH}/05_02_EDA_incidents.ipynb), section 3.2) ;
 - **à l'inverse, deux mois sans aucun paiement, alors que des factures étaient dues, laissent environ 3 clients sur 10 en codification saine** (EDA_lab, cellules 150 et 151) ;
 - **des clients restent codifiés en retard après avoir payé**, et ne sortent du retard que le mois suivant (EDA_lab, cellules 92 à 96) ;
 - **des codifications de retard supérieures à 2 redescendent à 2 sans aucun paiement**, alors qu'une facture était due : 393 clients sont concernés, soit 1,31 % (EDA_lab, cellules 138 et 154) ;
