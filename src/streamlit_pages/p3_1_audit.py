@@ -67,10 +67,10 @@ with col_mar:
 st.subheader("Les codifications de paiement : -2 et 0, absentes de la documentation, dominent", anchor="codifications-hors-documentation")
 st.markdown(f"""
 La documentation ne prévoit ni **-2** ni **0** pour la codification de paiement. Pourtant, **0 est de loin la codification la plus fréquente**, et **-2 est loin d'être marginale**.
-Répartition par mois dans le fichier d'origine ([05_04_EDA_codification1.ipynb]({GH}/05_04_EDA_codification1.ipynb), section 1) :
+Répartition par mois dans le fichier d'origine ([01_01_audit.ipynb]({GH}/01_01_audit.ipynb), cellule 9) :
 """)
 
-# Parts (%) reprises de 05_04_EDA_codification1, section 1 (30 000 clients, fichier d'origine)
+# Parts (%) reprises de 01_01_audit, cellule 9 (30 000 clients, fichier d'origine)
 mois = ["M-6 (avril)", "M-5 (mai)", "M-4 (juin)", "M-3 (juil.)", "M-2 (août)", "M-1 (sept.)"]
 repartition = pd.DataFrame({
     -2: [16.32, 15.15, 14.49, 13.62, 12.61, 9.20],
@@ -99,7 +99,7 @@ st.plotly_chart(fig_codif, width="stretch")
 
 st.markdown("""
 Autres constats de l'enquête :
-- **9 821 clients** sont codifiés **0 sur les 6 mois**, et **2 109 clients -2 sur les 6 mois** (EDA_lab, cellules 12 et 16 ; chiffres identiques sur les 30 000 clients du fichier d'origine) : ces valeurs non documentées ne sont pas des cas isolés.
+- **9 821 clients** sont codifiés **0 sur les 6 mois**, et **2 109 clients -2 sur les 6 mois** (EDA_lab, partie « Les codifications face aux factures et aux paiements », cellules 18 et 14 ; chiffres identiques sur les 30 000 clients du fichier d'origine) : ces valeurs non documentées ne sont pas des cas isolés.
 - **Le nom des colonnes diffère aussi** : le dictionnaire du dataset appelle `PAY_0` la codification de septembre, alors que le fichier Kaggle utilisé la nomme déjà `PAY_1`, ce qui suit la numérotation des factures (`BILL_AMT1`) et des paiements (`PAY_AMT1`).
 """)
 
@@ -113,7 +113,7 @@ st.markdown("Ces montants négatifs sont étudiés avec les autres montants (pag
 
 st.subheader("Des paiements sans commune mesure avec les factures")
 st.markdown(f"""
-On compare chaque paiement à la facture qu'il règle : le paiement d'un mois (`PAY_AMTn`) rembourse la facture du mois précédent (`BILL_AMT(n+1)`). Ce **ratio de paiement** (montant payé divisé par la facture à régler, en %), calculé quand une facture est due, atteint des valeurs démesurées (définitions de l'EDA_lab, [05_01_EDA_lab.ipynb]({GH}/05_01_EDA_lab.ipynb), cellules 52, 55 et 58 ; calcul refait sur les 30 000 clients, l'EDA_lab ayant mis de côté les 4 clients aux paiements géants) :
+On compare chaque paiement à la facture qu'il règle : le paiement d'un mois (`PAY_AMTn`) rembourse la facture du mois précédent (`BILL_AMT(n+1)`). Ce **ratio de paiement** (montant payé divisé par la facture à régler, en %), calculé quand une facture est due, atteint des valeurs démesurées (définitions de l'EDA_lab, [05_01_EDA_lab.ipynb]({GH}/05_01_EDA_lab.ipynb), partie « Les ratios de paiement », cellules 61, 62 et 65 ; calcul refait sur les 30 000 clients, l'EDA_lab ayant mis de côté les 4 clients aux paiements géants) :
 """)
 st.dataframe(pd.DataFrame({
     "Mois du paiement": ["M-5 (mai)", "M-4 (juin)", "M-3 (juil.)", "M-2 (août)", "M-1 (sept.)"],
@@ -133,7 +133,7 @@ st.dataframe(pd.DataFrame(
 
 st.subheader("Des clients sans facture, pourtant notés en défaut", anchor="sans-facture")
 st.markdown(f"""
-La facture de fin septembre (`BILL_AMT1`) est celle à payer en octobre, le mois sur lequel porte le défaut de paiement à prédire. Pourtant, des clients qui n'ont rien à payer en octobre sont notés en défaut, plus souvent même que l'ensemble des clients ([05_01_EDA_lab.ipynb]({GH}/05_01_EDA_lab.ipynb), cellules 40, 42 et 43). L'EDA_lab calcule sur 29 996 clients, après le retrait de 4 clients aux paiements géants ; ces 4 clients ont tous des factures positives, les chiffres sont donc identiques sur les 30 000 clients du fichier d'origine :
+La facture de fin septembre (`BILL_AMT1`) est celle à payer en octobre, le mois sur lequel porte le défaut de paiement à prédire. Pourtant, des clients qui n'ont rien à payer en octobre sont notés en défaut, plus souvent même que l'ensemble des clients ([05_01_EDA_lab.ipynb]({GH}/05_01_EDA_lab.ipynb), partie « Défaut de paiement sans encours », cellules 41, 43 et 44). L'EDA_lab calcule sur 29 996 clients, après le retrait de 4 clients aux paiements géants ; ces 4 clients ont tous des factures positives, les chiffres sont donc identiques sur les 30 000 clients du fichier d'origine :
 """)
 st.dataframe(pd.DataFrame({
     "Situation": ["Facture de septembre nulle ou négative", "Factures négatives sur les 6 mois", "Factures nulles sur les 6 mois", "Ensemble des clients"],
