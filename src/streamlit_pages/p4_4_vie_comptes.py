@@ -143,7 +143,7 @@ st.markdown("""
 Cinq situations, attribuées dans cet ordre (un client n'appartient qu'à une seule) :
 - **Ouverture** : aucune trace avant la première activité (encours de 0 exactement et aucun paiement en avril), puis une activité (mouvement de l'encours ou paiement) de mai à septembre ;
 - **Dégel** : réveil, de mai à septembre, d'un compte gelé qui existait déjà (un avoir en avril, ou un mois actif avant le gel) : 3 mois inactifs d'affilée quand on a le recul suffisant, sinon inactif sur toute la durée visible depuis avril (définition ci-dessus) ;
-- **Compte endormi** : une activité entre avril et juillet, puis plus aucune facture positive ni aucun paiement en août et en septembre ; deux mois sans activité sont exigés, et non un seul, parce qu'un paiement peut être enregistré avec un mois de décalage (page « 3.3 Les codifications ») ;
+- **Compte endormi** : une activité entre avril et juillet, puis plus aucune facture positive ni aucun paiement en août et en septembre ; deux mois sans activité sont exigés, et non un seul, parce qu'un paiement peut être enregistré avec un mois de décalage (page « 3.2 Les montants ») ;
 - **Actifs sur les 6 mois** : une facture positive ou un paiement chaque mois ;
 - **Activité intermittente** : tous les autres comptes, actifs dès avril mais avec au moins un mois sans activité en cours de période ; une situation difficile à mesurer, à cause des délais d'enregistrement des paiements.
 """)

@@ -148,15 +148,20 @@ st.markdown(f"""
 Les types reposent **uniquement sur les paiements** : aucune codification de la banque n'y entre, ce qui permet de les confronter plus bas à ces codifications.
 """)
 
-# Seuil de 3 % : part des mois codifiés en retard selon la part de la facture payée dans le mois (codification, pas défaut)
-mois = pd.concat([pd.DataFrame({'ratio': df.loc[df[f'BILL_AMT{n + 1}'] > 0, f'ratio_PAY_BILL{n}'],
-                                'retard': df.loc[df[f'BILL_AMT{n + 1}'] > 0, f'PAY_{n}'] >= 2}) for n in range(1, 6)])
-retard_moins_1 = mois.loc[(mois['ratio'] > 0) & (mois['ratio'] < 1), 'retard'].mean() * 100
+# Seuil de 3 % : part des factures mises en retard selon la part payée le mois suivant (codification, pas défaut).
+# Le paiement du mois n (ratio_PAY_BILLn) règle la facture BILL_AMT(n+1), codifiée PAY_(n+1). Juillet et août seulement
+# (n = 2 et 1) : la banque y applique sa règle sans tolérance, et le nettoyage ne modifie pas ces mois ; clients sains le mois précédent.
+mois = pd.concat([pd.DataFrame({'ratio': df.loc[m, f'ratio_PAY_BILL{n}'], 'retard': df.loc[m, f'PAY_{n + 1}'] >= 2})
+                  for n in (1, 2) for m in [(df[f'BILL_AMT{n + 1}'] > 0) & (df[f'PAY_{n + 2}'] <= 0)]])
+retard_moins_1 = mois.loc[mois['ratio'] < 1, 'retard'].mean() * 100
+retard_1_3 = mois.loc[(mois['ratio'] >= 1) & (mois['ratio'] < 3), 'retard'].mean() * 100
 retard_3_6 = mois.loc[(mois['ratio'] >= 3) & (mois['ratio'] < 6), 'retard'].mean() * 100
-st.markdown(f"Pourquoi 3 % ? Mois par mois, la banque pose un retard dans {nombre_fr(retard_moins_1, 0)} % des mois où le client paie moins de 1 % de sa facture, "
-            f"mais dans {nombre_fr(retard_3_6, 0)} % seulement des mois où il en paie 3 à 6 %, une part qui ne baisse plus guère avant le paiement complet. "
-            f"Le pic des ratios mensuels, autour de {pic} %, ressemble donc à la **mensualité minimale** acceptée par la banque : c'est une lecture empirique, "
-            "aucune source ne donnant le minimum exigé en 2005. En dessous, le client paie moins qu'une mensualité : il est en difficulté.")
+st.markdown(f"Pourquoi 3 % ? En juillet et en août, quand la banque applique sa règle sans tolérance (page « 3.3 Les codifications »), un client sain "
+            f"qui paie moins de 1 % de sa facture le mois suivant est mis en retard dans {nombre_fr(retard_moins_1, 0)} % des cas, "
+            f"entre 1 et 3 % dans {nombre_fr(retard_1_3, 0)} % des cas, et entre 3 et 6 % dans {nombre_fr(retard_3_6, 0)} % seulement. "
+            "La banque exige au moins 1,5 % de la facture et au moins 1 000 NT\\$ ; à partir de 3 %, ces deux conditions sont presque toujours remplies, et presque aucun client n'est plus mis en retard. "
+            f"Le pic des ratios mensuels, autour de {pic} %, tombe sur ce seuil : il ressemble donc à la **mensualité minimale** acceptée par la banque. "
+            "C'est une lecture empirique, aucune source ne donnant le minimum exigé en 2005. En dessous de 3 %, le client paie moins qu'une mensualité : il est en difficulté.")
 
 # Durée de remboursement d'une dette selon la mensualité, au taux des cartes en 2005 (17 à 20 % par an, on retient 20 %),
 # sans nouveaux achats :
@@ -300,8 +305,9 @@ La page « 3.3 Les codifications » a donné un sens aux codifications à partir
 
 # Codification la plus fréquente : colonne PAY_habituel lue dans le CSV (créée par 05_03_EDA_storytelling, définie dans
 # docs/colonnes_creees.md : PAY_1 à PAY_6, retards regroupés en 2, égalité tranchée par le mois le plus récent)
-ORDRE_CODIF = ["-2", "-1", "0", "1", "2 et plus"]
-df['codif_habituelle'] = df['PAY_habituel'].map({-2: "-2", -1: "-1", 0: "0", 1: "1", 2: "2 et plus"})
+# Plus de codification 1 depuis le niveau 2 du nettoyage (codifications 1 remplacées, page 3.5)
+ORDRE_CODIF = ["-2", "-1", "0", "2 et plus"]
+df['codif_habituelle'] = df['PAY_habituel'].map({-2: "-2", -1: "-1", 0: "0", 2: "2 et plus"})
 parts_codif = (pd.crosstab(df['type_usage'], df['codif_habituelle'], normalize='index') * 100)
 parts_codif = parts_codif.reindex(index=NOMS_AFFICHES, columns=ORDRE_CODIF, fill_value=0)
 
