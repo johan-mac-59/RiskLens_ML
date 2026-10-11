@@ -3,8 +3,8 @@ from sklearn.model_selection import train_test_split
 
 # ==============================================================================
 # PARTIE 6.2 : LA NOUVELLE DÉMARCHE
-# Le redémarrage du machine learning après l'étude du contentieux : une nouvelle base (clients actifs, sans le
-# contentieux à M), ce qui change par rapport à la première itération, les questions qui ont guidé la méthode.
+# Le redémarrage du machine learning après l'étude de la population en incident : une nouvelle base (clients actifs, sans
+# la population en incident à M ni le retard imminent), ce qui change par rapport à la première itération, les questions qui ont guidé la méthode.
 # Une démarche, pas un journal de bord : le détail des versions de la méthode et leur effet mesuré sont dans
 # lab_ML/methodologie_ML.md (section 11). Effectifs calculés en direct (population de creation_datasets_ML) ;
 # les résultats des modèles sont présentés en 6.3.
@@ -14,33 +14,33 @@ METHODOLOGIE = f"{GH_RACINE}/lab_ML/methodologie_ML.md"
 
 df = load_data()
 s12 = df[(df["BILL_AMT1"] > 0) & (df["LIMIT_BAL"] <= 500000)]
-au_ctx = (s12["FLAG_CTX"] == 1) & (s12["MOIS_SORTIE_CTX"] == -1)
+au_ctx = s12["STATUT_INCIDENT"].isin(["En incident", "Retard imminent"])
 hors_ctx = s12[~au_ctx]
 # Même découpage que lab_ML/creation_datasets_ML.ipynb : 80/20, stratifié sur dpnm, graine 42
 train_ml, test_ml = train_test_split(hors_ctx, test_size=0.2, stratify=hors_ctx["dpnm"], random_state=42)
 
 entete_partie_6()
 st.markdown("---")
-st.header("6.2 La nouvelle démarche : séparer le contentieux du reste", anchor="demarche")
+st.header("6.2 La nouvelle démarche : séparer la population en incident et le retard imminent du reste", anchor="demarche")
 
 # ------------------------------------------------------------------------------
-st.subheader("1. Une nouvelle base : les clients actifs, sans le contentieux", anchor="nouvelle-base")
+st.subheader("1. Une nouvelle base : les clients actifs, sans la population en incident ni le retard imminent", anchor="nouvelle-base")
 st.markdown(f"""
-La première itération mélangeait deux populations (page 6.1). La partie 5 les a séparées : **les clients au contentieux en octobre sont confiés à la règle métier**, qui les prédit tous en défaut (page 5.6). Le machine learning reprend donc sur une base plus homogène :
+La première itération mélangeait deux populations (page 6.1). La partie 5 les a séparées : **les clients en incident et en retard imminent en septembre sont confiés aux règles métier**, qui les prédisent tous en défaut (page 5.5). Le machine learning reprend donc sur une base plus homogène :
 - le **périmètre S12** : les clients qui ont une dette en septembre, avec un plafond de 500 000 NT$ ou moins ({nombre_fr(len(s12))} clients) ;
-- **sans les {nombre_fr(au_ctx.sum())} clients au contentieux en octobre** : restent **{nombre_fr(len(hors_ctx))} clients en gestion normale**, dont {nombre_fr(hors_ctx['dpnm'].mean() * 100, 1)} % font défaut ;
+- **sans les {nombre_fr(au_ctx.sum())} clients en incident ou en retard imminent en septembre** : restent **{nombre_fr(len(hors_ctx))} clients en gestion normale**, dont {nombre_fr(hors_ctx['dpnm'].mean() * 100, 1)} % font défaut ;
 - un **découpage propre au machine learning** : {nombre_fr(len(train_ml))} clients pour l'entraînement (80 %), {nombre_fr(len(test_ml))} pour le test (20 %), avec la même part de défauts dans les deux. **Le test n'est lu qu'une seule fois, à la toute fin**, sur le modèle figé : tous les choix se font sur l'entraînement.
 
 Ces deux jeux sont créés **directement à partir du nettoyage le plus avancé** (partie 3), sans dépendre de l'exploration : n'importe qui peut les recréer à l'identique à partir des données d'origine.
 
-Cette base est **plus difficile** que celle de la première itération : les défauts les plus faciles à repérer, ceux du contentieux, sont partis à la règle métier. Les scores des modèles y sont mécaniquement plus bas, sans que les modèles soient moins bons ; la vraie comparaison se fera sur le système complet, la règle pour le contentieux et le modèle pour le reste (partie 8).
+Cette base est **plus difficile** que celle de la première itération : les défauts les plus faciles à repérer, ceux de la population en incident et du retard imminent, sont partis aux règles métier. Les scores des modèles y sont mécaniquement plus bas, sans que les modèles soient moins bons ; la vraie comparaison se fera sur le système complet, les règles pour ces deux populations et le modèle pour le reste (partie 8).
 """)
 
 # ------------------------------------------------------------------------------
 st.subheader("2. Ce qui change par rapport à la première itération", anchor="changements")
 st.markdown("Les données changent, et la méthode aussi : elle devient automatique, reproductible et tracée.")
 tableau_html(["", "Première itération", "Nouvelle démarche"], [
-    ["<b>Population</b>", "Tout le dataset, contentieux compris", "Clients actifs en gestion normale ; le contentieux est confié à la règle métier"],
+    ["<b>Population</b>", "Tout le dataset, population en incident comprise", "Clients actifs en gestion normale ; la population en incident et le retard imminent sont confiés aux règles métier"],
     ["<b>Préparation des variables</b>", "Codifications de paiement traitées comme des catégories ordonnées : un retard rare, absent des clients d'apprentissage, pouvait être lu comme celui d'un excellent payeur",
      "Codifications traitées comme des nombres (un cran par mois de retard) ; paiements passés au logarithme, pour que les petits et moyens paiements ne soient pas écrasés par quelques très gros remboursements ; toutes les variables mises à la même échelle"],
     ["<b>Réglage des modèles</b>", "Recherche (GridSearch), puis grilles retouchées à la main pour limiter le surapprentissage",
@@ -66,7 +66,7 @@ La méthode ne s'est pas écrite d'un trait : elle s'est construite en relançan
 Au seuil de 0,5, le SVM, les plus proches voisins (KNN) et le réseau de neurones ne trouvaient presque aucun défaut, alors qu'ils rangeaient les clients du plus sûr au plus risqué presque aussi bien que les meilleurs modèles. Leurs probabilités restaient simplement basses : peu de clients passaient au-dessus de 0,5. Le seuil commun les jugeait mal. **On ne juge donc plus les modèles au même seuil, mais à la même part de défauts trouvés** : chaque modèle a son propre seuil.
 
 **Quelle part des défauts viser ?**
-On fixe un **taux de rappel minimal** : la part des défauts que la banque exige au moins de repérer. C'est une **exigence métier**, pas un réglage cherché pour flatter les résultats. Il a été fixé à **60 % des défauts hors contentieux** : c'est le niveau que les meilleurs modèles (CatBoost et RandomForest) atteignaient déjà au premier essai sur cette nouvelle base, au seuil de 0,5, sans être réglés pour ça. L'objectif paraissait donc réaliste, et il avait vocation à être relevé si les performances le permettaient. Il ne l'a jamais été : la page 6.3 montre pourquoi. Viser plus haut a un prix, à arbitrer selon ce que la banque peut suivre : plus de défauts trouvés, mais plus de clients signalés à tort. À l'extrême, le réglage qui maximise le F2 score signalait la majorité des clients.
+On fixe un **taux de rappel minimal** : la part des défauts que la banque exige au moins de repérer. C'est une **exigence métier**, pas un réglage cherché pour flatter les résultats. Il a été fixé à **60 % des défauts des clients restants** : c'est le niveau que les meilleurs modèles (CatBoost et RandomForest) atteignaient déjà au premier essai sur cette nouvelle base, au seuil de 0,5, sans être réglés pour ça. L'objectif paraissait donc réaliste, et il avait vocation à être relevé si les performances le permettaient. Il ne l'a jamais été : la page 6.3 montre pourquoi. Viser plus haut a un prix, à arbitrer selon ce que la banque peut suivre : plus de défauts trouvés, mais plus de clients signalés à tort. À l'extrême, le réglage qui maximise le F2 score signalait la majorité des clients.
 
 **Le but est alors fixé : à ce taux de rappel tenu, faire monter la précision des défauts prédits**, c'est-à-dire signaler le moins possible de bons clients pour trouver ces 60 % de défauts. C'est ce que cherchent les scénarios (page 6.3).
 
@@ -89,7 +89,7 @@ st.markdown("""
 - les **ratios de paiement** et le **type d'usage de la carte**, du paiement comptant au crédit qui ne se rembourse pas (page 4.3), avec la régularité du comportement de paiement ;
 - la **codification habituelle** du client, hors retards ;
 - la **vie du compte** : ouverture ou réveil pendant la période (page 4.4) ;
-- l'**historique des retards** : leur nombre, leur durée, la sortie d'un retard (pages 4.6 et 5.3).
+- l'**historique des retards** : leur nombre, leur durée, la sortie d'un retard (pages 4.6 et 5.2).
 
 D'autres variables ont été créées au fil des résultats, comme des signaux de rupture de comportement.
 
@@ -97,5 +97,5 @@ D'autres variables ont été créées au fil des résultats, comme des signaux d
 """)
 
 st.info("""
-**Ce qu'il faut retenir** : le machine learning reprend sur les seuls clients en gestion normale, le contentieux étant confié à la règle métier. La méthode devient automatique et reproductible : chaque modèle doit atteindre un taux de rappel minimal, exigence métier, et il est réglé pour être le plus précis possible à ce point, sans apprendre le dataset par cœur ni cesser d'apprendre, puis classé par un score décisionnel F2. Chaque choix répond à une question concrète posée par les premiers résultats. Sur le socle, elle a mis les six modèles à égalité, sans en désavantager aucun. Les scénarios ont ensuite enrichi le socle, groupe de variables par groupe de variables, chacun gardé seulement s'il apportait un gain réel.
+**Ce qu'il faut retenir** : le machine learning reprend sur les seuls clients en gestion normale, la population en incident et le retard imminent étant confiés aux règles métier. La méthode devient automatique et reproductible : chaque modèle doit atteindre un taux de rappel minimal, exigence métier, et il est réglé pour être le plus précis possible à ce point, sans apprendre le dataset par cœur ni cesser d'apprendre, puis classé par un score décisionnel F2. Chaque choix répond à une question concrète posée par les premiers résultats. Sur le socle, elle a mis les six modèles à égalité, sans en désavantager aucun. Les scénarios ont ensuite enrichi le socle, groupe de variables par groupe de variables, chacun gardé seulement s'il apportait un gain réel.
 """)
