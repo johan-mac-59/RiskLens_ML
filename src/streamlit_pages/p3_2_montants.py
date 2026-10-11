@@ -69,11 +69,11 @@ Dépasser son plafond de quelques dizaines de pourcents est possible avec une ca
 
 st.subheader("2. Des factures et des paiements au-delà du plafond", anchor="plafond")
 st.markdown("""
-Les autres dépassements restent rares (EDA_lab, cellules 8 à 10, sur 29 996 clients, les 4 paiements géants étant mis de côté) :
+Les dépassements du plafond restent rares (EDA_lab, cellules 8 à 10, sur les 30 000 clients du fichier d'origine, paiements géants compris) :
 """)
 st.dataframe(pd.DataFrame({
     "Dépassement": ["Une facture au-delà de 2,1 fois le plafond", "Un paiement d'au moins 1,2 fois le plafond", "Un paiement d'au moins 2,1 fois le plafond"],
-    "Clients": [40, 78, 12],
+    "Clients": [42, 82, 16],
 }), hide_index=True, width="stretch")
 st.markdown(f"""
 Dans le crédit renouvelable, dépasser son plafond est rare mais possible ; au-delà de 120 %, c'est difficile. Pourtant, ce seuil serait trop sévère ici : des clients paient en avance, d'autres remboursent toute leur carte chaque mois, et un paiement fait en fin de mois en supérette peut n'être enregistré que le mois suivant. Pour les plus gros écarts, deux explications restent possibles mais invérifiables : une **baisse du plafond** par la banque pendant la période, plausible en pleine crise, quand le régulateur resserre l'endettement ; ou une **erreur de saisie** au guichet (un montant multiplié par 100, ou saisi deux fois). La lecture des lignes concernées ne montre pas d'aberration flagrante : ces dépassements traduisent plutôt un usage intensif de la carte (EDA_lab, cellule 10 ; partie « L'utilisation du plafond et la vie des comptes », cellules 140 à 142).
@@ -83,7 +83,7 @@ Dans le crédit renouvelable, dépasser son plafond est rare mais possible ; au-
 
 st.subheader("3. Des ratios de paiement démesurés", anchor="ratios")
 st.markdown("""
-Le ratio de paiement compare le montant payé à la facture qu'il règle. 486 clients ont au moins un mois où ils paient plus de 2,1 fois leur facture (ratio supérieur à 210 %) (EDA_lab, partie « Les ratios de paiement », cellule 67). Certaines lignes révèlent une erreur de saisie probable, comme le client 344 :
+Le ratio de paiement compare le montant payé à la facture qu'il règle. 488 clients ont au moins un mois où ils paient plus de 2,1 fois leur facture (ratio supérieur à 210 %) (EDA_lab, partie « Les ratios de paiement », cellule 67). Certaines lignes révèlent une erreur de saisie probable, comme le client 344 :
 """)
 st.dataframe(pd.DataFrame({
     "Mois": ["Avril", "Mai"],
