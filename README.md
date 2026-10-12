@@ -200,3 +200,7 @@ Aucune banque n'utilise ce travail : il montre une méthode et ce qu'on peut en 
 *   **Réentraîner le modèle sur l'entraînement et le test réunis** : le gain attendu reste dans le bruit, et il ne resterait plus de clients jamais vus pour juger le modèle et le montrer en direct.
 
 Raisonnement complet : page « Les recommandations » du [site](https://risklens-ml.streamlit.app/) et [hypothèses et conclusions](docs/hypotheses_et_conclusions.md).
+
+---
+
+☕ Le projet vous a plu ? [Offrez-moi un café](https://buymeacoffee.com/johan_mac)

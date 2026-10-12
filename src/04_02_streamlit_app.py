@@ -156,4 +156,6 @@ with col_l3:
     st.link_button("💼 Mon profil LinkedIn", "https://www.linkedin.com/in/johan-machu/", width='stretch')
 
 st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center;'>☕ Le projet vous a plu ? "
+            "<a href='https://buymeacoffee.com/johan_mac' target='_blank'>Offrez-moi un café</a></p>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: grey;'>RiskLens ML © 2026 — Projet Portfolio Data Analyst</p>", unsafe_allow_html=True)
