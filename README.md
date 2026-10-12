@@ -79,25 +79,25 @@ Le schéma résume le parcours ; voici le détail de chaque étape, dans le mêm
 *   Colonnes créées pendant l'exploration, une seule définition par colonne : [colonnes créées](docs/colonnes_creees.md)
 
 #### 4. Machine learning, 1re itération, et le blocage
-*   Premiers modèles sur tout le dataset, contentieux compris, à chaque niveau de nettoyage : [archive de la première itération](lab_ML/1ere_iteration/) et son [journal](lab_ML/1ere_iteration/tableau_ML.md).
+*   Premiers modèles sur tout le dataset, population en incident comprise, à chaque niveau de nettoyage : [archive de la première itération](lab_ML/1ere_iteration/) et son [journal](lab_ML/1ere_iteration/tableau_ML.md).
 *   **Le blocage** : les performances plafonnent, et une sous-population de clients figés en retard apparaît. L'itération est arrêtée ; son archive est gardée telle quelle, comme trace des performances de référence.
 
 #### 5. La population en incident : analyse et définition métier
-*   Population en incident, isolée par une règle métier (deux codifications de retard d'affilée, ou une seule de 3 ou plus), et retard imminent mis à part (un seul retard posé par la banque en septembre) : [EDA incidents](src/05_02_EDA_incidents.ipynb)
-*   Étude dédiée de la codification `PAY_n = 1` (code d'attente du paiement d'octobre) et sa correction, avec trois modèles qui estiment les sorties du retard à l'unanimité : [EDA codification 1](src/05_04_EDA_codification1.ipynb), [modèles des sorties du retard](src/02_02_modele_sorties_retard.ipynb)
+*   Population en incident, isolée par une règle métier (deux codifications de retard d'affilée, ou une seule de 3 ou plus), et retard imminent mis à part (un premier retard posé par la banque en septembre, après un mois d'août sain) : [EDA incidents](src/05_02_EDA_incidents.ipynb)
+*   Étude dédiée de la codification `PAY_n = 1` (codification d'attente du paiement d'octobre) et sa correction, avec trois modèles qui estiment les sorties du retard à l'unanimité : [EDA codification 1](src/05_04_EDA_codification1.ipynb), [modèles des sorties du retard](src/02_02_modele_sorties_retard.ipynb)
 *   Codifications 1 remplacées (niveau 2), retards d'avril à juin uniformisés, puis statuts et indicateurs de la population en incident (niveau 3) : [notebook de nettoyage](src/02_01_nettoyage.ipynb)
 
 #### 6. Machine learning, 2e itération, sur les autres clients
-*   Modèles entraînés sur les clients à encours positif, **sans la population contentieuse** (traitée par la règle métier), avec un découpage entraînement / test propre au machine learning : [création des jeux](lab_ML/creation_datasets_ML.ipynb).
-*   Six modèles comparés (régression logistique, SVM, KNN, réseau de neurones, RandomForest, CatBoost), puis les quatre meilleurs gardés pour la phase finale (régression logistique, réseau de neurones, RandomForest, CatBoost), réglés par une **boucle automatique de GridSearch** sous contrainte de surapprentissage, en validation croisée à 5 plis ; réglage sur la **précision des défauts prédits** au rappel minimal (60 % des défauts), classement par le score décisionnel F2.
+*   Modèles entraînés sur les clients qui ont une dette en septembre, **sans la population en incident ni le retard imminent** (confiés aux règles métier), avec un découpage entraînement / test propre au machine learning : [création des jeux](lab_ML/creation_datasets_ML.ipynb).
+*   Six modèles comparés à chaque scénario (régression logistique, SVM, KNN, réseau de neurones, RandomForest, CatBoost), cinq gardés pour l'entraînement final (sans RandomForest), réglés par une **boucle automatique de GridSearch** sous contrainte de surapprentissage, en validation croisée à 5 plis ; réglage sur la **précision des défauts prédits** au rappel minimal (60 % des défauts), classement par le score décisionnel F2.
 *   Variables ajoutées par scénarios, puis élaguées ; chaque scénario comparé à sa référence pli par pli, les écarts serrés tranchés par une validation croisée répétée : [journal des scénarios](lab_ML/tableau_ML.md).
-*   Contrôles de la cible (clients sans dette, contentieux qui paie) : [contrôles de la cible](lab_ML/controles_cible.ipynb).
-*   **Comparatif global**, essai à part : modèles sur les 23 variables d'origine, avec ou sans séparation du contentieux, et niveaux de risque de toutes les approches sur la même courbe : [essais du comparatif](lab_ML/comparatif_global/).
-*   **Version finale** : 21 variables, le niveau d'études pour seule donnée démographique, CatBoost ; lue **une seule fois** sur le jeu de test, qui confirme la validation : [évaluation finale](lab_ML/evaluation_finale_test.ipynb).
+*   Ce qui fait encore varier le défaut de paiement chez les clients du machine learning, et deux contrôles de la cible (clients sans dette, clients en incident qui paient) : [EDA de la population du ML](lab_ML/eda_population_ml.ipynb).
+*   **Comparatif global**, essai à part : modèles sur les 23 variables d'origine, avec ou sans séparation des deux populations des règles métier, et niveaux de risque de toutes les approches sur la même courbe : [essais du comparatif](lab_ML/comparatif_global/).
+*   **Version finale** (`ml_17`) : 21 variables, le niveau d'études pour seule donnée démographique, CatBoost ; lue **une seule fois** sur le jeu de test, qui confirme la validation : [évaluation finale](lab_ML/evaluation_finale_test.ipynb).
 *   **Limites** : analyse des défauts que les modèles manquent et de la cible elle-même : [méthodologie, section 13](lab_ML/methodologie_ML.md).
 
 #### 7. Déploiement : la règle et le modèle en direct
-*   La règle du contentieux puis le modèle tournent en direct sur le site, de la base de données à la décision, sur des clients que le modèle n'a jamais vus. Le nettoyage est refait en mémoire, dans l'application : la base n'est jamais modifiée.
+*   Les deux règles métier puis le modèle tournent en direct sur le site, de la base de données à la décision, sur des clients que le modèle n'a jamais vus. Le nettoyage est refait en mémoire, dans l'application : la base n'est jamais modifiée.
 *   Trois démonstrations : sur les données du projet ; sur les données brutes lues dans la base par l'API, nettoyage refait en direct ; sur tout le dataset d'origine, avec un modèle entraîné sur les données brutes et 9 niveaux de risque : [préparation des démos 1 et 2](lab_ML/demo_ML/creation_demo_ML.ipynb), [préparation de la démo 3](lab_ML/demo_ML/creation_demo_3.ipynb).
 *   L'API s'enrichit d'une lecture par lot (`POST /clients/lot`) et des prédictions enregistrées dans la base (`GET /prediction/{client_id}`).
 
@@ -130,10 +130,10 @@ Le projet est entièrement déployé dans le cloud selon une architecture décou
 * **Validation des schémas JSON** : Inspecter la structure des requêtes et les modèles de données (Pydantic).
 
 **Les simulateurs de risque par profil**
-* Choisir un profil de client (âge, genre, niveau d'études, statut marital) et lire son taux de défaut de paiement : sur tous les clients étudiés, sur la base lue par l'API, sur la population contentieuse, et sur les clients confiés au machine learning.
+* Choisir un profil de client (âge, genre, niveau d'études, statut marital) et lire son taux de défaut de paiement : sur tous les clients étudiés, sur la base lue par l'API, sur la population en incident et le retard imminent, et sur les clients confiés au machine learning.
 
 **Les démonstrations du modèle**
-* **Le système en direct** : injecter un lot de clients que le modèle n'a jamais vus, choisir la part des défauts à détecter (ou la règle du contentieux seule), puis comparer les décisions au défaut constaté ; ou suivre un client, de sa lecture dans la base jusqu'à son niveau de risque.
+* **Le système en direct** : injecter un lot de clients que le modèle n'a jamais vus, choisir la part des défauts à détecter (ou les règles métier seules), puis comparer les décisions au défaut constaté ; ou suivre un client, de sa lecture dans la base jusqu'à son niveau de risque.
 * **Lecture par lot et prédictions (`POST /clients/lot`, `GET /prediction`)** : lire des milliers de clients en un appel, consulter la prédiction enregistrée d'un client.
 
 > ℹ️ *L'API est hébergée sur l'offre gratuite de Render. Si le serveur est en veille, la première requête peut prendre jusqu'à une minute à répondre.*
@@ -168,27 +168,35 @@ Le projet est entièrement déployé dans le cloud selon une architecture décou
 
 ---
 
-## 🔭 Axes d'amélioration
+## 🔭 Recommandations et axes d'amélioration
 
-**Quatre informations à obtenir de la banque**, car les limites du projet viennent des données :
-*   **La définition exacte du défaut** (`dpnm`) : défaut de paiement observé, ou statut posé par la banque ? Des clients sans dette sont comptés en défaut. C'est la condition de toute amélioration.
-*   **Les vrais encours** : le montant du relevé ne serait pas toujours la dette réelle ; on saurait si les défauts « sans dette » sont une erreur de la cible ou une dette invisible dans les relevés.
-*   **La liste des clients suivis hors du circuit normal** (recouvrement, contentieux) : elle validerait la règle du contentieux, reconstruite ici à partir des codifications.
-*   **La façon dont l'échantillon a été tiré** : avec environ un client sur cinq en défaut, il ne ressemble pas à un portefeuille réel.
+Aucune banque n'utilise ce travail : il montre une méthode et ce qu'on peut en attendre.
+
+**Pour une banque : les règles d'abord, le modèle ensuite, l'humain toujours**
+1.  **Appliquer d'abord les deux règles métier**, la population en incident et le retard imminent. Simples, explicables, sans modèle, elles repèrent près de la moitié des défauts de paiement, avec environ six prédictions justes sur dix. Les clients en incident qui recommencent à payer méritent un examen au cas par cas : ce sont eux, les fausses alertes des règles.
+2.  **Réserver le modèle aux autres clients, et l'utiliser par niveaux de risque.** Traiter d'abord le très haut risque, puis le haut risque. Vu du portefeuille entier, le risque modéré est moins risqué que le client moyen : le signalement s'y arrête, ou se règle selon la capacité des équipes et le coût réel d'une fausse alerte face à un défaut de paiement manqué.
+3.  **Garder une décision humaine.** Le niveau de risque est un outil interne, pour prioriser la surveillance ; il ne se communique pas au client et ne décide seul d'aucune mesure qui le touche. C'est aussi ce qu'impose le droit.
+4.  **À score égal, choisir le modèle le plus simple**, et le plus facile à justifier devant la gestion des risques ; et se passer des données démographiques qui n'apportent rien au score : l'âge, le genre et le statut marital ont été retirés sans perte.
+5.  **Réapprendre sur des données récentes et suivre le modèle dans le temps** : mesurer chaque mois le taux de défaut de paiement de chaque niveau, et réapprendre quand il s'écarte de ce qui était attendu.
+
+**Pour aller plus loin : quatre informations à obtenir de la banque**, car les limites du projet viennent des données :
+*   **La définition exacte du défaut de paiement noté par la banque** : impayé observé, ou statut posé par la banque ? C'est la condition de toute amélioration.
+*   **Les vrais encours** : le montant du relevé ne serait pas toujours la dette réelle ; on saurait alors si les défauts de paiement des clients « sans dette » sont une erreur de la cible ou une dette invisible dans les relevés.
+*   **La liste des clients suivis hors du circuit normal** (recouvrement, contentieux) : elle validerait les deux règles métier, et séparerait le défaut « administratif » du vrai impayé. Elle dirait aussi ce que sont les défauts de paiement que rien n'annonçait, chez des clients au profil de bons payeurs (environ un quart des défauts de paiement des autres clients) : de vrais impayés, ou des statuts posés par la banque pour des raisons que les données ne montrent pas.
+*   **La façon dont l'échantillon a été tiré** : avec environ un client sur cinq en défaut de paiement, il ne ressemble pas à un portefeuille réel. Savoir quels clients ont été retenus dirait si les clients ordinaires, qui paient sans incident, ont été en grande partie écartés, ce qui changerait à la fois les taux affichés et ce que les modèles ont pu apprendre.
 
 **Les pistes ouvertes**
-*   **Une probabilité de défaut par client** (calibration), l'objectif principal de l'étude d'origine, plutôt qu'un taux par niveau de risque.
-*   **Comprendre la codification `PAY_n = 1`** : si c'est un statut d'attente, un modèle pourrait retrouver la codification définitive (sortie du retard ou retour au retard) ; si c'est une codification à part entière, elle se garde telle quelle. Seule la banque peut trancher.
+*   **Une probabilité de défaut de paiement par client** (calibration), l'objectif principal de l'étude de 2009, plutôt qu'un taux par niveau de risque ; on pourrait alors comparer le projet à l'étude sur son propre terrain.
+*   **Sortir quelques clients des populations à risque.** Avec l'exigence retenue (ne sortir un client que s'il a au moins neuf chances sur dix de payer, car sortir à tort un client qui sera en défaut de paiement revient à abandonner une créance), aucun modèle ne trouve de client à sortir : dans ces populations, ils trient à peine mieux que le hasard. Une autre voie serait de demander l'**accord de plusieurs modèles de familles différentes**, comme pour la correction des codifications 1, pour sortir peu de clients, mais avec une grande sûreté ; les clients sortis seraient déclarés sans défaut de paiement, sans repasser par le modèle. Deux conditions : une exigence fixée à l'avance par le métier, jamais réglée sur le résultat, et un jugement sur l'entraînement seul, le test de ces populations ayant déjà été lu.
+*   **Mieux corriger les codifications 1 de septembre.** Les trois modèles qui les tranchent n'utilisent que les codifications, les soldes, les paiements et le plafond. Des variables construites (ratios de paiement, utilisation du plafond), validées pour ce problème, pourraient les aider. Mais une seule codification changée touche tout le circuit en aval, du nettoyage au découpage du machine learning, et le test a déjà été lu : c'est une piste pour une nouvelle version du projet, avec un nouveau test. Seule la banque, enfin, peut confirmer la lecture retenue, celle d'une codification temporaire posée le temps de trancher.
 
 **Les pistes envisagées puis écartées**
-*   **Combiner plusieurs modèles** (vote, moyenne des probabilités) : les quatre modèles retenus trouvent les mêmes défauts, et environ un tiers des défauts ne sont trouvés par aucun ([analyse des défauts manqués](lab_ML/analyse_defauts_manques.ipynb)).
-*   **Ajouter encore des variables** : tous les scénarios sont restés dans l'incertitude de la mesure.
-*   **Des modèles plus puissants** : ils ne font pas mieux, et un modèle lancé sur les données brutes fait jeu égal avec le projet.
-*   **Nettoyer davantage les données** : au-delà des anomalies indéfendables, ce serait remplacer le signal de la banque par notre propre lecture.
-*   **Recoder la cible** : les modèles prédiraient notre définition du défaut, et non plus celle de la banque.
-*   **Changer de jeu de données** : le pari était de faire mieux par un regard métier sur ces données ; il a payé en partie, avec la règle du contentieux qui prédit à elle seule un tiers des défauts.
-*   **Un modèle pour sortir des clients du contentieux** : avec l'exigence métier, ne sortir un client que s'il a au moins neuf chances sur dix de payer (sortir à tort un client en défaut revient à abandonner une créance), aucun modèle ne trouve de client à sortir : au contentieux, ils trient à peine mieux que le hasard.
-*   **Isoler l'effet des corrections de codification du contentieux** (niveau 5 du nettoyage) : elles ne modifient les codifications que d'environ 1 % des clients, et l'écart attendu serait plus petit que l'incertitude de la mesure ; les essais du comparatif ne montrent déjà que des écarts minimes.
-*   **Réentraîner le modèle sur l'entraînement et le test réunis** : un gain dans le bruit, et plus aucun client jamais vu pour juger le modèle et le montrer en direct.
+*   **Combiner plusieurs modèles** (vote, moyenne des probabilités) : les cinq modèles de la version finale se partagent les clients de la même façon ; sur 620 défauts de paiement analysés, 305 sont trouvés par les cinq à la fois, et 154 par aucun ([analyse des défauts manqués](lab_ML/analyse_defauts_manques.ipynb)). Les combiner ne ferait pas apparaître les défauts de paiement qu'aucun ne voit.
+*   **Ajouter encore des variables** : toutes les variables construites pendant l'exploration, ajoutées ensemble puis retirées famille par famille, sont restées dans l'incertitude de la mesure.
+*   **Des modèles plus réglés** : des réglages élargis ne font pas mieux, et un modèle lancé sur les données brutes fait jeu égal avec le projet sur les mêmes clients.
+*   **Nettoyer davantage les données** selon des règles métier : au-delà de ce que les paiements permettent de trancher, ce serait transformer les données en notre propre lecture ; les codifications traduisent un signal de la banque, qu'on ne voit pas.
+*   **Recoder la cible** : les modèles prédiraient alors notre définition du défaut de paiement, et non plus celle de la banque ; ce serait changer la question.
+*   **Changer de jeu de données**, pour un jeu à la cible clairement définie et aux codifications documentées : le pari était de faire mieux en lisant ces données avec un regard métier, en comprenant les codifications de la banque et le fonctionnement de ses comptes avant de modéliser. Il a payé en partie, avec la population en incident et le retard imminent, isolés par des règles métier qui prédisent à elles seules près de la moitié des défauts de paiement. Ce dataset est aussi celui de l'étude de référence : en changer, c'était renoncer à s'y comparer.
+*   **Réentraîner le modèle sur l'entraînement et le test réunis** : le gain attendu reste dans le bruit, et il ne resterait plus de clients jamais vus pour juger le modèle et le montrer en direct.
 
 Raisonnement complet : page « Les recommandations » du [site](https://risklens-ml.streamlit.app/) et [hypothèses et conclusions](docs/hypotheses_et_conclusions.md).

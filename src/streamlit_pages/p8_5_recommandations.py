@@ -50,17 +50,17 @@ st.markdown(f"""
 st.subheader("4. Les pistes envisagées puis écartées", anchor="ecartees")
 tableau_html(["Piste", "Pourquoi elle a été écartée"], [
     ["<b>Combiner plusieurs modèles</b> (vote, moyenne des probabilités)",
-     f"Les cinq modèles de la version finale se partagent les clients de la même façon : sur 620 défauts de paiement analysés, 305 sont trouvés par les cinq à la fois, et 154 par aucun (<a href='{DEFAUTS_MANQUES}' target='_blank'>analyse des défauts manqués</a>). Les combiner ne ferait pas apparaître les défauts de paiement qu'aucun ne voit."],
+     f"Les cinq modèles de la version finale se partagent les clients de la même façon ; sur 620 défauts de paiement analysés, 305 sont trouvés par les cinq à la fois, et 154 par aucun (<a href='{DEFAUTS_MANQUES}' target='_blank'>analyse des défauts manqués</a>). Les combiner ne ferait pas apparaître les défauts de paiement qu'aucun ne voit."],
     ["<b>Ajouter encore des variables</b>",
      "Toutes les variables construites pendant l'exploration, ajoutées ensemble puis retirées famille par famille, sont restées dans l'incertitude de la mesure (page 6.3)."],
     ["<b>Des modèles plus réglés</b>",
      "Des réglages élargis ne font pas mieux, et un modèle lancé sur les données brutes fait jeu égal avec le projet sur les mêmes clients (pages 6.3 et 8.1)."],
     ["<b>Nettoyer davantage les données</b> selon des règles métier",
-     "Au-delà de ce que les paiements permettent de trancher, ce serait transformer les données en notre propre lecture : les codifications traduisent un signal de la banque, qu'on ne voit pas (page 8.3)."],
+     "Au-delà de ce que les paiements permettent de trancher, ce serait transformer les données en notre propre lecture ; les codifications traduisent un signal de la banque, qu'on ne voit pas (page 8.3)."],
     ["<b>Recoder la cible</b>",
-     "Les modèles prédiraient alors notre définition du défaut de paiement, et non plus celle de la banque : ce serait changer la question."],
+     "Les modèles prédiraient alors notre définition du défaut de paiement, et non plus celle de la banque ; ce serait changer la question."],
     ["<b>Changer de jeu de données</b>, pour un jeu à la cible clairement définie et aux codifications documentées",
-     "Le pari était de faire mieux en lisant ces données avec un regard métier : comprendre les codifications de la banque et le fonctionnement de ses comptes avant de modéliser. Il a payé en partie, avec la population en incident et le retard imminent, isolés par des règles métier qui prédisent à elles seules près de la moitié des défauts de paiement (partie 5). Ce dataset est aussi celui de l'étude de référence : en changer, c'était renoncer à s'y comparer (page 8.2)."],
+     "Le pari était de faire mieux en lisant ces données avec un regard métier, en comprenant les codifications de la banque et le fonctionnement de ses comptes avant de modéliser. Il a payé en partie, avec la population en incident et le retard imminent, isolés par des règles métier qui prédisent à elles seules près de la moitié des défauts de paiement (partie 5). Ce dataset est aussi celui de l'étude de référence : en changer, c'était renoncer à s'y comparer (page 8.2)."],
     ["<b>Réentraîner le modèle sur l'entraînement et le test réunis</b>",
      "Le gain attendu reste dans le bruit, et il ne resterait plus de clients jamais vus pour juger le modèle et le montrer en direct (page 7.1)."],
 ], largeurs=[30, 70])
