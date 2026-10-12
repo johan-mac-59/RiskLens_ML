@@ -192,7 +192,7 @@ with col_lot:
     if st.button("▶️ Injecter les clients", type="primary"):
         numero = len(st.session_state.historique_lots_3) + 1
         with st.status(f"Traitement du lot n° {numero}…", expanded=True) as statut:
-            ids = TOUS_LES_IDS if taille == len(TOUS_LES_IDS) else pd.Series(TOUS_LES_IDS).sample(n=taille, random_state=numero).tolist()
+            ids = TOUS_LES_IDS if taille == len(TOUS_LES_IDS) else pd.Series(TOUS_LES_IDS).sample(n=taille).tolist()
             debut = time.perf_counter()
             try:
                 with st.spinner("Lecture dans la base par l'API (le premier appel peut prendre jusqu'à une minute si le serveur est en veille)…"):
@@ -305,8 +305,7 @@ def lire_et_noter(id_client):
 
 tirage = st.button("🎲 Un client au hasard : lire dans la base et noter", type="primary", key="tirage_3")
 if tirage:
-    st.session_state.numero_client_3 = st.session_state.get("numero_client_3", 0) + 1
-    st.session_state.id_choisi_3 = int(pd.Series(TOUS_LES_IDS).sample(n=1, random_state=st.session_state.numero_client_3).iloc[0])
+    st.session_state.id_choisi_3 = int(pd.Series(TOUS_LES_IDS).sample(n=1).iloc[0])
 c1, c2 = st.columns([2, 1], vertical_alignment="bottom")
 id_choisi = c1.selectbox("Ou choisir l'identifiant du client", TOUS_LES_IDS, key="id_choisi_3")
 if c2.button("📡 Lire ce client dans la base et le noter", key="lecture_api_3") or tirage:

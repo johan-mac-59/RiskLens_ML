@@ -107,7 +107,7 @@ with col_lot:
         regle_seule = CHOIX[choix] == "regle_seule"
         seuil = None if regle_seule else bornes[CHOIX[choix]]
         with st.status(f"Traitement du lot n° {numero}…", expanded=True) as statut:
-            lot = reserve.sample(n=taille, random_state=numero) if taille < len(reserve) else reserve
+            lot = reserve.sample(n=taille) if taille < len(reserve) else reserve
             duree_lecture, ecarts, erreurs = None, None, []
             if source == SOURCES[0]:
                 # Lecture du lot dans la base, par l'API, en un seul appel : seuls les identifiants viennent de la réserve
@@ -286,8 +286,7 @@ def lire_dans_la_base(id_client):
 # Un clic : un identifiant tiré au hasard, lu dans la base et traité aussitôt (la liste de choix est remplie avant son affichage)
 tirage = st.button("🎲 Un client au hasard : lire dans la base et traiter", type="primary", key="tirage_2")
 if tirage:
-    st.session_state.numero_client_2 = st.session_state.get("numero_client_2", 0) + 1
-    st.session_state.id_choisi_2 = int(vivier.sample(n=1, random_state=st.session_state.numero_client_2).index[0])
+    st.session_state.id_choisi_2 = int(vivier.sample(n=1).index[0])
 if st.session_state.get("id_choisi_2") not in vivier.index:
     st.session_state.id_choisi_2 = int(vivier.index[0])
 c1, c2 = st.columns([2, 1], vertical_alignment="bottom")
@@ -348,10 +347,12 @@ if "lu_api_2" in st.session_state:
     st.caption("Le modèle ne donne pas une probabilité fiable pour un client seul (les défauts ont plus de poids pendant l'apprentissage) : "
                "on affiche le niveau de risque, et le taux de défaut constaté dans ce niveau.")
 
-    if st.button("🔍 Révéler ce qui s'est passé en octobre 2005", key="revele_bouton_2"):
-        st.session_state.revele_2 = True
-    if st.session_state.get("revele_2"):
-        if b["dpnm"] == 1:
-            st.error("Le client a été **en défaut de paiement** en octobre 2005.")
-        else:
-            st.success("Le client **n'a pas été en défaut de paiement** en octobre 2005.")
+    # Révélation dans l'encadré des outils interactifs (même style que les simulateurs), pour qu'elle ressorte
+    with encadre_interactif("revele_demo_2", invitation="À vous de juger : le modèle a-t-il vu juste ? Découvrez ce qui s'est passé en octobre 2005"):
+        if st.button("🔍 Révéler ce qui s'est passé en octobre 2005", key="revele_bouton_2"):
+            st.session_state.revele_2 = True
+        if st.session_state.get("revele_2"):
+            if b["dpnm"] == 1:
+                st.error("Le client a été **en défaut de paiement** en octobre 2005.")
+            else:
+                st.success("Le client **n'a pas été en défaut de paiement** en octobre 2005.")
