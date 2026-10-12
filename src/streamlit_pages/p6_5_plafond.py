@@ -2,7 +2,7 @@ from streamlit_pages.commun import *
 
 # ==============================================================================
 # PARTIE 6.5 : POURQUOI LE MODÈLE PLAFONNE
-# Un plafond quoi qu'on fasse, un tiers des défauts qui ressemblent à de bons clients (analyse des défauts manqués),
+# Un plafond quoi qu'on fasse, un quart des défauts qui ressemblent à de bons clients (analyse des défauts manqués),
 # et l'explication la plus probable : la cible suit le statut posé par la banque (hypothèse, définition non documentée).
 # Profils des groupes repris tels quels de lab_ML/analyse_defauts_manques.ipynb (sections 2 à 4, version ml_17) : les
 # probabilités hors pli ne sont pas dans le dépôt. Indices sur la cible : calculés en direct sur le dataset (portefeuille
