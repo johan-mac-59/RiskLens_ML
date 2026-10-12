@@ -81,7 +81,7 @@ with col_lot:
         regle_seule = CHOIX[choix] == "regle_seule"
         seuil = None if regle_seule else bornes[CHOIX[choix]]
         with st.status(f"Traitement du lot n° {numero}…", expanded=True) as statut:
-            lot = reserve.sample(n=taille, random_state=numero) if taille < len(reserve) else reserve
+            lot = reserve.sample(n=taille) if taille < len(reserve) else reserve
             st.write(f"📥 **{nombre_fr(len(lot))} clients injectés**, tirés au hasard dans la réserve (tirage n° {numero}).")
             time.sleep(PAUSE)
             regle = aux_regles(lot)
@@ -172,9 +172,8 @@ ORIGINES = {"Tous les clients de la réserve": None, "Parmi les clients en incid
 origine = st.radio("Tirer le client", list(ORIGINES), horizontal=True)
 
 if st.button("🎲 Afficher le détail d'un client", type="primary"):
-    st.session_state.numero_client = st.session_state.get("numero_client", 0) + 1
     vivier = reserve if ORIGINES[origine] is None else reserve[reserve["STATUT_INCIDENT"].isin(ORIGINES[origine])]
-    st.session_state.client_id = int(vivier.sample(n=1, random_state=st.session_state.numero_client)["ID"].iloc[0])
+    st.session_state.client_id = int(vivier.sample(n=1)["ID"].iloc[0])
     st.session_state.revele = False
 
 if "client_id" in st.session_state:
@@ -211,13 +210,15 @@ if "client_id" in st.session_state:
     st.caption("Le modèle ne donne pas une probabilité fiable pour un client seul (les défauts ont plus de poids pendant l'apprentissage) : "
                "on affiche le niveau de risque, et le taux de défaut constaté dans ce niveau.")
 
-    if st.button("🔍 Révéler ce qui s'est passé en octobre 2005"):
-        st.session_state.revele = True
-    if st.session_state.get("revele"):
-        if c["dpnm"] == 1:
-            st.error("Le client a été **en défaut de paiement** en octobre 2005.")
-        else:
-            st.success("Le client **n'a pas été en défaut de paiement** en octobre 2005.")
+    # Révélation dans l'encadré des outils interactifs (même style que les simulateurs), pour qu'elle ressorte
+    with encadre_interactif("revele_demo_1", invitation="À vous de juger : le modèle a-t-il vu juste ? Découvrez ce qui s'est passé en octobre 2005"):
+        if st.button("🔍 Révéler ce qui s'est passé en octobre 2005"):
+            st.session_state.revele = True
+        if st.session_state.get("revele"):
+            if c["dpnm"] == 1:
+                st.error("Le client a été **en défaut de paiement** en octobre 2005.")
+            else:
+                st.success("Le client **n'a pas été en défaut de paiement** en octobre 2005.")
 
 # ------------------------------------------------------------------------------
 st.markdown("---")
