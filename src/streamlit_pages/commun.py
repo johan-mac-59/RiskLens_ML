@@ -708,9 +708,9 @@ def figure_detection(libelles, barres, precisions, hasard, nom_barres="Part des 
                              textfont=dict(size=TAILLE_ETIQUETTE), customdata=info_survol[1] if info_survol else None,
                              hovertemplate=survol + "<extra></extra>"))
     fig.add_trace(go.Scatter(x=libelles, y=precisions, name="Précision des défauts prédits", mode="lines+markers+text",
-                             line=dict(color=COULEURS["bordeaux"], width=4), marker_size=5 if en_courbes else 10,
+                             line=dict(color=COULEURS["vert_fonce"], width=4), marker_size=5 if en_courbes else 10,
                              text=textes(precisions, gras=True), textposition="top center",
-                             textfont=dict(size=TAILLE_ETIQUETTE, color=COULEURS["bordeaux"]),
+                             textfont=dict(size=TAILLE_ETIQUETTE, color=COULEURS["vert_fonce"]),
                              hovertemplate=x_survol + "<br>Précision : %{y:.1f} %<extra></extra>"))
     # Précision d'un tirage au hasard (taux de défaut de la population) : ligne sur toute la largeur,
     # une trace vide la fait figurer dans la légende
