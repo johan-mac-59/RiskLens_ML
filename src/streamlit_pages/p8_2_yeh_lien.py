@@ -4,30 +4,42 @@ from streamlit_pages.commun import *
 # ==============================================================================
 # PARTIE 8.2 : COMPARAISON AVEC YEH ET LIEN (2009), DANS LEURS PROPRES MÉTRIQUES
 # Métriques de l'étude (Tableau 1) : taux d'erreur et ratio de surface du graphique de lift (= 2 × ROC AUC − 1).
-# Section 2 : calcul en direct sur les 5 441 clients de la démo 1 (règles, système du projet, modèle brut ; commun.py).
-# Section 3 : la première itération du machine learning (modèle S12_6), reprise de l'ancien comparatif provisoire de
-# la page 5.6 : résultats calculés hors du site sur le test de la partie 5 (modèle enregistré de l'archive
-# lab_ML/1ere_iteration/, notebook ml12_6_cleaned3), repris tels quels (décision D19) ; la règle y est recalculée en direct.
+# Trois niveaux de comparaison : l'étude d'origine (fichier brut, un découpage) ; le périmètre global (le même fichier
+# brut, chaque client noté par un modèle qui ne l'a pas vu : lab_ML/comparatif_global/essai_jeu_de_base.ipynb et
+# essai_jeu_de_base_deux_populations.ipynb, chiffres repris tels quels, les probabilités ne sont pas dans le dépôt) ;
+# le périmètre du projet (les 5 441 clients de la démo 1, jamais vus, calcul en direct, commun.py).
 # ==============================================================================
 GH_RACINE = "https://github.com/johan-mac-59/RiskLens_ML/blob/main"
 TRADUCTION = f"{GH_RACINE}/docs/traduction_DefaultCreditCardClients_yeh_2009.md"
-HYPOTHESES = f"{GH_RACINE}/docs/hypotheses_et_conclusions.md"
 TABLEAU_ML_1 = f"{GH_RACINE}/lab_ML/1ere_iteration/tableau_ML.md"
+ESSAI_BASE = f"{GH_RACINE}/lab_ML/comparatif_global/essai_jeu_de_base.ipynb"
+ESSAI_BASE_DEUX = f"{GH_RACINE}/lab_ML/comparatif_global/essai_jeu_de_base_deux_populations.ipynb"
 
 # Yeh et Lien (2009), Tableau 1, échantillon de validation : (méthode, taux d'erreur, ratio de surface)
 YEH = [("Réseau de neurones (meilleur modèle)", 0.17, 0.54), ("Arbre de classification", 0.17, 0.536),
        ("K plus proches voisins", 0.16, 0.45), ("Régression logistique", 0.18, 0.44)]
 
+# Périmètre global : les 30 000 clients du fichier brut, décisions hors pli (validation croisée à 5 plis), au seuil de la
+# règle marginale (au plus 1 bon client signalé pour 1 défaut, à la marge, ce qui revient à chercher le taux d'erreur le plus bas).
+# essai_jeu_de_base, sections 4 et « Comparaison avec l'étude d'origine » ; essai_jeu_de_base_deux_populations, section 5.
+# (approche, taux d'erreur, ratio de surface)
+GLOBAL = [
+    ("Personne n'est déclaré en défaut", 0.221, 0.0),
+    ("Codification de la banque seule (2 ou plus en septembre)", 0.180, 0.308),
+    ("Codification de la banque, puis un modèle pour les autres clients (CatBoost)", 0.181, 0.564),
+    ("Un modèle sur les 23 variables d'origine, tous les clients (CatBoost)", 0.182, 0.569),
+]
+
 # ------------------------------------------------------------------------------
-# Section 2 : les mêmes clients que la page 8.1, mesurés comme dans l'étude
+# Périmètre du projet : les mêmes clients que la page 8.1, mesurés comme dans l'étude
 # ------------------------------------------------------------------------------
 clients = systemes_sur_clients_demo()
 y = clients["dpnm"].values.astype(bool)
 hasard = y.mean() * 100
 bornes = json.loads((BASE_DIR / "lab_ML" / "demo_ML" / "bornes_niveaux.json").read_text(encoding="utf-8"))
-ctx = clients["contentieux"].values
-banque = clients["PAY_1_origine"].values >= 2
-six_mois = (clients[[f"PAY_{n}_origine" for n in range(1, 7)]].values >= 2).any(axis=1)
+regles = clients["regles"].values
+proba_modele = np.nan_to_num(clients["proba_modele"].values)   # pas de probabilité pour les clients des règles
+autres = ~regles
 
 
 def taux_erreur(declares):
@@ -43,31 +55,15 @@ def ratio_regle(declares):
 def meme_nombre_brut(nombre):
     """Les clients les mieux notés par le modèle brut, autant que le système du projet en déclare."""
     declares = np.zeros(len(y), dtype=bool)
-    declares[np.argsort(-clients["score_brut"].values)[:nombre]] = True
+    declares[np.argsort(-clients["score_brut"].values, kind="stable")[:nombre]] = True
     return declares
 
 
 ratio_projet = 2 * aire_roc(y, score_systeme_projet(clients)) - 1
 ratio_brut = 2 * aire_roc(y, clients["score_brut"]) - 1
-paliers = {cle: ctx | (clients["proba_ml14"].values >= bornes[cle]) for cle in ("tres_haut_risque", "haut_risque")}
-
-# ------------------------------------------------------------------------------
-# Section 3 : la première itération, sur le test de la partie 5 (5 441 clients, autre tirage que la démo 1)
-# ------------------------------------------------------------------------------
-df, s12, train, test = donnees_partie_5()
-ctx_test = test["STATUT"] == "Au contentieux"
-defauts_test = int(test["dpnm"].sum())
-REGLE_TEST = {"predits": int(ctx_test.sum()), "vp": int(test.loc[ctx_test, "dpnm"].sum())}
-REGLE_TEST["fp"] = REGLE_TEST["predits"] - REGLE_TEST["vp"]
-ML_S126 = {"predits": 1476, "vp": 764, "fp": 712, "auc": 0.80}
-
-
-def ligne_test(nom, r, auc=None):
-    fn = defauts_test - r["vp"]
-    return [nom, nombre_fr(r["predits"]), nombre_fr(r["vp"]), f"{nombre_fr(r['vp'] / r['predits'] * 100, 1)} %",
-            f"{nombre_fr(r['vp'] / defauts_test * 100, 1)} %", f"{nombre_fr((r['fp'] + fn) / len(test) * 100, 1)} %",
-            nombre_fr(2 * auc - 1, 2) if auc else nombre_fr(r["vp"] / defauts_test - r["fp"] / (len(test) - defauts_test), 2)]
-
+paliers = {cle: regles | (proba_modele >= bornes[cle]) for cle in ("tres_haut_risque", "haut_risque")}
+# Le modèle seul, sur les autres clients (hors des deux règles) : ce qui reste à trier une fois les règles appliquées
+auc_modele_seul = aire_roc(y[autres], proba_modele[autres])
 
 # ==============================================================================
 entete_partie_8()
@@ -95,56 +91,55 @@ Les chiffres ci-dessous **situent** le projet face à l'étude ; ils ne permette
 """)
 
 # ------------------------------------------------------------------------------
-st.subheader("2. Dans les métriques de l'étude", anchor="metriques")
-st.markdown(f"""
-Le projet est mesuré sur les **{nombre_fr(len(clients))} clients de la page 8.1**, qu'aucun de ses modèles n'a vus, dont {nombre_fr(hasard, 1)} % en défaut. Deux règles très simples, calculées sur les codifications d'origine, servent de repère : elles ne demandent ni nettoyage ni modèle.
+st.subheader("2. Dans les métriques de l'étude, à trois niveaux", anchor="metriques")
+st.markdown("""
+Pour comparer ce qui est comparable, les résultats sont donnés à trois niveaux, du plus proche de l'étude au plus proche du projet :
+- **l'étude d'origine** : le fichier brut, ses 30 000 clients, un seul découpage ;
+- **le périmètre global** : **le même fichier brut**, les mêmes 30 000 clients, sans nettoyage ; chaque client est noté par un modèle qui ne l'a pas vu (validation croisée à 5 plis). Seul le découpage diffère de l'étude : c'est la comparaison la plus directe ;
+- **le périmètre du projet** : les clients gardés par le nettoyage qui ont une dette en septembre (page 8.1, sous-partie 3), mesurés sur les clients de la démo 1, qu'aucun modèle n'a vus.
 """)
-lignes = [[f"<b>Yeh et Lien : {nom}</b><br><small>autre échantillon, validation</small>", f"{nombre_fr(e * 100, 0)} %", nombre_fr(r, 2) if r != 0.536 else "0,536"]
-          for nom, e, r in YEH]
+lignes = [[("<b>Étude d'origine</b><br><small>fichier brut, 30 000 clients, un découpage</small>" if i == 0 else ""),
+           f"Yeh et Lien : {nom}", f"{nombre_fr(e * 100, 0)} %", nombre_fr(r, 2) if r != 0.536 else "0,536"] for i, (nom, e, r) in enumerate(YEH)]
+lignes += [[("<b>Périmètre global</b><br><small>même fichier brut, 30 000 clients, 5 plis</small>" if i == 0 else ""),
+            nom, f"{nombre_fr(e * 100, 1)} %", nombre_fr(r, 2) if r else "0"] for i, (nom, e, r) in enumerate(GLOBAL)]
 lignes += [
-    ["Personne n'est déclaré en défaut", f"{nombre_fr(taux_erreur(np.zeros(len(y), dtype=bool)), 1)} %", "0"],
-    [f"Règle simple : au moins un retard (2 ou plus) sur les 6 mois<br><small>codifications d'origine</small>", f"{nombre_fr(taux_erreur(six_mois), 1)} %", nombre_fr(ratio_regle(six_mois), 2)],
-    [f"Règle simple : la codification de la banque, 2 ou plus en septembre<br><small>codifications d'origine</small>", f"{nombre_fr(taux_erreur(banque), 1)} %", nombre_fr(ratio_regle(banque), 2)],
-    ["<b>Règle du contentieux seule</b> (projet, sans modèle)", f"<b>{nombre_fr(taux_erreur(ctx), 1)} %</b>", nombre_fr(ratio_regle(ctx), 2)],
-    ["<b>Système du projet</b> : règle, puis <code>ml_14</code><br><small>taux d'erreur avec le très haut risque, puis avec le haut risque</small>",
+    [f"<b>Périmètre du projet</b><br><small>{nombre_fr(len(clients))} clients de la démo 1, jamais vus</small>",
+     "Personne n'est déclaré en défaut", f"{nombre_fr(taux_erreur(np.zeros(len(y), dtype=bool)), 1)} %", "0"],
+    ["", "<b>Règles métier seules</b> (population en incident, retard imminent)", f"<b>{nombre_fr(taux_erreur(regles), 1)} %</b>", nombre_fr(ratio_regle(regles), 2)],
+    ["", "<b>Système du projet</b> : règles, puis <code>ml_17</code><br><small>taux d'erreur avec le très haut risque, puis avec le haut risque</small>",
      f"<b>{nombre_fr(taux_erreur(paliers['tres_haut_risque']), 1)} %</b> ; {nombre_fr(taux_erreur(paliers['haut_risque']), 1)} %", f"<b>{nombre_fr(ratio_projet, 2)}</b>"],
-    ["Modèle brut (23 variables d'origine, page 8.1)<br><small>autant de clients déclarés que le système du projet</small>",
+    ["", "Modèle brut (23 variables d'origine, page 8.1)<br><small>autant de clients déclarés que le système du projet</small>",
      f"{nombre_fr(taux_erreur(meme_nombre_brut(int(paliers['tres_haut_risque'].sum()))), 1)} % ; {nombre_fr(taux_erreur(meme_nombre_brut(int(paliers['haut_risque'].sum()))), 1)} %",
      nombre_fr(ratio_brut, 2)],
 ]
-tableau_html(["Approche", "Taux d'erreur", "Ratio de surface (qualité du tri)"], lignes, largeurs=[56, 22, 22])
-st.caption(f"Yeh et Lien : Tableau 1 de l'étude, échantillon de validation ([traduction]({TRADUCTION})). Projet : calcul en direct. Pour une règle (oui / non), le ratio de surface vaut la part des défauts trouvés moins la part des bons clients signalés. Le taux d'erreur dépend du nombre de clients déclarés : l'étude ne dit pas à quel seuil elle le mesure ; ici, il est donné aux paliers du projet (seuils fixés sur l'entraînement, page 6.4).")
+tableau_html(["Niveau", "Approche", "Taux d'erreur", "Ratio de surface (qualité du tri)"], lignes, largeurs=[22, 44, 16, 18])
+st.caption(f"Étude d'origine : Tableau 1, échantillon de validation ([traduction]({TRADUCTION})). Périmètre global : chiffres repris tels quels des essais sur le fichier brut ([un modèle sur tous les clients]({ESSAI_BASE}) ; [codification de la banque, puis un modèle]({ESSAI_BASE_DEUX})), au seuil qui ne signale un client que s'il a au moins une chance sur deux d'être en défaut, ce qui revient à chercher le taux d'erreur le plus bas ; les probabilités ne sont pas dans le dépôt. Périmètre du projet : calcul en direct ; le taux d'erreur y est donné aux paliers du projet (seuils fixés sur l'entraînement, page 6.4). Pour une règle (oui / non), le ratio de surface vaut la part des défauts trouvés moins la part des bons clients signalés.")
 st.markdown(f"""
-- **Pour trier les clients, le projet fait un peu mieux que l'étude** : un ratio de surface de {nombre_fr(ratio_projet, 2)}, contre 0,54 pour son meilleur modèle (un AUC d'environ {nombre_fr((ratio_projet + 1) / 2, 2)} contre 0,77). L'écart est faible, et attendu avec des modèles plus récents ; le modèle brut fait de même ({nombre_fr(ratio_brut, 2)}). Que l'écart reste si petit confirme que **la limite vient des données**, pas des modèles (page 6.5).
-- **Pour le taux d'erreur, le projet est au même niveau, pas au-dessus** : environ {nombre_fr(taux_erreur(paliers['tres_haut_risque']), 0)} %, comme le réseau de neurones de l'étude (17 %). Cette mesure favorise les systèmes qui déclarent peu de clients : déclarer tout le monde sain donne déjà {nombre_fr(hasard, 0)} % d'erreur, et chercher plus de défauts l'augmente (avec le haut risque, {nombre_fr(taux_erreur(paliers['haut_risque']), 0)} %). L'étude elle-même la jugeait « insuffisante » sur des données déséquilibrées.
-- **Sans aucun modèle, la règle du contentieux atteint déjà le taux d'erreur de l'étude** ({nombre_fr(taux_erreur(ctx), 1)} %), tout comme la codification de septembre de la banque. Une règle plus large, comme « au moins un retard sur les 6 mois », trouve bien plus de défauts, d'où un meilleur ratio de surface, mais elle fait plus d'erreurs que de ne déclarer personne : ses fausses alertes sont trop nombreuses.
+- **Sur le même fichier que l'étude, le tri est un peu meilleur** : un ratio de surface de 0,56 à 0,57, contre 0,54 pour son meilleur modèle, que les clients à risque soient séparés par la codification de la banque ou non. L'écart est faible, et attendu avec des modèles plus récents.
+- **Sur le périmètre du projet, le tri est du même ordre** : {nombre_fr(ratio_projet, 2)} pour le système du projet, {nombre_fr(ratio_brut, 2)} pour le modèle brut, sur les mêmes clients. Le nettoyage et le travail du projet ne déplacent pas ce niveau (page 8.1, sous-partie 3) : **la limite vient des données**, pas des modèles (page 6.5).
+- **Pour le taux d'erreur, tous les niveaux sont du même ordre, pas au-dessus de l'étude** : environ 18 %, comme la régression logistique de l'étude, un peu au-dessus de ses meilleures méthodes (16 à 17 %). Cette mesure favorise les systèmes qui déclarent peu de clients : déclarer tout le monde sain donne déjà environ 22 % d'erreur, et chercher plus de défauts l'augmente (avec le haut risque, {nombre_fr(taux_erreur(paliers['haut_risque']), 0)} %). L'étude elle-même la jugeait « insuffisante » sur des données déséquilibrées.
+- **Sans aucun modèle, des règles sur les codifications sont déjà au niveau de l'étude en taux d'erreur** : la codification de la banque sur le fichier brut (18,0 %), les règles métier sur le périmètre du projet ({nombre_fr(taux_erreur(regles), 1)} %). Elles trient mal en revanche (ratio de surface bas), puisqu'elles ne rangent pas les clients qu'elles ne retiennent pas.
 """)
 
 # ------------------------------------------------------------------------------
 st.subheader("3. Et la première itération du machine learning ?", anchor="premiere-iteration")
 st.markdown(f"""
-Avant l'étude du contentieux, la première itération du machine learning avait atteint un meilleur tri sur le même périmètre (page 6.1). Son meilleur modèle, entraîné sur le même périmètre **incluant la population contentieuse**, pas encore définie à l'époque, est comparé ici à la règle du contentieux sur le **test de la partie 5** ({nombre_fr(len(test))} clients, dont {nombre_fr(defauts_test)} en défaut ; un autre tirage que les clients de la section 2).
+La première itération (page 6.1) semblait mieux trier les clients que le modèle actuel. Mais elle apprenait et se mesurait sur tous les clients du périmètre, **populations à risque comprises**, faciles à repérer. Elle se compare donc au **système complet** du projet, qui trie lui aussi ces populations, et non à son modèle seul : sur les clients de la démo, le système complet trie avec un AUC d'environ {nombre_fr((ratio_projet + 1) / 2, 2)}.
+
+Une fois les deux populations à risque confiées aux règles, **le modèle seul, sur les autres clients, ne trie plus qu'avec un AUC d'environ {nombre_fr(auc_modele_seul, 2)}** : le bon tri d'ensemble vient en grande partie de ces populations. Les clients restants sont plus difficiles à départager (page 6.5).
 """)
-tableau_html(["Approche", "Clients prédits en défaut", "Défauts trouvés", "Précision", "Part des défauts trouvés", "Taux d'erreur", "Ratio de surface"], [
-    ligne_test("<b>Règle du contentieux</b>", REGLE_TEST),
-    ligne_test("<b>Machine learning, première itération</b><br><small>meilleur modèle du périmètre (S12_6, CatBoost), entraîné sur le périmètre incluant la population contentieuse</small>", ML_S126, ML_S126["auc"]),
-], largeurs=[30, 12, 11, 11, 12, 12, 12])
-st.caption(f"Règle du contentieux : calcul en direct. Première itération : modèle enregistré de l'archive, rechargé et appliqué hors du site au même test, repris tel quel ; ce modèle n'est pas déployé avec le site ([tableau de suivi de la première itération]({TABLEAU_ML_1})).")
-st.markdown(f"""
-- **Le modèle de la première itération avait déjà « trouvé » le contentieux** : il prédit en défaut tous les clients que la règle place au contentieux, et retrouve donc les mêmes défauts. Il en ajoute {nombre_fr(ML_S126['vp'] - REGLE_TEST['vp'])}, au prix de {nombre_fr(ML_S126['fp'] - REGLE_TEST['fp'])} fausses alertes supplémentaires : sa précision tombe à {nombre_fr(ML_S126['vp'] / ML_S126['predits'] * 100, 1)} %.
-- C'est ce qui expliquait l'effet nul de la variable de contentieux ajoutée à ce modèle (page 6.1) : il repérait déjà ces clients par leurs codifications. Son bon tri venait **en grande partie du contentieux**, facile à repérer ; sans lui, l'AUC des modèles passe d'environ 0,78 à environ 0,71, quel que soit le modèle ([hypothèses et conclusions]({HYPOTHESES}), H11). Les clients restants sont plus difficiles à départager (page 6.5).
-""")
+st.caption(f"Système complet et modèle seul : calcul en direct sur les clients de la démo 1. Première itération : [tableau de suivi]({TABLEAU_ML_1}) ; ses modèles ne sont pas déployés avec le site.")
 
 # ------------------------------------------------------------------------------
 st.subheader("4. Défi relevé ?", anchor="defi")
 st.markdown(f"""
-**Oui, de peu.** Le système du projet trie les clients avec un AUC d'environ {nombre_fr((ratio_projet + 1) / 2, 2)} (ratio de surface de {nombre_fr(ratio_projet, 2)}), contre 0,77 pour le meilleur modèle de l'étude. L'écart est petit, attendu avec des modèles plus récents, et la comparaison reste indicative : autres clients, autre objectif.
+**Oui, de peu.** Sur le même fichier que l'étude, le tri atteint un AUC d'environ 0,78, et le système du projet un AUC d'environ {nombre_fr((ratio_projet + 1) / 2, 2)} sur ses clients de test, contre 0,77 pour le meilleur modèle de l'étude. L'écart est petit, attendu avec des modèles plus récents, et la comparaison reste indicative : autre découpage, autre objectif.
 
-Le défi a surtout montré autre chose : **tous les modèles plafonnent autour de 0,78 à 0,80 d'AUC**, quelle que soit l'approche, jusqu'au modèle lancé sur les données brutes. Dépasser nettement l'étude n'était pas possible avec ces données.
+Le défi a surtout montré autre chose : **tous les modèles plafonnent autour de 0,78 d'AUC**, quelle que soit l'approche, jusqu'au modèle lancé sur les données brutes. Dépasser nettement l'étude n'était pas possible avec ces données.
 
-**La vraie différence est ailleurs** : une règle métier, sans modèle, atteint déjà le taux d'erreur de l'étude, et le projet dit ce que l'étude ne publiait pas, la précision et la part des défauts trouvés à chaque niveau de risque (page 8.1), c'est-à-dire ce qu'une banque a besoin de savoir pour décider jusqu'où signaler.
+**La vraie différence est ailleurs** : des règles métier, sans modèle, sont déjà au niveau de l'étude en taux d'erreur, et le projet dit ce que l'étude ne publiait pas, la précision et la part des défauts trouvés à chaque niveau de risque (page 8.1), c'est-à-dire ce qu'une banque a besoin de savoir pour décider jusqu'où signaler.
 """)
 
 st.info(f"""
-**Défi relevé, de peu** : un AUC d'environ {nombre_fr((ratio_projet + 1) / 2, 2)} contre 0,77 pour l'étude de 2009, sur d'autres clients et avec un autre objectif. Tous les modèles plafonnant autour de 0,78 à 0,80, la limite vient des données ; l'apport du projet est une règle métier qui atteint seule le taux d'erreur de l'étude, et des niveaux de risque dont on connaît la précision.
+**Défi relevé, de peu** : un AUC d'environ 0,78 sur le même fichier que l'étude, et d'environ {nombre_fr((ratio_projet + 1) / 2, 2)} pour le système du projet sur ses clients de test, contre 0,77 pour l'étude de 2009. Tous les modèles plafonnant autour de 0,78, la limite vient des données ; l'apport du projet est des règles métier, au niveau de l'étude en taux d'erreur sans aucun modèle, et des niveaux de risque dont on connaît la précision.
 """)

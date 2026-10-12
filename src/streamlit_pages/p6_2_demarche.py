@@ -27,7 +27,7 @@ st.header("6.2 La nouvelle démarche : séparer la population en incident et le 
 st.subheader("1. Une nouvelle base : les clients actifs, sans la population en incident ni le retard imminent", anchor="nouvelle-base")
 st.markdown(f"""
 La première itération mélangeait deux populations (page 6.1). La partie 5 les a séparées : **les clients en incident et en retard imminent en septembre sont confiés aux règles métier**, qui les prédisent tous en défaut (page 5.5). Le machine learning reprend donc sur une base plus homogène :
-- le **périmètre S12** : les clients qui ont une dette en septembre, avec un plafond de 500 000 NT$ ou moins ({nombre_fr(len(s12))} clients) ;
+- les clients du **niveau 3 du nettoyage** (partie 3) qui présentent **une somme à devoir sur leur facture de septembre** ({nombre_fr(len(s12))} clients) ;
 - **sans les {nombre_fr(au_ctx.sum())} clients en incident ou en retard imminent en septembre** : restent **{nombre_fr(len(hors_ctx))} clients en gestion normale**, dont {nombre_fr(hors_ctx['dpnm'].mean() * 100, 1)} % font défaut ;
 - un **découpage propre au machine learning** : {nombre_fr(len(train_ml))} clients pour l'entraînement (80 %), {nombre_fr(len(test_ml))} pour le test (20 %), avec la même part de défauts dans les deux. **Le test n'est lu qu'une seule fois, à la toute fin**, sur le modèle figé : tous les choix se font sur l'entraînement.
 
