@@ -2,11 +2,9 @@
 
 > Essai **bonus et indépendant** des autres branches de machine learning du projet : il n'en reprend aucun choix (variables, encodages, transformations, réglages).
 >
-> **Lecture des codifications** (preuve : `src/01_01_audit.ipynb`, partie « Temporalité des colonnes ») : `PAY_n` juge la facture de fin du mois n (`BILL_AMTn`) sur le paiement fait le mois suivant (`PAY_AMT(n-1)`) ; `PAY_1` dépend du paiement d'octobre, absent du dataset. Les notebooks de ce dossier l'appellent « codification anticipée ». Les passages 1 à 13 prédisent des codifications à partir de l'historique, sans associer une codification à un paiement ; la lecture est établie aux passages 14 et 15.
->
 > **Ce qui a été retenu pour le projet** : la règle de correction de `PAY_1` (passage 28) et les corrections des codifications 1 d'avril à août (passage 19, sans la règle fixe des impayés) sont reprises dans `src/02_02_modele_sorties_retard.ipynb` et dans le niveau 2 de `src/02_01_nettoyage.ipynb` ; l'étude qui les justifie est `src/05_04_EDA_codification1.ipynb`. Dans le projet, la codification corrigée s'appelle `PAY_1` et celle de la banque `PAY_1_original` ; les notebooks de ce dossier l'appellent `PAY_1_corrigee`.
 >
-> **Notebooks** : `01_ml_septembre` (machine learning de septembre, sur le niveau 0 tel quel), puis ses variantes `01b_ml_septembre_log` (montants et plafond au logarithme), `01c_optimisation` (boucle d'optimisation), `01d_optimisation_cible_regroupee` (cible regroupée), `01e_optimisation_tout_regroupe` (cible et variables regroupées), `01f_optimisation_mois_empiles` (mois d'avril à septembre empilés) et `01g_codification1_classe` (la codification 1 comme classe) ; `03_analyse_nouveaux_retards_manques` ; `04_fenetre_mois_suivant` et `05_convention_decalee` (la lecture des codifications) ; `06_incoherences_contentieux` et `08_ratios_codifications_anticipees` (recherches descriptives) ; `10_corrections_manuelles_anticipees` (codifications 1 d'avril à août) ; `11a` à `11g` (anticipation de `PAY_1`, sorties du retard, entrées en retard, effet sur la prédiction du défaut) ; `essai_jeu_de_base_correctifs` et deux brouillons.
+> **Notebooks** : `01_ml_septembre` (machine learning de septembre, sur le niveau 0 tel quel), puis ses variantes `01b_ml_septembre_log` (montants et plafond au logarithme), `01c_optimisation` (boucle d'optimisation), `01d_optimisation_cible_regroupee` (cible regroupée), `01e_optimisation_tout_regroupe` (cible et variables regroupées), `01f_optimisation_mois_empiles` (mois d'avril à septembre empilés) et `01g_codification1_classe` (la codification 1 comme classe) ; `10_corrections_manuelles_anticipees` (codifications 1 d'avril à août) ; `11a` à `11f` (anticipation de `PAY_1`, sorties du retard, entrées en retard, effet sur la prédiction du défaut) ; un brouillon (`brouillon_11f_reglages_fixes`). Les passages gardent leur numéro d'origine.
 
 ## 1. Cadre
 
@@ -221,165 +219,30 @@ Bonnes prédictions sur le train au passage 4 : régression logistique 90,5 %, M
   - **Les 1 ratés sont pris pour des retards** (59 à 71 %) ou pour des -2 (12 à 34 %).
   - **Contrepartie** : en ajoutant le 1, la famille 2 et plus tombe sous la règle naïve (50,3 à 56,9 % contre 67,7 %), les retards maintenus aussi (70,9 à 79,2 % contre 100 %), et la famille -2 baisse (76,9 à 86,2 % contre 92,9 %).
   - **Importance** : comme au passage 11, août et septembre portent presque toute l'information ; juillet pèse un peu plus (4,29 contre 0,83).
-- **Passage 13** (`03_analyse_nouveaux_retards_manques` : les cinq modèles du passage 9 avec leurs meilleurs réglages, prédictions hors pli sur le train ; clients sains en août uniquement) :
-
-| Groupe | Clients |
-|---|---|
-| Nouveaux retards détectés (au moins un modèle) | 118 |
-| Nouveaux retards manqués (aucun modèle) | 681 |
-| Restés sains, sans alerte | 17 680 |
-| Fausses alertes (restés sains, au moins un modèle) | 499 |
-
-| Modèle | Nouveaux retards détectés | Dont par lui seul | Fausses alertes |
-|---|---|---|---|
-| Régression logistique | 80 | 11 | 291 |
-| Arbre de décision | 82 | 15 | 332 |
-| RandomForest | 28 | 0 | 48 |
-| MLP | 0 | 0 | 3 |
-| CatBoost | 87 | 13 | 251 |
-
-  **Profil des groupes** (médianes pour les ratios et les montants, parts en % sinon) :
-
-| Indicateur | Détectés | Manqués | Restés sains | Fausses alertes |
-|---|---|---|---|---|
-| Part de la facture d'août payée en septembre | 6,5 % | 5,4 % | 13,6 % | 7,5 % |
-| Rien payé en septembre, facture d'août due | 0 % | 0,1 % | 0,1 % | 0 % |
-| Part de la facture de juillet payée en août | 9,9 % | 5,7 % | 12,0 % | 9,4 % |
-| Facture d'août | 27 093 NT$ | 45 880 NT$ | 22 927 NT$ | 29 954 NT$ |
-| Plafond | 50 000 NT$ | 80 000 NT$ | 150 000 NT$ | 60 000 NT$ |
-| Utilisation du plafond fin septembre | 61,4 % | 78,2 % | 27,8 % | 65,4 % |
-| Au-dessus du plafond fin septembre | 5,9 % | 12,6 % | 6,1 % | 6,4 % |
-| Retard passé d'avril à juillet | **97,5 %** | 16,7 % | 10,4 % | **89,4 %** |
-| Août à -2 / -1 / 0 | 0 / 0,8 / 99,2 % | 0 / 13,8 / 86,2 % | 11,6 / 23,8 / 64,6 % | 0 / 6,0 / 94,0 % |
-
-  **Écarts standardisés** (manqués moins détectés ; manqués moins restés sains) : retard passé -2,81 ; 0,18 — plafond 0,60 ; -0,49 — utilisation du plafond 0,10 ; 0,60 — part payée en septembre 0,35 ; -0,58 — part payée en août 0,33 ; -0,55 — facture d'août 0,34 ; 0,23 — au-dessus du plafond 0,23 ; 0,22 — rien payé 0,05 ; 0,01.
-
-  **Importance par permutation** (modèles du passage 9, moyenne des cinq) : `PAY_2` 48,63 ; `BILL_AMT1` 6,54 ; les autres de 1,21 (`PAY_3`) à 0,04. Par mois : septembre 6,95 ; août 49,94 ; juillet 1,86 ; juin 0,52 ; mai 0,70 ; avril 0,41 ; plafond 0,25.
-
-  - **Les nouveaux retards détectés ont presque tous un retard passé** (97,5 %), comme les fausses alertes (89,4 %) ; les manqués, rarement (16,7 %, proche des restés sains, 10,4 %).
-  - **Les manqués ne sont pas des clients qui ne paient rien** (0,1 %) : ils paient une petite part de leur facture (médiane 5,4 % en septembre, 5,7 % en août), utilisent davantage leur plafond (78,2 % contre 27,8 %) et ont des plafonds plus bas que les restés sains (écarts moyens, de 0,49 à 0,60).
-  - **Limite de la comparaison** : le groupe des restés sains mêle des clients à -2, -1 et 0 en août, alors que les manqués sont à 0 en août pour 86,2 % ; une comparaison avec les seuls clients à 0 en août, restés à 0, reste à faire.
-  - **Précision des alertes de nouveau retard** : CatBoost 87 justes pour 251 fausses alertes, RandomForest 28 pour 48.
-
 ## 4. Point d'étape (nuit du 9 au 10/10/2026)
 
 **Où on en est**
 - Base retenue : `01e` (cible et codifications regroupées en -2, -1, 0, 2 et plus ; montants et plafond au logarithme signé). Meilleur modèle au score optimisé : CatBoost, à égalité avec RandomForest (passages 9 et 11).
 - `01f` (mois empilés) : écarts de +0,14 à +0,26 point pour les modèles souples, sous l'écart-type des plis ; moins de surapprentissage ; trois fois plus long.
 - `01g` (le 1 comme classe) : la codification 1 se prédit en partie (sept sur dix environ, précision de 71 à 73 % pour RandomForest, le MLP et CatBoost), mieux après une codification saine qu'après un retard.
-- `03` (nouveaux retards manqués) : les nouveaux retards détectés sont presque tous d'anciens retardataires ; les manqués paient peu mais paient, utilisent beaucoup leur plafond et ont des plafonds plus bas.
-- Importance (passages 11, 12, 13) : la codification d'août et le solde de septembre portent presque toute l'information ; juin, mai, avril et le plafond, moins de 1 point chacun.
+- Importance (passages 11 et 12) : la codification d'août et le solde de septembre portent presque toute l'information ; juin, mai, avril et le plafond, moins de 1 point chacun.
 - Le test n'a été lu dans aucun notebook.
 
 **Suite donnée** : la base retenue pour corriger les `PAY_1` = 1 n'est ni `01e` ni `01f`, mais une règle en deux temps (passage 23) : sain en août → codification d'août ; en retard en août → un modèle des sorties du retard. Règle finale : passage 28.
 
 **Pistes notées** : colonnes ajoutées (utilisation du plafond, ratio de paiement, forte hausse de l'utilisation), à valider et à documenter avant tout essai.
 
-- **Passage 14** (`04_fenetre_mois_suivant` : codification du mois M, pour mai à août, avec une fenêtre mois précédent / M / mois suivant ; 92 971 exemples, 23 977 clients du train ; plis par client ; CatBoost et MLP aux meilleurs réglages du passage 9, sans boucle ; score de validation, pas de score en train) :
-
-| Scénario | Modèle | Moyenne des 4 familles | Bonnes prédictions | Sorties du retard (3 030) | Retards maintenus (7 112) | Nouveaux retards (3 496) | Changements entre sains (8 373) |
-|---|---|---|---|---|---|---|---|
-| S1 : passé seul | MLP | 81,41 % ± 0,21 | 85,0 % | 18,8 % | 96,3 % | 0 % | 20,3 % |
-| S1 : passé seul | CatBoost | 82,28 % ± 0,33 | 84,3 % | 9,1 % | 99,0 % | 1,4 % | 25,2 % |
-| S2 : + montants du mois suivant | MLP | 91,31 % ± 0,51 | 93,8 % | 69,1 % | 86,6 % | 65,2 % | 81,1 % |
-| S2 : + montants du mois suivant | CatBoost | 93,49 % ± 0,26 | 92,2 % | 21,7 % | 99,1 % | 81,8 % | 69,3 % |
-| S3 : + codification du mois suivant | MLP | 96,71 % ± 0,22 | 97,4 % | 95,9 % | 97,6 % | 83,6 % | 90,3 % |
-| S3 : + codification du mois suivant | CatBoost | 96,83 % ± 0,18 | 96,3 % | 87,9 % | 98,5 % | 90,4 % | 86,2 % |
-| Repère : même codification que le mois précédent | | 80,28 % ± 0,25 | 84,0 % | 0 % | 100 % | 0 % | 0 % |
-| Repère : même codification que le mois suivant | | 82,22 % ± 0,24 | 84,8 % | 91,3 % | 84,9 % | 54,4 % | 73,3 % |
-
-  **Importance par permutation, S2** (moyenne des deux modèles) : `codif_avant` 35,02 ; **`paiement_apres` 23,39** ; `solde_M` 20,54 ; `solde_apres` 14,36 ; `solde_avant` 2,78 ; **`paiement_M` 0,63** ; `LIMIT_BAL` 0,45 ; `paiement_avant` 0,14. Par position : mois précédent 37,93 ; mois M 21,17 ; mois suivant 37,75 ; plafond 0,45.
-
-  - **Les montants du mois suivant font gagner 10 à 11 points** (S2 contre S1, écart-type des plis de 0,2 à 0,5) ; les nouveaux retards retrouvés passent de 0 à 1,4 % à 65,2 à 81,8 %.
-  - **Le paiement du mois suivant (`PAY_AMT(n-1)`) pèse 23,39 points, celui du mois M (`PAY_AMTn`) 0,63** ; le solde du mois M (`BILL_AMTn`) pèse 20,54.
-  - **Lecture** : la codification du mois M suit le paiement du mois suivant (`PAY_AMT(n-1)`) et la facture du mois (`BILL_AMTn`), pas le paiement du mois M (`PAY_AMTn`). Pour septembre (`PAY_1`), le paiement correspondant est celui d'octobre, absent du dataset.
-  - **S3** ajoute 3 à 5 points de plus ; gain attendu en partie par l'enchaînement des retards.
-
-  **Importance par permutation, S3** (moyenne des deux modèles) : `codif_avant` 23,27 ; `paiement_apres` 21,85 ; `solde_M` 18,58 ; `codif_apres` 14,07 ; `solde_apres` 4,23 ; `solde_avant` 1,40 ; `paiement_M` 0,45 ; `paiement_avant` 0,12 ; `LIMIT_BAL` 0,07. Par position : mois précédent 24,79 ; mois M 19,03 ; mois suivant 40,15 ; plafond 0,07.
-
-  **Recherche parallèle (section 5 bis, descriptive, sans modèle)** : paiement du mois suivant (`PAY_AMT(n-1)` / `BILL_AMTn`) selon le passage entre le mois précédent et M (exemples du train, mai à août) :
-
-| Passage | Exemples | Ratio de paiement du mois suivant (médiane) | Rien payé le mois suivant, facture due |
-|---|---|---|---|
-| Nouveau retard | 3 496 | 0 % | 72,9 % |
-| Resté sain | 79 333 | 12,3 % | 1,5 % |
-| Sortie du retard | 3 030 | 13,4 % | 0,1 % |
-| Retard maintenu | 7 112 | 3,8 % | 36,5 % |
-
-  - **Critère fixé avant le lancement** : la codification de M porte sur le paiement du mois suivant si les nouveaux retards paient nettement moins le mois suivant que les restés sains, et les sorties du retard nettement plus. **Résultat : c'est le cas** (72,9 % des nouveaux retards ne paient rien le mois suivant, contre 1,5 % des restés sains et 0,1 % des sorties du retard).
-
-- **Passage 15** (`05_convention_decalee`, recherche parallèle descriptive, sans modèle : les incohérences entre codifications et paiements, codification `PAY_n` lue avec `PAY_AMT(n-1)` et `BILL_AMTn` ; mai à août ; 98 914 exemples, 24 737 clients, test du ML de septembre écarté). La même comparaison, faite avec l'autre association possible (`PAY_n` avec `PAY_AMTn` et `BILL_AMT(n+1)`), donne des incohérences bien plus fréquentes ; la preuve est reprise dans `src/01_01_audit.ipynb`.
-
-| Situation | Exemples | Part |
-|---|---|---|
-| Retard sur encours nul (parmi les retards) | 12 997 | 2,2 % |
-| Retard sur facture soldée (parmi les retards) | 12 997 | 0,3 % |
-| Nouveau retard malgré un paiement de 3 % ou plus | 4 545 | 8,3 % |
-| Sortie du retard sans rien payer | 3 240 | 0,2 % |
-| Codification -1 ou 0 sans rien payer | 71 696 | 1,7 % |
-| -1 avec la facture soldée | 19 166 | 87,9 % |
-| -2 sans facture due ou facture soldée | 14 221 | 97,8 % |
-| 0 avec un paiement partiel (3 à 100 %) | 52 530 | 90,8 % |
-
-  **Mois par mois** : nouveau retard malgré un paiement de 3 % ou plus, 3,6 à 10,6 % ; sortie du retard sans rien payer, 0 à 0,4 % ; -1 ou 0 sans rien payer, 0,1 à 4,1 % ; retard sur encours nul, 1,2 à 3,1 %. **Clients distincts avec au moins une incohérence** : 1 701 (6,9 %).
-
-  **Paiement par passage** : sorties vers 0, paiement partiel pour 99,6 % (retard récent) et 100 % (ancien) ; sorties vers -1, rien payé pour 0,3 à 0,5 % ; retards aggravés, rien payé pour 89,3 % (récent) et 86,2 % (ancien) ; retards qui baissent, rien payé pour 0 % (récent) et 24,5 % (ancien) ; nouveaux retards, rien payé pour 73,2 %.
-
-  **Septembre, part de codifications 1** selon la facture de fin septembre (`BILL_AMT1`) :
-
-| Codification d'août | Facture de septembre due | Pas de facture de septembre |
-|---|---|---|
-| Saine (-2, -1, 0) | 0,8 % (18 412 clients) | **70,3 %** (2 402) |
-| Retard (2 et plus) | 46,8 % (3 894) | 100 % (1) |
-
-  - **Sur les passages de mai à août, les incohérences sont rares** et -1 et 0 gardent leur sens attendu (-1 : facture soldée ; 0 : paiement partiel) ; seuls les retards sur encours nul restent en partie (2,2 %).
-  - **Septembre** : après une codification saine, les 1 portent surtout sur les clients **sans** solde de septembre à régler (70,3 %, contre 0,8 % avec un solde) ; après un retard, sur des clients avec un solde à régler (46,8 %). Les deux sortes de 1 ne se comportent pas de la même façon.
-  - **Part des 1 expliquée par la facture de septembre** : parmi les 1 posés après une codification saine, 92 % concernent un client **sans** solde de septembre (1 688 sur 1 836) ; parmi les 1 posés après un retard, 99,9 % un client **avec** un solde de septembre à régler (1 823 sur 1 824). Les 70,3 % et 46,8 % du tableau se lisent dans l'autre sens : la part des clients de chaque situation qui reçoivent un 1.
-  - **Portée** : pour les 1 posés après un retard, la condition n'est pas distinctive : 3 894 des 3 895 clients en retard en août ont un solde de septembre, qu'ils reçoivent un 1 ou non ; elle n'explique pas pourquoi 46,8 % reçoivent un 1. Pour les 1 posés après une codification saine, elle l'est : 92 % des 1 concernent un client sans solde de septembre, contre 11,5 % des clients sains en août (2 402 sur 20 814).
-
 ## 5. Constats complémentaires (10/10/2026, analyses descriptives en lecture seule)
 
 *Calculs faits hors notebook, sur le niveau 0, sans les clients du test du ML de septembre (sauf mention). Faits et chiffres seulement ; conclusions à écrire par l'utilisateur.*
 
-**Septembre suit la même lecture que les autres mois** : lu avec le paiement du mois même, septembre est encore plus incohérent que les autres mois ; `PAY_1` porte donc sur la facture de fin septembre et dépend du paiement d'octobre (preuve reprise dans `src/01_01_audit.ipynb`, partie « Temporalité des colonnes », section 3).
-
-**Pas de saut de codification** entre avril et septembre : aucun retard ne monte de deux crans ou plus d'un mois à l'autre (0 % sur chaque passage), aucun client sain ne passe directement à 3 ou plus (0 client).
-
-**Retards de 3 et plus, d'un mois à l'autre** : retour à 2 pour 21,9 % (avril → mai), 30,9 %, 40,8 %, 36,2 % et 16,4 % (août → septembre) ; même niveau pour 33,5 %, 36,4 %, 23,6 %, 10,0 % et 11,3 % ; codifiés 1 en septembre pour 36,6 % (46,8 % de tous les retards d'août).
-
-**Codifications -2** (avril à août, 18 332 exemples client × mois) : aucune facture due 66,7 % ; facture soldée le mois suivant 31,3 % ; payée en partie 1,5 % ; moins de 3 % 0,3 % ; rien payé 0,3 % (50 exemples).
-
-**Codifications -2 avec une facture du mois encore due** : 28,1 % (avril), 30,3 %, 31,8 %, 36,8 %, 41,5 % (août), 67,9 % (septembre). En effectifs : environ 1 160 (mai), 1 160, 1 280, 1 360, 1 500 (septembre) ; les -2 **sans** facture passent d'environ 1 910 (août) à 710 (septembre). Les comptes qui s'activent dans le mois représentent 4,6 à 6,3 % des -2 de mai à août et 11,1 % en septembre.
+**Retards d'août codifiés 1 en septembre** : 46,8 % de tous les retards d'août ; 36,6 % des retards de 3 et plus.
 
 **Défaut (`dpnm`) des clients sains en août et sans solde de septembre** (2 402 clients ; ensemble des clients retenus : 22,6 %) : 25,0 % ; codifiés 1 en septembre, 27,1 % (1 688) ; codifiés -2, 19,9 % (709). Inactifs depuis avril (aucune facture ni paiement) : 36,6 % (858 ; 38,3 % si 1, 32,8 % si -2). Avec une trace d'activité : 18,5 % (1 544 ; 21,1 % si 1, 12,0 % si -2). Sur tout le niveau 0 : `PAY_1` = -2, 13,2 % de défaut (2 759) ; sans solde de septembre, 20,3 % ; comptes sans facture ni paiement sur 6 mois, 36,2 % (941, dont 590 codifiés 1 et 351 codifiés -2).
 
-**Hypothèse « `dpnm` = codification d'octobre » (facture d'octobre jugée sur le paiement de novembre)**, comparaison du défaut selon `PAY_1` avec le passage à « 2 et plus » le mois suivant, d'avril à août :
-
-| Codification | Défaut selon `PAY_1` | Devient 2 et plus le mois suivant (avril à août) |
-|---|---|---|
-| 2 et plus | 69,8 % | 68,5 à 76,0 % |
-| 0 | 12,9 % | 4,6 à 8,2 % |
-| -1 | 16,8 % | 1,7 à 5,8 % |
-| -2 | 13,4 % | 1,1 à 2,1 % |
-
-  - Pour les retards, le taux de défaut correspond au taux de retard maintenu le mois suivant ; pour les codifications saines, le défaut est deux à dix fois plus fréquent que les nouveaux retards habituels.
-
-- **Passage 16** (`06_incoherences_contentieux`, recherche parallèle descriptive : les trois corrections de l'ancien niveau 5 du contentieux relues avec la lecture des codifications ; 24 737 clients, test du ML de septembre écarté) :
-  - **Faux retards** (entrée en retard sur une facture nulle) : 291 ; ils ont **tous** une facture le mois suivant ; de mai à juillet (244 cas), cette facture n'est pas payée à son échéance pour 197 (rien payé) et 33 (moins de 3 %), soit 94 % sous le minimum, contre 73 à 86 % de « rien payé » pour les autres retards ; le retard continue le mois suivant dans 100 % des cas. Ce sont de vrais retards : la correction tombe.
-  - **Retard « payé » présumé sorti** : la situation « en retard avec la facture du mois payée » ne compte que 7 à 17 cas par mois : la correction n'a plus d'objet.
-  - **Mois de transition** (sur les vraies sorties d'août à mai) : la remise à 2 ne se déclencherait que sur 3 cas ; la sortie « confirmée » (90 % payés) concerne 15,9 à 28,8 % des vraies sorties.
-
-- **Passage 18** (`08_ratios_codifications_anticipees`, recherche parallèle descriptive : ratios de paiement × codifications, mai à août, 98 914 exemples) :
-  - **Retards selon le paiement** : facture du mois payée à 90 % et plus le mois suivant → 0,2 % de retards (22 145 exemples) ; rien payé → 84,0 % (7 666).
-  - **Sorties d'un retard selon le paiement** : rien payé, 0,2 % (3 114) ; 3 à 5 %, 2,0 % ; 5 à 10 %, 38,7 % ; 10 à 20 %, 50,5 % ; 20 à 50 %, 58,1 % (683) ; 50 à 90 %, 52,6 % ; 90 % et plus, **97,8 % (738)**, 94,1 à 99,3 % selon le mois.
-  - **Clients à 2 et plus en août ayant payé 90 % et plus de la facture d'août en septembre** : 12 sur 3 895 (souvent de très petites factures).
-  - **Décision de l'utilisateur : les codifications 2 et plus sont fiables, pas de correction des 2.**
-  - **Impayés laissés sains** (facture du mois due, rien payé le mois suivant, codifié sain) : mai 759 sur 2 035, juin 433 sur 1 916, juillet 19 sur 1 721, août 19 sur 1 994 ; factures médianes de 693 à 2 500 NT$ (contre environ 20 000 pour les impayés mis en retard) ; en retard le mois d'après pour 5,3 à 18,9 %. Mise en retard selon la facture, juillet-août : 95 à 100 % dès 100 NT$ (67 à 77 % sous 100 NT$) ; mai-juin : 24 à 86 %.
-  - **Décision de l'utilisateur, ensuite remplacée** : une règle fixe des impayés (une facture du mois d'au moins 100 NT$ sans aucun paiement le mois suivant vaut un retard) ; elle a été remplacée dans le projet par l'uniformisation des codifications 2 d'avril à juin de `src/05_02_EDA_incidents.ipynb` (règle 2 : moins de 1,5 % payé le mois suivant).
-
-- **Passage 19** (`10_corrections_manuelles_anticipees` : corrections des 34 codifications 1 d'avril à août, chacune lue avec la facture du mois et le paiement du mois suivant) :
-  - règles, dans l'ordre : (0) règle de l'utilisateur, `PAY_n` = 1 et solde du mois suivant nul ou créditeur (`BILL_AMT(n-1)` <= 0) → codification saine antérieure ; (1) encours nul, `PAY_n` = 1 sans facture du mois (`BILL_AMTn` <= 0) et mois précédent sain → codification du mois précédent ; (2) règle fixe des impayés (passage 18, abandonnée depuis) ; (3) décisions à la main.
-  - **Décisions de l'utilisateur (méthode B)** : 6783 → 0 (juin, juillet, août) ; 11498 → 2 (juin, juillet, août) ; 892 → 0 (juillet, août) ; 1967 → 0 (juillet, août) ; 5645 → 0 (août) ; 19195 → 2 (août) ; 25176 → 2 (août).
+- **Passage 19** (`10_corrections_manuelles_anticipees` : corrections des 34 codifications 1 d'avril à août) :
+  - règles, dans l'ordre : (0) règle de l'utilisateur, `PAY_n` = 1 et solde du mois suivant nul ou créditeur (`BILL_AMT(n-1)` <= 0) → codification saine antérieure ; (1) encours nul, `PAY_n` = 1 sans facture du mois (`BILL_AMTn` <= 0) et mois précédent sain → codification du mois précédent ; (2) règle fixe des impayés (une facture du mois d'au moins 100 NT$ sans aucun paiement le mois suivant vaut un retard ; abandonnée depuis) ; (3) décisions à la main.
+  - **Décisions de l'utilisateur** : 6783 → 0 (juin, juillet, août) ; 11498 → 2 (juin, juillet, août) ; 892 → 0 (juillet, août) ; 1967 → 0 (juillet, août) ; 5645 → 0 (août) ; 19195 → 2 (août) ; 25176 → 2 (août).
   - **Repris dans le projet** : règles (0) et (1) et décisions à la main, sans la règle fixe des impayés : `src/02_02_modele_sorties_retard.ipynb` (section 2) et niveau 2 de `src/02_01_nettoyage.ipynb` ; raisons des décisions dans `src/05_04_EDA_codification1.ipynb` (section 3).
 
 - **Passage 20** (`11a_anticipation_pay1` : variante du passage 11, mois empilés ; codifications d'avril à août corrigées par le `10` (règles, règle fixe des impayés comprise, et décisions) avant tout apprentissage : 21 par l'encours nul, 13 par les décisions, 2 008 par la règle fixe, soit avril 558, mai 897, juin 520, juillet 23, août 44 ; `PAY_1` non corrigé ; 119 997 exemples pour 24 737 clients ; mêmes 5 plis, notés sur septembre ; départ de la boucle aux meilleurs réglages du passage 11 ; modèles enregistrés dans `modeles/11a/`) :
@@ -409,25 +272,6 @@ Bonnes prédictions sur le train au passage 4 : régression logistique 90,5 %, M
   - **Clients qui changent** : la régression logistique retrouve plus de sorties du retard (52,6 % contre 41,3 %) ; CatBoost 73,7 % (74,6 %), MLP 75,0 % (76,5 %), RandomForest 69,2 % (72,7 %), arbre 64,7 % (69,7 %). Nouveaux retards : 0,1 à 9,8 % (0,1 à 11,5 % au passage 11).
   - **Importance par permutation** (baisse du score en points, moyenne des cinq modèles) : `codif_m1` 47,22 (47,96 au passage 11) ; `solde_m0` 6,38 (6,26) ; toutes les autres colonnes moins de 1 point (`solde_m1` 0,95, `codif_m2` 0,54, `codif_m3` 0,43, `paiement_m1` 0,43, `paiement_m0` 0,41, `solde_m2` 0,24, `LIMIT_BAL` 0,20, les autres 0,12 ou moins). Par ancienneté : M 6,79 ; M-1 48,60 ; M-2 0,85 ; M-3 0,52 ; M-4 0,12 ; M-5 0,17 ; plafond 0,20. Les mois corrigés surtout par la règle fixe des impayés (avril à juin, soit M-3 à M-5 pour septembre) pèsent toujours moins de 1 point.
   - **Durées** : CatBoost 1 h 43, RandomForest 1 h 12, régression logistique 42 s.
-
-- **Passage 21** (`essai_jeu_de_base_correctifs` : prédiction du défaut, `dpnm` ; copie d'`essai_jeu_de_base` avec ses préréglages, 30 000 clients du niveau 0, test du ML inclus, mêmes 5 plis ; seul changement, les codifications d'avril à août corrigées par le `10` (règle fixe des impayés comprise) avant l'apprentissage, 1 698 clients touchés ; variantes « Complet » et « `PAY_n` seuls », « Sans les `PAY_n` » non relancée car identique ; comparaison pli par pli avec `data/ML/comparatif_global/jeu_de_base.csv` ; durée 12 min) :
-
-| Variante | Mesure | Meilleur modèle, jeu de base | Meilleur modèle, avec correctifs | Gain (points) | Verdict |
-|---|---|---|---|---|---|
-| Complet (CatBoost → CatBoost) | Précision au rappel de 50 % | 58,2 % | 58,1 % | -0,12 ± 0,13 | dans le bruit |
-| | Précision au rappel de 60 % | 50,2 % | 50,3 % | +0,11 ± 1,00 | dans le bruit |
-| | Précision au rappel de 70 % | 42,2 % | 41,9 % | -0,25 ± 0,63 | dans le bruit |
-| | Précision au rappel de 80 % | 34,5 % | 34,8 % | +0,26 ± 0,25 | gain réel (4 plis sur 5) |
-| | Précision moyenne | 55,6 % | 55,6 % | -0,06 ± 0,11 | dans le bruit |
-| | Règle marginale : rappel / précision | 37,3 % / 66,7 % | 37,8 % / 66,5 % | +0,54 / -0,13 | dans le bruit |
-| `PAY_n` seuls (RandomForest → CatBoost) | Précision au rappel de 50 / 60 / 70 / 80 % | 54,8 / 47,4 / 36,1 / 30,8 % | 55,7 / 47,8 / 35,4 / 30,7 % | +0,90 / +0,41 / -0,68 / -0,17 | dans le bruit |
-| | Précision moyenne | 53,1 % | 53,2 % | +0,19 ± 0,30 | dans le bruit |
-
-  - **Modèle par modèle** (4 modèles × 2 variantes × 7 mesures) : tous les écarts moyens sont sous 1 point, sauf un (régression logistique, `PAY_n` seuls, précision au rappel de 60 % : +3,16 ± 6,65, dans le bruit) ; gains réels et pertes sont dispersés, sans sens commun d'une mesure ou d'un modèle à l'autre. Avec 56 comparaisons et un verdict à un écart-type, quelques verdicts dans chaque sens sont attendus par le seul hasard des plis.
-  - **Lecture** : les correctifs ne changent pas la précision des défauts prédits à rappel égal ; le seul gain réel du meilleur modèle (+0,26 point au rappel de 80 %) reste très petit.
-  - **Importance** (variante complète) : les codifications portent 73 à 86 % de la perte selon le modèle, `PAY_1` à elle seule l'essentiel ; `PAY_2` à `PAY_6`, les mois corrigés, pèsent chacune 0,02 point de précision moyenne ou moins.
-  - **Réglages retenus** (variante complète) : CatBoost profondeur 4, 445 arbres, `l2_leaf_reg` 10, `learning_rate` 0,03 ; RandomForest profondeur 8, feuilles 50, 300 arbres ; MLP (64, 32), alpha 0,1 ; régression logistique C = 1.
-  - Probabilités hors pli et décisions enregistrées dans `sorties/jeu_de_base_correctifs.csv`.
 
 - **Passage 22** (`11b_anticipation_pay1_binaire` : variante du passage 9, septembre seul, sans empilement ni correctifs ; cible `PAY_1` binaire, sain (-2, -1, 0) ou en retard (2 et plus) : 18 545 sains et 2 504 retards dans le train ; score optimisé = moyenne des taux de bonne classe des deux classes, **non comparable** aux passages à quatre familles ; départ de la boucle aux meilleurs réglages du passage 9 ; modèles enregistrés dans `modeles/11b/` ; durée totale 34 min) :
 
@@ -482,7 +326,7 @@ Bonnes prédictions sur le train au passage 4 : régression logistique 90,5 %, M
   - **Aucune entrée en retard annoncée**, par aucun modèle : dans tous les plis internes, même les 50 clients les plus probables comptaient moins d'une entrée en retard sur deux (seuil infini). Appliqués aux 1 836 `PAY_1` = 1 sains en août : 0 annoncé.
   - **Capacité de tri** : précision moyenne de 12,7 à 14,0 %, environ trois fois le hasard (4,2 %), ROC AUC 0,72 à 0,77 ; le tri existe, mais aucun groupe de clients n'atteint une entrée sur deux.
   - **Surapprentissage de CatBoost et du RandomForest** : la boucle s'arrête au premier tour quand aucun réglage n'est admis, sans pousser vers des réglages plus simples (profondeur 2, feuilles au-delà de 50 non essayées) ; l'écart relatif est aussi gonflé par des scores bas (8 à 12 points d'écart absolu).
-  - **Importance** : `PAY_3` (codification de juillet) 2,65 en moyenne, puis le plafond 1,75 ; par mois, juillet pèse le plus (3,08) ; un retard passé reste le principal signal (comme au passage 13).
+  - **Importance** : `PAY_3` (codification de juillet) 2,65 en moyenne, puis le plafond 1,75 ; par mois, juillet pèse le plus (3,08) ; un retard passé reste le principal signal.
   - Probabilité médiane plus basse chez les 1 que dans le train (MLP 0,002 contre 0,036) : les 1 sains en août sont à -2 ou -1 en août (1 833 sur 1 836), d'où l'on entre très rarement en retard.
 
 - **Passage 25** (`11e_pay1_corrigee_defaut` : prédiction du défaut aux préréglages d'`essai_jeu_de_base`, 30 000 clients, test du ML inclus, mêmes 5 plis ; codifications 1 d'avril à août corrigées par le `10` sans la règle des retards (34 codifications, 28 clients) ; **`PAY_1_corrigee` ajoutée à côté de `PAY_1`**, encodée comme les autres `PAY_n` (nombre mis à l'échelle) ; plafond au logarithme ; variantes « Complet + PAY_1 corrigée » (24) et « PAY_n seuls + PAY_1 corrigée » (7) ; comparaison pli par pli avec `jeu_de_base.csv`) :
@@ -505,11 +349,6 @@ Bonnes prédictions sur le train au passage 4 : régression logistique 90,5 %, M
   - **Importance** (colonne mélangée seule) : la codification de septembre porte l'essentiel dans les deux versions (`PAY_1` 0,128 à 0,189 ; `PAY_1_corrigee` 0,125 à 0,216) ; les autres colonnes 0,016 ou moins.
   - **Face à `essai_jeu_de_base`** (version `PAY_1` d'origine contre variante complète, probabilités hors pli enregistrées, mêmes clients et mêmes plis ; différences : codifications en catégories, plafond au logarithme, grilles élargies, 34 codifications 1 d'avril à août corrigées) : régression logistique, gain réel sur 5 plis sur 5 (précision moyenne +4,68 ± 0,86 points ; précision aux rappels de 50 à 80 % de +2,60 à +4,35) ; MLP, précision moyenne +1,15 ± 0,74 (4 plis sur 5), précision à rappel égal dans le bruit (+0,06 à +0,52) ; RandomForest dans le bruit (-0,43 à +0,21) ; CatBoost dans le bruit (précision moyenne -0,33 ± 0,33), sauf +0,42 ± 0,38 au rappel de 80 % (5 plis sur 5). Le gain de la régression logistique tient à l'encodage en catégories : en nombres, elle ne peut pas lire des codifications dont le risque ne suit pas l'ordre (-2, -1, 0, 1) ; les modèles à base d'arbres trouvent déjà ces groupes seuls.
 
-- **Passage 27** (`11g_pay1_origine_ou_corrigee_perimetre_ml` : le `11f` sur l'ancien train du ML, 19 358 clients, 15,93 % de défauts, aucune facture de septembre nulle, test du ML non lu ; 1 543 `PAY_1` = 1, dont 131 sains en août et 1 412 en retard en août) :
-  - **`PAY_1` d'origine face à `PAY_1_corrigee`** : tout dans le bruit, pour les quatre modèles ; meilleur contre meilleur (CatBoost) : précision moyenne 34,31 % contre 34,36 % (+0,05 ± 0,25), précision aux rappels de 50 à 80 % de -0,19 à +0,14 point. Seuls verdicts hors bruit : ROC AUC de la régression logistique -0,001 (perte), du RandomForest +0,003 (gain réel).
-  - **Lecture** : la perte du `11f` (-1,4 à -2,2 points de précision moyenne sur les 30 000 clients) disparaît sur le périmètre du ML. Elle venait des codifications 1 que le périmètre écarte : surtout les 1 qui suivent un mois sain sans facture en septembre (encours nuls), et ceux du contentieux. Sur les clients du ML, corriger les 1 ne fait ni gagner ni perdre.
-  - **Face aux scénarios du ML 2** (probabilités hors pli de `ml_0` et `ml_4`, mêmes 19 358 clients, plis des scénarios ; mesures des scénarios) : meilleur de chaque côté, score décisionnel F2 au rappel minimal de 60 % : `11g` CatBoost avec `PAY_1_corrigee` 48,72 %, `PAY_1` d'origine (régression logistique) 48,75 %, `ml_4` CatBoost 48,40 %, `ml_0` CatBoost 48,19 % ; précision des défauts prédits au rappel de 60 % : 27,76 % / 27,83 % / 27,25 % / 26,93 %. Face à `ml_4` : F2 +0,32 ± 0,34, précision +0,51 ± 0,53 (dans le bruit), précision moyenne +0,49 ± 0,15 (gain réel, 5 plis sur 5). Face à `ml_0` : gain réel sur les trois mesures (+0,52 à +0,83 point). Les scénarios n'ont pas de MLP et encodent les codifications en nombres, sur le niveau 5 ; le `11g` part du niveau 0 avec les codifications en catégories.
-
 - **Passage 28** (`11c_sorties_du_retard`, section 9 ajoutée : précision marginale de 50 % pour chaque modèle, décision de l'utilisateur ; quatre candidats arbitres d'autres familles réglés par la boucle ; septembre du train, 2 071 clients en retard en août, dont 366 sorties) :
   - **Candidats** (précision moyenne sur les sorties, validation) : SVM 88,00 % ± 2,04 (C = 1, `gamma` 0,03, classes équilibrées ; retenu comme arbitre), KNN 82,70 % (30 voisins), régression logistique 80,46 % (C = 0,1, L1), bayésien naïf 68,31 % ; pour comparaison, MLP 88,1 %, CatBoost 88,8 %.
   - **Règles à 50 %** : MLP seul 367 sorties annoncées, précision 82,0 %, 82,2 % des sorties retrouvées ; CatBoost seul 369, 82,7 %, 83,3 % ; SVM seul 376, 81,1 %, 83,3 % ; **deux sur deux** (MLP et CatBoost) 343, 86,3 %, 80,9 % ; **deux sur trois** 368, 82,6 %, 83,1 % ; rappel, deux sur deux à 80 % : 289, 91,3 %, 72,1 %.
@@ -519,9 +358,6 @@ Bonnes prédictions sur le train au passage 4 : régression logistique 90,5 %, M
   - **Trois sur trois à 50 %** (MLP, CatBoost et SVM d'accord) : 337 sorties annoncées, 294 vraies (87,2 %), 80,3 % des sorties retrouvées ; 185 sorties estimées chez les 1 824 `PAY_1` = 1 en retard en août (10,1 %), contre 132 avec la règle à 80 % (+53 clients, +40 %).
   - **Décision de l'utilisateur : règle « trois sur trois »**, précision marginale de 50 % pour chaque modèle (MLP, CatBoost, SVM). Reportée dans `src/02_02_modele_sorties_retard.ipynb` (SVM ajouté, seuils à 50 %, trois voix nécessaires, vérification sur le test et réapprentissage sur train + test à relancer), dans la fonction du niveau 2 de `src/02_01_nettoyage.ipynb` et dans `docs/colonnes_creees.md`.
 
-- **Décision de l'utilisateur (10/10/2026) : la correction des `PAY_1` est conservée**, et la codification de la banque est gardée à côté. Dans le projet (`src/02_01_nettoyage.ipynb`, niveau 2) : `PAY_1` = codification corrigée, `PAY_1_original` = codification de la banque ; la correction se fait avant le classement au contentieux ; les modèles sont réappris et enregistrés par `src/02_02_modele_sorties_retard.ipynb` (`src/modeles_pay1/`) ; définitions dans `docs/colonnes_creees.md` (section 0). Repères pour le machine learning : sur les 30 000 clients, remplacer `PAY_1` par la version corrigée fait perdre (passage 26) ; sur l'ancien périmètre du ML, c'est dans le bruit (passage 27) ; les mettre côte à côte ne coûte rien (passage 25). Ces trois passages ont été faits avec l'ancienne règle de sortie (MLP et CatBoost d'accord, 80 %) : à refaire avec la règle finale.
-
-- **Comparatif à faire sur le périmètre du ML** (`11g`) : `PAY_1` d'origine face à `PAY_1_corrigee`, comme le `11f`, mais sur les clients du périmètre du ML (facture en septembre, plafond d'au plus 500 000 NT$, contentieux à M retiré), train seul, test non lu. L'effet peut différer : les codifications 1 posées sur un encours nul en septembre, imprévisibles, sont hors périmètre ; dans l'ancien train du ML (19 358 clients), 1 543 `PAY_1` = 1, dont 131 sains en août et 1 412 en retard en août (contre 1 861 et 1 827 sur les 30 000 clients). Construit sur l'ancien train du ML (`11g_pay1_origine_ou_corrigee_perimetre_ml`) : la comparaison reste valable à périmètre égal ; à refaire sur le nouveau périmètre une fois le nettoyage revu. **Avec le nouveau nettoyage, test à ajouter** : même pipeline que le `11g` (mêmes clients, mêmes plis, codifications en catégories, mêmes modèles), codifications du niveau 0 face à celles du nouveau nettoyage ; le niveau 0 sert de plancher, les nouvelles corrections doivent faire au moins aussi bien.
+- **Décision de l'utilisateur (10/10/2026) : la correction des `PAY_1` est conservée**, et la codification de la banque est gardée à côté. Dans le projet (`src/02_01_nettoyage.ipynb`, niveau 2) : `PAY_1` = codification corrigée, `PAY_1_original` = codification de la banque ; la correction se fait avant le repérage de la population en incident ; les modèles sont réappris et enregistrés par `src/02_02_modele_sorties_retard.ipynb` (`src/modeles_pay1/`) ; définitions dans `docs/colonnes_creees.md` (section 0). Repères pour le machine learning : sur les 30 000 clients, remplacer `PAY_1` par la version corrigée fait perdre (passage 26) ; les mettre côte à côte ne coûte rien (passage 25). Ces deux passages ont été faits avec l'ancienne règle de sortie (MLP et CatBoost d'accord, 80 %) : à refaire avec la règle finale.
 
 - **Pistes notées (10/10/2026)** : scénario suivant possible, prédire le **passage** plutôt que la codification : reste en retard, revient sain, reste sain, part en retard (proche de « va-t-il faire défaut », mais plus nuancé : un payeur partiel ne sort pas forcément du retard, et inversement) ; l'estimation serait ensuite retranscrite en codification. Une colonne `PAY_1_estime` (codification estimée pour les 1, `PAY_1` pour les autres) et sa confiance, ajoutées **à côté** de `PAY_1`, diraient au modèle de défaut si la correction apporte une information.
-- **Étude à lancer : fiabilité de `PAY_1` hors codifications 1** (y a-t-il un décrochage des codifications en septembre ?). Sans le paiement d'octobre, la comparaison se fait entre le passage août → septembre et les passages des mois précédents : répartition des codifications et des passages (resté sain, nouveau retard, sortie, retard maintenu, aggravé, qui baisse), codifications saines qui changent (0 → -1…), part des nouveaux retards et des sorties, niveaux de retard.
