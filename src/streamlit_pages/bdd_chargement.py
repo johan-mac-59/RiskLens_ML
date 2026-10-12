@@ -11,7 +11,7 @@ Le jeu de données arrive sous la forme d'un **tableau plat** : une ligne par cl
 
 1. **Préparation** : le fichier d'origine reçoit un nettoyage structurel (valeurs hors nomenclature ramenées à « autres ») et devient le fichier prêt à charger ([02_01_nettoyage.ipynb](https://github.com/johan-mac-59/RiskLens_ML/blob/main/src/02_01_nettoyage.ipynb), section « Nettoyage suite à Audit »).
 2. **Création des tables** à partir du script SQL ([03_02_creation_tables.sql](https://github.com/johan-mac-59/RiskLens_ML/blob/main/src/03_02_creation_tables.sql)) : tables, clés primaires et clés étrangères.
-3. **Chargement** ([03_01_ingestion_donnees.py](https://github.com/johan-mac-59/RiskLens_ML/blob/main/src/03_01_ingestion_donnees.py)) : les tables de correspondance sont remplies à partir de [correspondances.json](https://github.com/johan-mac-59/RiskLens_ML/blob/main/data/correspondances.json), puis chaque client est inséré dans la table `client`.
+3. **Chargement** ([03_01_ingestion_donnees.py](https://github.com/johan-mac-59/RiskLens_ML/blob/main/src/03_01_ingestion_donnees.py)) : les tables de correspondance sont remplies à partir de [correspondances.json](https://github.com/johan-mac-59/RiskLens_ML/blob/main/data/correspondances.json), puis chaque client est inséré dans la table `client`. Si la base existe déjà, le script demande une **confirmation** avant de la réinitialiser : on ne peut pas l'effacer par erreur.
 4. **Dépliage de l'historique** : les 6 mois rangés en colonnes deviennent **6 lignes par client** dans la table `historique_mensuel`, chacune rattachée à son mois dans `dim_date`. On peut ainsi ajouter un mois sans changer la structure de la base.
 """)
 

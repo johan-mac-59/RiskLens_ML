@@ -11,6 +11,8 @@ st.info("Le schéma relationnel a été conçu pour éviter la redondance et ass
 st.image("https://raw.githubusercontent.com/johan-mac-59/RiskLens_ML/main/images/schema_bdd__risklens.png", width="stretch")
 st.caption("Représentation conceptuelle de la BDD SQLite")
 
+st.markdown("Le schéma a été conçu avec la méthode **MERISE**, du modèle conceptuel au modèle relationnel. Il s'organise autour d'une table des faits, l'historique mensuel, reliée à ses tables de dimensions : c'est un schéma **en flocon**, car les tables qui décrivent le client (genre, statut marital, niveau d'études, statut de défaut) se rattachent à `client` et non directement aux faits.")
+
 st.markdown("Le schéma montre la base telle qu'elle a été conçue. Le bouton ci-dessous interroge l'API en direct (route `/tables`) et affiche les tables réellement présentes dans la base, avec leurs colonnes.")
 if st.button("Afficher les tables de la base (en direct, via l'API)", type="primary"):
     try:
