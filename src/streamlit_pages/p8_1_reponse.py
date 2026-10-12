@@ -123,7 +123,7 @@ signales_brut_regles[ordre_brut[:int(regles_demo.sum())]] = True
 sortis = regles_demo & ~signales_brut_regles
 sortis_defauts, sortis_sains = int((sortis & (y == 1)).sum()), int((sortis & (y == 0)).sum())
 
-# Comparatif global, sur les 27 202 clients du périmètre (H13) : (approche, règle seule, + haut risque, + risque modéré),
+# Comparatif global, sur les 27 202 clients du périmètre (H11) : (approche, règle seule, + haut risque, + risque modéré),
 # chaque palier en (part des défauts détectés, précision), en %
 COMPARATIF_GLOBAL = [
     ("<b>Version finale du projet</b> : règles métier (population en incident, retard imminent), puis <code>ml_17</code> (21 variables)", (48.1, 60.5), (63.8, 48.1), (78.8, 36.4)),
