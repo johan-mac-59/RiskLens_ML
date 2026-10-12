@@ -6,6 +6,8 @@ dist/
 wheels/
 *.egg-info
 *.csv
+data/ML/source_datasets.json
+data/ML/lecture_test.txt
 *.log
 
 
@@ -31,3 +33,9 @@ ecole/
 #dataset synchronisé de mon EDA pour Streamlit
 !dataset_streamlit.csv
 !entonnoir_nettoyage.csv
+
+#démo du ML (clients de la démo ; modèle et bornes non ignorés)
+!lab_ML/demo_ML/*.csv
+
+# Essai de correction de la codification 1 : modèles enregistrés gardés en local
+lab_ML/correction_codification_1/modeles/

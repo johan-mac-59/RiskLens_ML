@@ -162,6 +162,6 @@ Le taux de défaut peut donc varier de {nombre_fr(t4, 0)} % à {nombre_fr(t3, 0)
 
 # ==============================================================================
 # CALCULATEUR INTERACTIF : TAUX DE DÉFAUT PAR PROFIL, CALCULÉ SUR LE DATASET
-# (fonction simulateur_profil de commun.py, partagée avec le contentieux en 5.5)
+# (fonction simulateur_profil de commun.py, partagée avec la population en incident en 5.5)
 # ==============================================================================
 simulateur_profil(df, "simulateur", f"en direct sur les {nombre_fr(len(df))} clients étudiés", "des clients étudiés")

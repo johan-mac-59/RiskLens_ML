@@ -2,10 +2,10 @@ from streamlit_pages.commun import *
 
 # ==============================================================================
 # PARTIE 4.6 : LES RETARDS
-# Codifications corrigées au nettoyage (niveau 5 : faux retards neutralisés, mois de
-# transition recodé). Graphiques repris du notebook storytelling (cellules 39, 41, 43) ;
+# Codifications corrigées au nettoyage (niveau 2 : codifications 1 de septembre remplacées ;
+# niveau 3 : retards d'avril à juin uniformisés). Graphiques repris du notebook storytelling (cellules 39, 41, 43) ;
 # CUMUL_INCIDENT est lue dans le CSV (simple comptage créé dans le storytelling).
-# Les indicateurs du contentieux ne sont pas utilisés ici : ils sont présentés en partie 5.
+# Les indicateurs de la population en incident ne sont pas utilisés ici : ils sont présentés en partie 5.
 # ==============================================================================
 df = load_data()
 taux_moyen = df["dpnm"].mean() * 100
@@ -19,9 +19,7 @@ evolution = pd.DataFrame({
     'codif_3': [(df[f'PAY_{n}'] == 3).mean() * 100 for n, _ in MOIS],
     'codif_4': [(df[f'PAY_{n}'] == 4).mean() * 100 for n, _ in MOIS],
     'codif_5_plus': [(df[f'PAY_{n}'] >= 5).mean() * 100 for n, _ in MOIS],
-    'codif_1': [(df[f'PAY_{n}'] == 1).mean() * 100 for n, _ in MOIS],
     'mois_retard': [int(df.loc[df[f'PAY_{n}'] >= 2, f'PAY_{n}'].sum()) for n, _ in MOIS],
-    'nb_codif_1': [int((df[f'PAY_{n}'] == 1).sum()) for n, _ in MOIS],
 })
 
 
@@ -47,9 +45,7 @@ entete_partie_4(df)
 st.markdown("---")
 st.header("4.6 Les retards : plus nombreux, plus graves, et plus risqués quand ils durent", anchor="retards")
 st.markdown(f"""
-Un client est dit **en retard** un mois donné quand sa codification de paiement vaut {codif('2')} ou plus. Les codifications utilisées ici sont celles corrigées au nettoyage : les retards posés alors qu'aucune facture n'était due ont été neutralisés, et le mois de transition de septembre recodé selon les paiements. Ces corrections sont nées plus tard, de l'étude du contentieux : elles sont présentées en page « 5.2 Chercher le contentieux révèle de faux retards ».
-
-La codification {codif('1')} est traitée à part : c'est une **codification non statuée**. Elle n'existe presque qu'en septembre, comme un statut d'attente que la banque n'a pas encore tranché (page « 3.3 Les codifications »). Même après le recodage du nettoyage, une partie reste indécidable : **on ne peut pas être sûr qu'il s'agisse d'impayés, mais ce sont des impayés potentiels**.
+Un client est dit **en retard** un mois donné quand sa codification de paiement, après nettoyage (page « 3.5 Décisions »), vaut {codif('2')} ou plus. Les retards deviennent de plus en plus nombreux au fil des six mois ; les plus graves ne progressent pas toujours d'un cran par mois, ils se figent ou redescendent parfois sans aucun paiement ; et le risque de défaut monte avec chaque mois de retard accumulé.
 """)
 
 # ------------------------------------------------------------------------------
@@ -59,18 +55,10 @@ vide = [None]
 fig_retard = go.Figure()
 fig_retard.add_trace(go.Bar(x=x_mois, y=list(evolution['retard']) + vide, name="En retard (2 et plus)",
                             marker_color=COULEURS["rouge_pale"], hovertemplate="<b>%{x}</b><br>En retard : %{y:.1f} %<extra></extra>"))
-fig_retard.add_trace(go.Bar(x=x_mois, y=list(evolution['codif_1']) + vide, name="Impayés potentiels (codification 1, non statuée)",
-                            marker_color=COULEURS["jaune"], hovertemplate="<b>%{x}</b><br>Impayés potentiels : %{y:.2f} %<extra></extra>"))
 fig_retard.add_trace(go.Bar(x=x_mois, y=[None] * len(evolution) + [taux_moyen], name="Défaut de paiement en octobre (cible)",
                             marker_color=COULEURS["mauve"], hovertemplate="<b>%{x}</b><br>Défaut de paiement : %{y:.1f} %<extra></extra>"))
 for _, row in evolution.iterrows():
-    if row['codif_1'] >= 1:
-        # Mois où la codification 1 pèse : étiquette du retard dans la barre, impayés potentiels au-dessus
-        fig_retard.add_annotation(x=row['Mois'], y=row['retard'] / 2, showarrow=False, text=f"<b>{nombre_fr(row['retard'], 1)} %</b>",
-                                  font_size=TAILLE_ETIQUETTE, bgcolor="rgba(128, 128, 128, 0.25)", borderpad=2)
-        etiquette(fig_retard, row['Mois'], row['retard'] + row['codif_1'], f"+ {nombre_fr(row['codif_1'], 1)} % d'impayés potentiels", yshift=24)
-    else:
-        etiquette(fig_retard, row['Mois'], row['retard'] + row['codif_1'], f"{nombre_fr(row['retard'], 1)} %")
+    etiquette(fig_retard, row['Mois'], row['retard'], f"{nombre_fr(row['retard'], 1)} %")
 etiquette(fig_retard, LIBELLE_M, taux_moyen, f"{nombre_fr(taux_moyen, 1)} % de défaut")
 fig_retard.update_layout(barmode="stack", xaxis_title="Mois", yaxis_title="Part des clients (%)",
                          yaxis_range=[0, taux_moyen * 1.2], height=480, separators=", ",
@@ -82,26 +70,27 @@ aout = evolution.iloc[4]
 sept = evolution.iloc[5]
 avril = evolution.iloc[0]
 st.markdown(f"""
-- **Les retards progressent** : la part des clients en retard passe de **{nombre_fr(avril['retard'], 1)} %** en avril à **{nombre_fr(aout['retard'], 1)} %** en août, en pleine crise des cartes de crédit.
-- **Septembre semble marquer une pause** ({nombre_fr(sept['retard'], 1)} %), mais c'est trompeur : {nombre_fr(sept['codif_1'], 1)} % des clients y portent encore la codification non statuée {codif('1')}. Avec ces impayés potentiels, on atteindrait **{nombre_fr(sept['retard'] + sept['codif_1'], 1)} %**, plus que tous les mois précédents.
-- **En octobre, {nombre_fr(taux_moyen, 1)} % des clients font défaut** : la marche est haute depuis septembre, mais elle prolonge la montée des retards et des impayés potentiels.
+- **Les retards progressent** : la part des clients en retard passe de **{nombre_fr(avril['retard'], 1)} %** en avril à **{nombre_fr(aout['retard'], 1)} %** en août, en pleine crise des cartes de crédit. D'avril à juin, des retards ont été ajoutés au nettoyage, pour appliquer la règle que la banque suit à partir de juillet (page « 3.5 Décisions ») : la hausse ne vient donc pas d'un simple durcissement de la banque en cours de période.
+- **Septembre poursuit la hausse** ({nombre_fr(sept['retard'], 1)} %).
+- **En octobre, {nombre_fr(taux_moyen, 1)} % des clients font défaut** : la marche est haute depuis septembre, mais elle prolonge la montée des retards.
 """)
 
 # ------------------------------------------------------------------------------
 st.subheader("Une codification dont la logique semble changer avec le temps", anchor="logique-codification")
 st.markdown(f"""
-La page « 3.3 Les codifications » a montré que la codification est mise à jour avec un mois de décalage sur le paiement, et que des retards redescendent à {codif('2')} sans aucun paiement. Vus mois par mois, ces écarts ne sont pas répartis au hasard : **la façon de codifier semble évoluer au fil des six mois**.
+Sans aucun paiement, un retard devrait monter d'un cran chaque mois. Vus mois par mois, les retards les plus graves ne suivent pas cette règle : **la façon de les codifier semble changer en cours de période**.
 """)
 
-# Clients en retard grave (3 et plus) qui ne paient rien deux mois de suite alors que deux factures étaient dues
-# (décalage d'un mois de la codification : on regarde le paiement du mois précédent et celui du mois même)
+# Clients en retard grave (3 et plus) sur la facture du mois n+1, dont ni cette facture ni la suivante (mois n) n'ont reçu
+# aucun paiement le mois suivant : PAY_AMTn règle BILL_AMT(n+1), PAY_AMT(n-1) règle BILL_AMTn, codifiée PAY_n.
+# Mai à août : la facture de septembre se paie en octobre, absent du dataset.
 CATEGORIES = [("s'aggrave", COULEURS["bordeaux"]), ("reste au même niveau", COULEURS["gris"]),
               ("redescend à un retard plus faible", COULEURS["orange"]), ("redescend à une codification saine", COULEURS["turquoise"])]
 lignes = []
-for n, libelle in MOIS[2:]:
+for n, libelle in [(n, libelle) for n, libelle in MOIS if 2 <= n <= 5]:
     avant, apres = df[f'PAY_{n + 1}'], df[f'PAY_{n}']
-    sans_paiement = ((avant >= 3) & (df[f'BILL_AMT{n + 2}'] > 0) & (df[f'BILL_AMT{n + 1}'] > 0)
-                     & (df[f'PAY_AMT{n + 1}'] == 0) & (df[f'PAY_AMT{n}'] == 0))
+    sans_paiement = ((avant >= 3) & (df[f'BILL_AMT{n + 1}'] > 0) & (df[f'BILL_AMT{n}'] > 0)
+                     & (df[f'PAY_AMT{n}'] == 0) & (df[f'PAY_AMT{n - 1}'] == 0))
     a, b = avant[sans_paiement], apres[sans_paiement]
     nb = len(a)
     lignes.append({'Mois': libelle, 'nb': nb,
@@ -127,7 +116,7 @@ with col_profondeur:
                             legend=dict(orientation="h", y=1.12, title_text="Codification : "), margin=dict(t=60))
     st.plotly_chart(fig_grave, width='stretch')
 with col_devenir:
-    st.markdown("#### Deux mois sans paiement : que devient un retard grave ?")
+    st.markdown("#### Deux factures impayées de suite : que devient un retard grave ?")
     fig_devenir = go.Figure()
     for nom, couleur in CATEGORIES:
         fig_devenir.add_trace(go.Bar(x=devenir['Mois'], y=devenir[nom], name=nom, marker_color=couleur,
@@ -137,46 +126,36 @@ with col_devenir:
     fig_devenir.update_layout(barmode="stack", xaxis_title="Mois", yaxis_title="Part des clients (%)", yaxis_range=[0, 100],
                               height=460, separators=", ", legend=dict(orientation="h", y=1.22), margin=dict(t=90))
     st.plotly_chart(fig_devenir, width='stretch')
-st.caption("À droite : clients codifiés 3 ou plus le mois précédent, qui n'ont rien payé ni le mois précédent ni ce mois-ci alors que deux factures étaient dues (la codification suit le paiement avec un mois de décalage, page « 3.3 Les codifications »). Septembre compte aussi les codifications 1 recodées en 2 au nettoyage. Attention aux échelles : les deux graphiques n'ont pas le même axe vertical.")
+st.caption("À droite : clients codifiés 3 ou plus sur une facture, qui n'ont rien payé ni de cette facture ni de la suivante ; chaque barre donne la codification de la seconde facture, selon son mois. Septembre n'y figure pas : sa facture se paie en octobre, hors période. Attention aux échelles : les deux graphiques n'ont pas le même axe vertical.")
 
-premier_dev, aout_dev = devenir.iloc[0], devenir.iloc[2]
+mai_dev, juin_dev, juil_dev, aout_dev = (devenir.iloc[i] for i in range(4))
 plus_faible_3 = evolution.iloc[3]['codif_5_plus']
 st.markdown(f"""
 - **Les retards les plus profonds se raréfient à partir de juillet (M-3)** : les codifications {codif('5')} et plus concernent {nombre_fr(evolution.iloc[2]['codif_5_plus'], 2)} % des clients en juin, puis {nombre_fr(plus_faible_3, 2)} % en juillet et {nombre_fr(aout['codif_5_plus'], 2)} % en août, alors que les retards, eux, augmentent.
-- **Ce n'est pas parce que ces dossiers se régularisent.** Chez les clients en retard grave qui ne paient rien deux mois de suite, la codification devrait s'aggraver d'un cran. En juin, elle **reste au même niveau** dans {nombre_fr(premier_dev['reste au même niveau'])} % des cas ; en août, cela n'arrive presque plus ({nombre_fr(aout_dev['reste au même niveau'])} %), et la codification **redescend** dans {nombre_fr(aout_dev['redescend à un retard plus faible'] + aout_dev['redescend à une codification saine'])} % des cas, le plus souvent à {codif('2')} ({nombre_fr(aout_dev['vers_2'])} %), sans aucun paiement.
-- **Août (`PAY_2`) est le mois charnière** : c'est là que les retards redescendent à {codif('2')} sans raison apparente, comme l'avait déjà repéré l'EDA_lab sur des dossiers dont l'encours ne bouge pas. Tout se passe comme si la banque avait changé sa façon de codifier les dossiers en souffrance, ou les avait confiés à une autre gestion qui les ramène à {codif('2')}.
+- **Ce n'est pas parce que ces dossiers se régularisent.** Chez les clients en retard grave qui ne paient rien deux factures de suite, la codification devrait s'aggraver d'un cran. En mai et en juin, elle **reste au même niveau** dans {nombre_fr(mai_dev['reste au même niveau'])} et {nombre_fr(juin_dev['reste au même niveau'])} % des cas ; en juillet et en août, elle **redescend** dans {nombre_fr(juil_dev['redescend à un retard plus faible'] + juil_dev['redescend à une codification saine'])} et {nombre_fr(aout_dev['redescend à un retard plus faible'] + aout_dev['redescend à une codification saine'])} % des cas, à {codif('2')}, sans aucun paiement.
+- **Juillet est le mois charnière**, le même mois que le resserrement de la règle de mise en retard (page « 3.3 Les codifications ») : tout se passe comme si la banque avait changé sa façon de codifier les dossiers en souffrance, ou les avait confiés à une autre gestion qui les ramène à {codif('2')}.
 
-Pour la lecture des retards, il faut donc garder en tête qu'**une codification de retard plus faible ne veut pas dire une dette plus faible**, surtout sur les derniers mois.
+**En résumé**, jusqu'en juin, les retards graves non payés restent souvent figés ; à partir de juillet, une partie redescend à {codif('2')} sans aucun paiement. La codification de retard ne suit donc pas toujours la dette : **une codification de retard plus faible ne veut pas dire une dette plus faible**, surtout à partir de juillet.
 """)
 
 # ------------------------------------------------------------------------------
 st.subheader("Le retard total, tel que l'affiche la codification", anchor="mois-retard")
-# Simulation : chaque codification 1 non statuée comptée comme un mois de retard, empilée au-dessus
 fig_total = go.Figure()
-fig_total.add_trace(go.Bar(x=evolution['Mois'], y=evolution['mois_retard'], name="Mois de retard (codification 2 et plus)",
-                           marker_color=COULEURS["violet"], hovertemplate="<b>%{x}</b><br>Mois de retard : %{y}<extra></extra>"))
-fig_total.add_trace(go.Bar(x=evolution['Mois'], y=evolution['nb_codif_1'], name="Impayés potentiels (codification 1, comptée 1 mois)",
-                           marker_color=COULEURS["jaune"], hovertemplate="<b>%{x}</b><br>Impayés potentiels : %{y}<extra></extra>"))
+fig_total.add_trace(go.Bar(x=evolution['Mois'], y=evolution['mois_retard'], name="Somme des codifications de retard (2 et plus)",
+                           marker_color=COULEURS["violet"], hovertemplate="<b>%{x}</b><br>Retard total : %{y}<extra></extra>"))
 for _, row in evolution.iterrows():
-    total = row['mois_retard'] + row['nb_codif_1']
-    if row['nb_codif_1'] / total >= 0.02:
-        fig_total.add_annotation(x=row['Mois'], y=row['mois_retard'] / 2, showarrow=False, text=f"<b>{nombre_fr(row['mois_retard'])}</b>",
-                                 font_size=TAILLE_ETIQUETTE, bgcolor="rgba(128, 128, 128, 0.25)", borderpad=2)
-        etiquette(fig_total, row['Mois'], total, f"+ {nombre_fr(row['nb_codif_1'])} impayés potentiels", yshift=24)
-    else:
-        etiquette(fig_total, row['Mois'], total, nombre_fr(row['mois_retard']))
-fig_total.update_layout(barmode="stack", xaxis_title="Mois", yaxis_title="Mois de retard cumulés (tous clients)",
-                        yaxis_range=[0, (evolution['mois_retard'] + evolution['nb_codif_1']).max() * 1.2], height=460,
-                        separators=", ", legend=dict(orientation="h", y=1.12), margin=dict(t=60))
+    etiquette(fig_total, row['Mois'], row['mois_retard'], nombre_fr(row['mois_retard']))
+fig_total.update_layout(xaxis_title="Mois", yaxis_title="Retard total affiché (tous clients)",
+                        yaxis_range=[0, evolution['mois_retard'].max() * 1.2], height=460,
+                        separators=", ", legend=dict(orientation="h", y=1.12), margin=dict(t=60), showlegend=True)
 st.plotly_chart(fig_total, width='stretch')
-st.caption("Simulation : chaque codification 1 non statuée est comptée comme un mois de retard, pour montrer le retard éventuellement non comptabilisé. Ce n'est pas un fait établi : une partie de ces clients n'est sans doute pas en impayé.")
 st.markdown(f"""
-En additionnant, chaque mois, les mois de retard que la codification attribue aux clients en retard, la dette en souffrance grossit de {nombre_fr(evolution['mois_retard'].iloc[0])} mois en avril à {nombre_fr(evolution['mois_retard'].iloc[4])} en août. **Ce chiffre sous-estime sans doute la réalité** : il suppose que la codification compte fidèlement les mois de retard, alors que des retards graves redescendent sans paiement, comme on vient de le voir, et que d'autres restent à {codif('2')} pendant des mois sans s'aggraver, même quand le client ne paie rien. Il ne compte pas non plus les impayés potentiels de septembre : en les ajoutant à raison d'un mois chacun, septembre atteindrait {nombre_fr(evolution['mois_retard'].iloc[5] + evolution['nb_codif_1'].iloc[5])} mois de retard, contre {nombre_fr(evolution['mois_retard'].iloc[5])} sans eux. Il donne une tendance, pas une mesure exacte.
+En additionnant, chaque mois, les codifications de retard des clients en retard (un {codif('3')} compte pour 3), on obtient le retard total que la codification affiche : il passe de {nombre_fr(evolution['mois_retard'].iloc[0])} en avril à {nombre_fr(evolution['mois_retard'].iloc[5])} en septembre. **Ce n'est pas un nombre exact de mois de retard** : un client passe à {codif('2')} dès sa première facture impayée (page « 3.3 Les codifications »), des retards graves redescendent à {codif('2')} sans paiement, comme on vient de le voir, et d'autres restent à {codif('2')} pendant des mois sans s'aggraver, même quand le client ne paie rien. Il donne une tendance, pas une mesure exacte.
 """)
 
 # ------------------------------------------------------------------------------
 st.subheader("Plus un client accumule les mois de retard, plus il fait défaut", anchor="cumul-retards")
-st.markdown("Pour chaque client, on compte les mois en retard (2 et plus) sur les 6 mois, consécutifs ou non (colonne `CUMUL_INCIDENT`, définie dans la documentation du projet). Les codifications 1 non statuées n'y sont pas comptées.")
+st.markdown("Pour chaque client, on compte les mois en retard (2 et plus) sur les 6 mois, consécutifs ou non (colonne `CUMUL_INCIDENT`, définie dans la documentation du projet).")
 stats_cumul = df.groupby('CUMUL_INCIDENT')['dpnm'].agg(nb_clients='size', taux='mean').reindex(range(7), fill_value=0).reset_index()
 stats_cumul['taux'] = stats_cumul['taux'] * 100
 stats_cumul['part'] = stats_cumul['nb_clients'] / len(df) * 100
@@ -205,22 +184,28 @@ with col_taux:
 sans, un, six = stats_cumul.iloc[0], stats_cumul.iloc[1], stats_cumul.iloc[6]
 st.markdown(f"""
 - **La plupart des clients n'ont aucun retard** ({nombre_fr(sans['part'], 1)} %), avec un taux de défaut de {nombre_fr(sans['taux'], 1)} %, bien sous la moyenne ({nombre_fr(taux_moyen, 1)} %, ligne en pointillés).
-- **Un seul mois de retard suffit à faire monter le risque** : {nombre_fr(un['taux'], 1)} % de défaut. Il grimpe ensuite avec chaque mois de retard supplémentaire, jusqu'à **{nombre_fr(six['taux'], 1)} %** pour les {nombre_fr(six['nb_clients'])} clients en retard tous les mois.
+- **Un seul mois de retard suffit à faire monter le risque** : {nombre_fr(un['taux'], 1)} % de défaut. Il grimpe ensuite avec les mois de retard supplémentaires, jusqu'à **{nombre_fr(six['taux'], 1)} %** pour les {nombre_fr(six['nb_clients'])} clients en retard tous les mois.
 """)
 
 # ------------------------------------------------------------------------------
 st.subheader("Des clients figés en retard", anchor="retards-figes")
 figes = pd.concat([df[f'PAY_{n}'] == 2 for n in range(1, 7)], axis=1).all(axis=1)
+# Même décompte avec la codification de septembre posée par la banque (PAY_1_original) : clients ajoutés par la correction de septembre
+figes_banque = pd.concat([df[f'PAY_{n}'] == 2 for n in range(2, 7)] + [df['PAY_1_original'] == 2], axis=1).all(axis=1)
+figes_ajoutes = figes & ~figes_banque
 st.markdown(f"""
-Parmi les clients en retard tous les mois, **{nombre_fr(figes.sum())} sont codifiés {codif('2')} sur les 6 mois**, sans jamais monter ni redescendre, qu'ils paient un peu ou rien du tout (page « 3.3 Les codifications »). Leur taux de défaut atteint **{nombre_fr(df.loc[figes, 'dpnm'].mean() * 100, 1)} %**. Avec les retards qui redescendent à {codif('2')} sans paiement, ils dessinent des dossiers sortis du circuit normal et gérés à part, par exemple par un service de recouvrement. Ces clients, et plus largement ceux dont les retards s'installent, ne se lisent pas avec la seule nomenclature des codifications : la partie 5 leur est consacrée.
+Parmi les clients en retard tous les mois, **{nombre_fr(figes.sum())} sont codifiés {codif('2')} sur les 6 mois**, après nettoyage, sans jamais monter ni redescendre, qu'ils paient un peu ou rien du tout. Leur taux de défaut atteint **{nombre_fr(df.loc[figes, 'dpnm'].mean() * 100, 1)} %**. Avec les retards qui redescendent à {codif('2')} sans paiement, ils dessinent des dossiers sortis du circuit normal et gérés à part, par exemple par un service de recouvrement. Ces clients, et plus largement ceux dont les retards s'installent, ne se lisent pas avec la seule nomenclature des codifications.
+
+Avec la codification de septembre posée par la banque, ils sont {nombre_fr(figes_banque.sum())}, à {nombre_fr(df.loc[figes_banque, 'dpnm'].mean() * 100, 1)} % de défaut. La correction de septembre en ajoute {nombre_fr(figes_ajoutes.sum())}, dont le taux de défaut ({nombre_fr(df.loc[figes_ajoutes, 'dpnm'].mean() * 100, 1)} %) reste plus de deux fois la moyenne : ce sont vraisemblablement de vrais retards figés, un peu moins avancés. La correction ne retrouve pas toutes les sorties du retard (environ 5 sur 6 sur des clients mis de côté, page « 3.5 Décisions ») : une partie de ces clients est sans doute sortie du retard en octobre, ce qui explique en partie leur taux de défaut plus bas.
 """)
 
 st.info(f"""
-**Ce que révèlent les retards** : les retards deviennent plus nombreux au fil des mois, septembre ajoute des impayés potentiels que la banque n'a pas encore statués, et le risque monte avec chaque mois de retard accumulé, jusqu'au défaut d'octobre.
+**Ce que révèlent les retards** : les retards deviennent plus nombreux au fil des mois, et le risque monte avec chaque mois de retard accumulé, jusqu'au défaut d'octobre.
 
-Mais les codifications de retard ne suivent pas une logique métier simple :
-- la codification {codif('2')} n'était peut-être pas « deux mois de retard » : la codification {codif('1')} n'est jamais utilisée avant septembre, et un client sain passe directement à {codif('2')} ;
-- au lieu d'augmenter d'un cran à chaque mois impayé, les codifications {codif('2')} et plus se figent ou redescendent sans aucun paiement, surtout sur les derniers mois.
+Mais les codifications de retard ne suivent pas la nomenclature de la documentation :
+- la codification {codif('1')}, présentée comme un mois de retard, n'est presque jamais posée avant septembre : un client sain passe directement à {codif('2')} dès sa première facture impayée ;
+- la banque était plus souple d'avril à juin qu'à partir de juillet : de petits impayés restaient sains ; des {codif('2')} ont été ajoutés au nettoyage en début de période pour lisser son comportement ;
+- au lieu de monter d'un cran à chaque facture impayée, les retards graves restent figés jusqu'en juin, puis redescendent à {codif('2')} sans aucun paiement à partir de juillet ; certains clients restent à {codif('2')} pendant les six mois.
 
-Les codifications de retard ne suivent donc pas une progression mathématique linéaire. Il a fallu investiguer davantage pour comprendre la population liée à cette codification incomprise : c'est l'objet de la partie 5.
+La valeur d'une codification de retard ne dit donc pas, à elle seule, combien de mois le client doit.
 """)

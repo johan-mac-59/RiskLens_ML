@@ -1,0 +1,475 @@
+import time
+import joblib
+from streamlit_pages.commun import *
+
+# ==============================================================================
+# PAGE 7.4, DÉMO 3 : tout le dataset d'origine, un modèle sur les données brutes, face à la règle métier
+# Les clients sont lus dans la base par l'API (POST /clients/lot). Le modèle : CatBoost de l'essai du comparatif global
+# (jeu de base, variante complète), en 5 modèles de plis ; chaque client est noté par le modèle qui ne l'a pas vu.
+# Classes de risque : bornes lues sur la courbe des 30 000 clients (lecture humaine), seuils de score et taux enregistrés.
+# Tout est préparé par lab_ML/demo_ML/creation_demo_3.ipynb (étapes 1 à 9).
+# ==============================================================================
+DOSSIER_DEMO = BASE_DIR / "lab_ML" / "demo_ML"
+GH_RACINE = "https://github.com/johan-mac-59/RiskLens_ML/blob/main"
+PREPARATION = f"{GH_RACINE}/lab_ML/demo_ML/creation_demo_3.ipynb"
+ESSAI = f"{GH_RACINE}/lab_ML/comparatif_global/essai_jeu_de_base.ipynb"
+PAUSE = 0.6   # secondes entre deux étapes affichées, pour que le public suive (les temps de calcul affichés sont réels)
+# Classes de risque, numérotées comme dans l'usage bancaire : le chiffre augmente avec le risque (9 = la plus risquée,
+# 1 = non déclarés). Couleurs de la classe 9 (foncée) à la classe 2 (claire) ; classe 1 : bleu des autres démos
+COULEURS_CLASSES = {9: "#67001F", 8: "#8C0C25", 7: "#B2182B", 6: "#C83E3E", 5: "#D6604D", 4: "#E58368", 3: "#F4A582", 2: "#F8C3A4"}
+
+
+@st.cache_resource
+def charger_modeles():
+    return joblib.load(DOSSIER_DEMO / "demo_3_modeles_plis.joblib")
+
+
+enregistre = charger_modeles()
+if not (DOSSIER_DEMO / "demo_3_classes.json").exists():
+    st.error("Le fichier des classes de risque (`lab_ML/demo_ML/demo_3_classes.json`) est absent : lancer l'étape 9 du notebook "
+             "`creation_demo_3`, qui le produit.")
+    st.stop()
+CLASSES = json.loads((DOSSIER_DEMO / "demo_3_classes.json").read_text(encoding="utf-8"))
+BORNES = CLASSES["bornes_rappel"]                                   # 15, 25, 35, 40, 45, 50, 55, 60
+SEUILS = [CLASSES["seuils_score"][str(r)] for r in BORNES]           # score à atteindre pour chaque borne
+CLASSE_DE_BORNE = [CLASSES["classe_de_borne"][str(r)] for r in BORNES]   # 9 pour la borne de 15 %, ..., 2 pour celle de 60 %
+PLI_DU_CLIENT = {i: numero for numero, ids in enumerate(enregistre["ids_non_vus"]) for i in ids}
+TOUS_LES_IDS = sorted(PLI_DU_CLIENT)
+NON_CLASSE = "Niveau risque 1/9"
+
+
+def classer(score):
+    """Classe de chaque score : 9 (la plus risquée) à 2, 1 sous le seuil de la classe 2 (non déclaré)."""
+    classe = np.ones(len(score), dtype=int)
+    for seuil, k in reversed(list(zip(SEUILS, CLASSE_DE_BORNE))):   # la classe la plus risquée atteinte l'emporte
+        classe[np.asarray(score) >= seuil] = k
+    return classe
+
+
+def noter(lot):
+    """Score du modèle brut pour chaque client du lot, par le modèle du pli qui ne l'a pas vu."""
+    score = pd.Series(np.nan, index=lot.index)
+    plis = lot["ID"].map(PLI_DU_CLIENT)
+    for numero, modele in enumerate(enregistre["modeles"]):
+        dans_pli = plis == numero
+        if dans_pli.any():
+            score[dans_pli] = modele.predict_proba(lot.loc[dans_pli, enregistre["variables"]])[:, 1]
+    return score
+
+
+# Places du projet, de la plus risquée à la moins risquée ; les deux premières sont déclarées en défaut par les règles métier
+PLACES_PROJET = ["En incident à M", "Retard imminent", "Dans le périmètre, clients du ML", "Hors périmètre (nettoyage, sans encours, plafond)"]
+
+
+def regle_metier(lot):
+    """Règles du projet (population en incident à M, retard imminent) ; renvoie aussi où le projet place chaque client.
+    Le statut est lu dans les données du projet (STATUT_INCIDENT, niveau 3 du nettoyage) : le nettoyage ne se refait pas
+    en direct (corrections client par client et modèles de 02_02 au niveau 2). Un client absent a été retiré au niveau 1."""
+    projet = load_data().set_index("ID")
+    dans_perimetre = (projet["BILL_AMT1"] > 0) & (projet["LIMIT_BAL"] <= 500000)
+    place_projet = pd.Series(np.select([projet["STATUT_INCIDENT"] == "En incident", projet["STATUT_INCIDENT"] == "Retard imminent", dans_perimetre],
+                                       PLACES_PROJET[:3], PLACES_PROJET[3]), index=projet.index)
+    place = lot["ID"].map(place_projet).fillna(PLACES_PROJET[3])
+    return place.isin(PLACES_PROJET[:2]), place
+
+
+def mesures(nom, declares, y):
+    detectes, defauts, n = int((declares & y).sum()), int(y.sum()), int(declares.sum())
+    rappel = detectes / defauts if defauts else 0
+    precision = detectes / n if n else 0
+    f2 = 5 * precision * rappel / (4 * precision + rappel) if precision + rappel else 0
+    return [f"<b>{nom}</b>", f"{nombre_fr(detectes)} sur {nombre_fr(defauts)}", f"{nombre_fr(rappel * 100, 1)} %", f"{nombre_fr(precision * 100, 1)} %",
+            f"{nombre_fr(n / len(y) * 100, 1)} %", nombre_fr(f2, 3)]
+
+
+# Taux de défaut constaté de chaque classe, sur les 30 000 clients (« 1 » : non déclarés)
+TAUX_CLASSE = {int(k): v * 100 for k, v in CLASSES["taux_defaut_classes"].items()}
+
+
+def legende_classes(classe_min):
+    """Tableau des classes de risque : bornes, décision selon le seuil choisi, taux de défaut constaté sur tout le dataset."""
+    lignes = []
+    for i, k in enumerate(CLASSE_DE_BORNE):                        # de la classe 9 à la classe 2
+        declare = k >= classe_min
+        lignes.append([(f"<b>Niveau risque {k}/9</b>", f"background: {COULEURS_CLASSES[k]}; color: {'white' if k >= 5 else '#262730'};"),
+                       f"{BORNES[i - 1] if i > 0 else 0} à {BORNES[i]} %",
+                       ("<b>déclarés en défaut</b>", "background: rgba(204, 102, 119, 0.25);") if declare else "non déclarés",
+                       f"{nombre_fr(TAUX_CLASSE[k], 1)} %"])
+    lignes.append([(f"<b>{NON_CLASSE}</b>", f"background: {BLEU_INFO}; color: white;"), "60 à 100 %", "non déclarés",
+                   f"{nombre_fr(TAUX_CLASSE[1], 1)} %"])
+    st.markdown("**Les niveaux de risque, avec le seuil choisi**")
+    tableau_html(["Niveau de risque", "Taux de rappel", "Décision", "Défaut constaté"], lignes, largeurs=[30, 22, 28, 20])
+    st.caption(f"Défaut constaté : part des clients du niveau en défaut de paiement en octobre 2005, sur les {nombre_fr(len(TOUS_LES_IDS))} clients "
+               f"(au hasard : {nombre_fr(CLASSES['taux_defaut_dataset'] * 100, 1)} %). Risques 9/9 à 2/9 : un risque élevé et bien échelonné, sur lequel la banque "
+               f"choisit jusqu'où intervenir ; risque 1/9 : les clients sains. Construction et lecture des niveaux : plus bas, section 4 de cette page.")
+
+
+def precision_par_tranche(y, score, pas=5):
+    """Clients pris du score le plus haut au plus bas : pour chaque tranche de 5 % de rappel, précision des seuls clients ajoutés
+    dans la tranche, et leur nombre (même calcul que l'étape 8 de creation_demo_3)."""
+    ordre = np.argsort(-score)
+    cumul = np.cumsum(y[ordre])
+    lignes, precedent = [], (0, 0)
+    for r in range(pas, 101, pas):
+        n = min(int(np.searchsorted(cumul, np.ceil(r / 100 * cumul[-1])) + 1), len(cumul))   # clients à signaler pour ce rappel
+        d = int(cumul[n - 1])
+        lignes.append({"rappel": r, "precision": (d - precedent[1]) / max(n - precedent[0], 1) * 100, "clients": n - precedent[0]})
+        precedent = (n, d)
+    return pd.DataFrame(lignes)
+
+
+def classe_de_tranche(r):
+    """Niveau de risque de la tranche qui finit à r % de rappel : celui de la première borne atteinte, 1 au-delà de 60 %."""
+    return next((k for borne, k in zip(BORNES, CLASSE_DE_BORNE) if r <= borne), 1)
+
+
+@st.cache_data(show_spinner=False)
+def lire_et_noter_tout():
+    """Les 30 000 clients lus dans la base par l'API, notés par le modèle de leur pli (pour la courbe de la section 4)."""
+    lignes, _, _ = lire_lot_api(TOUS_LES_IDS)
+    lot = pd.DataFrame(lignes)
+    return lot["dpnm"].astype(bool).to_numpy(), noter(lot).to_numpy(), lot["ID"].to_numpy()
+
+
+def figure_tranches(y, score, ids):
+    """Précision de chaque tranche de 5 % de rappel, sur tous les clients (barres, couleur du niveau de risque),
+    et pour chacun des 5 modèles sur ses seuls clients non vus (points gris) : un palier réel apparaît dans les 5."""
+    tous = precision_par_tranche(y, score)
+    tous["classe"] = tous["rappel"].map(classe_de_tranche)
+    tous["libelle"] = [f"{r - 5}-{r} %" for r in tous["rappel"]]
+    fig = go.Figure()
+    for k in sorted(tous["classe"].unique(), reverse=True):
+        t = tous[tous["classe"] == k]
+        fig.add_trace(go.Bar(x=t["libelle"], y=t["precision"], name=f"Niveau risque {k}/9", width=0.8,
+                             marker_color=COULEURS_CLASSES.get(k, BLEU_INFO), customdata=t["clients"],
+                             hovertemplate=f"<b>Niveau risque {k}/9</b><br>Tranche de rappel : %{{x}}<br>"
+                                           "Précision de la tranche : %{y:.1f} %<br>Clients de la tranche : %{customdata}<extra></extra>"))
+    plis = pd.Series(ids).map(PLI_DU_CLIENT).to_numpy()
+    for numero in range(len(enregistre["modeles"])):
+        dans = plis == numero
+        p = precision_par_tranche(y[dans], score[dans])
+        fig.add_trace(go.Scatter(x=[f"{r - 5}-{r} %" for r in p["rappel"]], y=p["precision"], mode="markers",
+                                 name="Chacun des 5 modèles, sur ses clients non vus", legendgroup="plis", showlegend=numero == 0,
+                                 marker=dict(color="#555555", size=8, symbol="circle-open", line_width=2),
+                                 hovertemplate=f"Modèle {numero + 1}, sur ses clients non vus<br>Tranche : %{{x}}<br>Précision : %{{y:.1f}} %<extra></extra>"))
+    moyenne = y.mean() * 100
+    fig.add_hline(y=moyenne, line=dict(color=COULEURS["orange"], dash="dot", width=2))
+    fig.add_trace(go.Scatter(x=[None], y=[None], name=f"Au hasard ({nombre_fr(moyenne, 1)} %, le taux de défaut du dataset)",
+                             mode="lines", line=dict(color=COULEURS["orange"], dash="dot", width=2)))
+    fig.update_xaxes(type="category", title="Tranche de taux de rappel (clients pris du score le plus haut au plus bas)")
+    # barmode="overlay" : une seule barre par tranche, centrée (sinon chaque niveau garde une place vide dans chaque tranche)
+    fig.update_layout(yaxis_title="Précision de la tranche (%)", yaxis_range=[0, 100], height=520, separators=", ", barmode="overlay",
+                      legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0))
+    return fig
+
+
+entete_partie_7()
+st.header("7.4 Démo 3 : tout le dataset d'origine, un modèle sur les données brutes", anchor="demo-3")
+st.markdown(f"""
+Cette démonstration porte sur **les {nombre_fr(len(TOUS_LES_IDS))} clients** du dataset d'origine, lus dans la base par l'API (en lecture seule : la base n'est jamais modifiée), **sans rien retirer** : ni nettoyage, ni population en incident, ni retard imminent, ni périmètre. Elle répond à la problématique sans le travail du projet : **peut-on prévoir le défaut à partir du seul comportement des six derniers mois ?** Le modèle est le CatBoost de l'[essai du comparatif global]({ESSAI}), entraîné sur les 23 variables d'origine.
+
+**Chaque client est noté par un modèle qui ne l'a jamais vu.** Un modèle entraîné sur tout le dataset aurait vu tout le dataset : on utilise donc cinq modèles, chacun entraîné sur 80 % des clients ; chaque client est noté par celui qui ne l'a pas appris.
+""")
+
+# ==============================================================================
+# 1. INJECTER LES CLIENTS
+# ==============================================================================
+st.subheader("1. Injecter les clients", anchor="lot")
+CHOIX = {f"{r} % des défauts": k for r, k in zip(BORNES, CLASSE_DE_BORNE)}   # part visée -> classe la moins risquée déclarée
+TAILLES = [1000, 5000, 10000, len(TOUS_LES_IDS)]
+if "historique_lots_3" not in st.session_state:
+    st.session_state.historique_lots_3 = []
+
+col_lot, col_legende = st.columns([2, 1])
+with col_lot:
+    c1, c2 = st.columns(2)
+    taille = c1.select_slider("Nombre de clients injectés", TAILLES, value=TAILLES[-1],
+                              format_func=lambda t: f"{nombre_fr(t)} (tout le dataset)" if t == len(TOUS_LES_IDS) else nombre_fr(t))
+    choix = c2.radio("Part des défauts que la banque veut détecter (niveaux de risque construits plus bas, section 4 de cette page)",
+                     list(CHOIX), index=len(CHOIX) - 1)
+    classe_min = CHOIX[choix]
+
+    if st.button("▶️ Injecter les clients", type="primary"):
+        numero = len(st.session_state.historique_lots_3) + 1
+        with st.status(f"Traitement du lot n° {numero}…", expanded=True) as statut:
+            ids = TOUS_LES_IDS if taille == len(TOUS_LES_IDS) else pd.Series(TOUS_LES_IDS).sample(n=taille, random_state=numero).tolist()
+            debut = time.perf_counter()
+            try:
+                with st.spinner("Lecture dans la base par l'API (le premier appel peut prendre jusqu'à une minute si le serveur est en veille)…"):
+                    lignes, introuvables, illisibles = lire_lot_api(ids)
+            except (requests.exceptions.RequestException, ValueError) as e:
+                statut.update(label=f"Lot n° {numero} : lecture impossible", state="error")
+                st.error(f"Lecture par l'API impossible : {e}")
+                st.stop()
+            lot = pd.DataFrame(lignes)
+            non_recus = len(introuvables) + len(illisibles)
+            st.write(f"📡 **{nombre_fr(len(lot))} clients lus dans la base par l'API**, en un seul appel (`POST /clients/lot`), "
+                     f"en {nombre_fr(time.perf_counter() - debut, 1)} s" + (f" ; {nombre_fr(non_recus)} non reçus ou incomplets, écartés" if non_recus else "") + ".")
+            time.sleep(PAUSE)
+            debut = time.perf_counter()
+            score = noter(lot)
+            classe = classer(score)
+            st.write(f"🤖 **Le modèle, sur les données brutes** : {nombre_fr(len(lot))} scores calculés en {nombre_fr((time.perf_counter() - debut) * 1000, 0)} "
+                     f"millisecondes, chaque client rangé dans son niveau de risque.")
+            time.sleep(PAUSE)
+            declare = classe >= classe_min
+            st.write(f"🚩 **Décision** ({choix}) : {nombre_fr(declare.sum())} clients déclarés en défaut, {nombre_fr((~declare).sum())} non déclarés.")
+            time.sleep(PAUSE)
+            debut = time.perf_counter()
+            declare_regle, place = regle_metier(lot)
+            st.write(f"⚖️ **Pour comparer, la règle métier du projet** (nettoyage, périmètre, population en incident et retard imminent) : "
+                     f"{nombre_fr(declare_regle.sum())} clients déclarés en défaut, en {nombre_fr((time.perf_counter() - debut) * 1000, 0)} millisecondes.")
+            time.sleep(PAUSE)
+            st.write("🔍 **Vérification** : comparaison avec le défaut constaté en octobre 2005.")
+            statut.update(label=f"Lot n° {numero} traité", state="complete", expanded=False)
+
+        y = lot["dpnm"].astype(bool).to_numpy()
+        st.session_state.dernier_lot_3 = {"numero": numero, "choix": choix, "classe_min": classe_min, "y": y, "score": score.to_numpy(),
+                                          "ids": lot["ID"].to_numpy(),
+                                          "classe": classe, "regle": declare_regle.to_numpy(), "place": place.to_numpy()}
+        st.session_state.historique_lots_3.append({
+            "Lot": numero, "Clients": len(lot), "Part visée": choix, "Taux de défaut constaté (%)": round(y.mean() * 100, 1),
+            "Déclarés en défaut : taux constaté (%)": round(y[declare].mean() * 100, 1) if declare.any() else None,
+            "Non déclarés : taux constaté (%)": round(y[~declare].mean() * 100, 1) if (~declare).any() else None,
+            "Défauts manqués (%)": round((y & ~declare).sum() / max(y.sum(), 1) * 100, 1)})
+
+    if "dernier_lot_3" in st.session_state:
+        d = st.session_state.dernier_lot_3
+        y, classe = d["y"], d["classe"]
+        declare = classe >= d["classe_min"]
+        st.markdown(f"**Résultat du lot n° {d['numero']}** ({d['choix']}) : {nombre_fr(len(y))} clients, taux de défaut constaté {nombre_fr(y.mean() * 100, 1)} %")
+        couleur_declares = COULEURS_CLASSES[d["classe_min"]]
+        for col, (nom, groupe, couleur) in zip(st.columns(2), (("Déclarés en défaut par le modèle", declare, couleur_declares),
+                                                               ("Non déclarés en défaut par le modèle", ~declare, BLEU_INFO))):
+            col.markdown(f"<div style='border-left: 6px solid {couleur}; padding-left: 10px;'><b>{nom}</b></div>", unsafe_allow_html=True)
+            carte_chiffre(col, "Clients", nombre_fr(groupe.sum()), couleur)
+            carte_chiffre(col, "Taux de défaut constaté", f"{nombre_fr(y[groupe].mean() * 100, 1)} %" if groupe.any() else "–", couleur,
+                          aide="Part des clients du groupe en défaut constaté en octobre 2005.")
+            carte_chiffre(col, "Part des défauts du lot", f"{nombre_fr((groupe & y).sum())} sur {nombre_fr(y.sum())}, soit {nombre_fr((groupe & y).sum() / max(y.sum(), 1) * 100, 0)} %",
+                          couleur, aide="Défauts constatés dans ce groupe, sur tous les défauts constatés du lot.")
+
+with col_legende:
+    legende_classes(classe_min)
+
+# Entonnoir, récipient et performance du dernier lot : toute la largeur
+if "dernier_lot_3" in st.session_state:
+    d = st.session_state.dernier_lot_3
+    y, classe = d["y"], d["classe"]
+    declare = classe >= d["classe_min"]
+    col_entonnoir, col_recipient = st.columns([3, 2])
+    col_entonnoir.plotly_chart(figure_entonnoir([("Clients lus", len(y), int(y.sum()), COULEURS["bleu_pale"]),
+                                                 ("Non déclarés en défaut par le modèle", int((~declare).sum()), int((y & ~declare).sum()), BLEU_INFO)], 380),
+                               width='stretch')
+    vrais = [(f"Vrais défauts, niveau risque {k}/9", int((y & (classe == k)).sum()), COULEURS_CLASSES[k])
+             for k in CLASSE_DE_BORNE if k >= d["classe_min"]]
+    col_recipient.plotly_chart(figure_recipient_parts(vrais, int(declare.sum()), 380), width='stretch')
+    st.markdown("**Performance sur ce lot**")
+    tableau_html(["", "Défauts détectés", "Taux de rappel", "Précision des défauts prédits", "Clients déclarés en défaut", "Score décisionnel F2"],
+                 [mesures(f"Modèle sur les données brutes ({d['choix']})", declare, y)], largeurs=[28, 15, 12, 15, 15, 15])
+
+if st.session_state.historique_lots_3:
+    st.subheader("Les lots déjà injectés", anchor="historique")
+    st.dataframe(pd.DataFrame(st.session_state.historique_lots_3), hide_index=True, width='stretch')
+    if st.button("Effacer les lots"):
+        st.session_state.historique_lots_3 = []
+        st.session_state.pop("dernier_lot_3", None)
+        st.rerun()
+
+# ==============================================================================
+# 2. UN CLIENT À LA FOIS
+# ==============================================================================
+st.subheader("2. Un client à la fois", anchor="client")
+st.markdown("""
+Le client est lu **dans la base de données par l'API**, puis noté **en direct** par le modèle de son pli, celui qui ne l'a jamais vu. Tous les clients du dataset peuvent être consultés : chacun a un modèle qui ne l'a pas appris.
+""")
+
+
+def lire_et_noter(id_client):
+    try:
+        with st.spinner("Lecture dans la base par l'API (le premier appel peut prendre jusqu'à une minute si le serveur est en veille)…"):
+            ligne, reponses = lire_client_api(id_client)
+    except requests.exceptions.RequestException as e:
+        st.error(f"API injoignable : {e}")
+        return
+    except ValueError as e:
+        st.error(str(e))
+        return
+    # Prédiction enregistrée dans la base (route GET /prediction) : lue à part, la fiche reste utilisable si elle manque
+    try:
+        res = requests.get(f"{API_URL}/prediction/{id_client}", timeout=API_TIMEOUT)
+        prediction = res.json() if res.status_code == 200 else {"erreur": message_erreur_api(res)}
+    except requests.exceptions.RequestException as e:
+        prediction = {"erreur": str(e)}
+    st.session_state.client_3 = {"ligne": pd.DataFrame([ligne]), "reponses": reponses, "prediction": prediction}
+
+
+tirage = st.button("🎲 Un client au hasard : lire dans la base et noter", type="primary", key="tirage_3")
+if tirage:
+    st.session_state.numero_client_3 = st.session_state.get("numero_client_3", 0) + 1
+    st.session_state.id_choisi_3 = int(pd.Series(TOUS_LES_IDS).sample(n=1, random_state=st.session_state.numero_client_3).iloc[0])
+c1, c2 = st.columns([2, 1], vertical_alignment="bottom")
+id_choisi = c1.selectbox("Ou choisir l'identifiant du client", TOUS_LES_IDS, key="id_choisi_3")
+if c2.button("📡 Lire ce client dans la base et le noter", key="lecture_api_3") or tirage:
+    lire_et_noter(id_choisi)
+
+if "client_3" in st.session_state:
+    brut = st.session_state.client_3["ligne"]
+    b = brut.iloc[0]
+    fiche = st.session_state.client_3["reponses"][0]
+    score = noter(brut)                                   # calcul en direct, par le modèle du pli qui n'a pas vu le client
+    k = int(classer(score)[0])
+    prediction = st.session_state.client_3.get("prediction", {})
+    p = prediction["predictions"][0] if prediction.get("predictions") else None   # prédiction enregistrée dans la base
+    en_defaut = fiche["code_statut_defaut"] == 1
+    declare = k >= classe_min                             # décision au seuil choisi plus haut
+
+    # Fiche du client, telle qu'un conseiller la consulterait : identité, niveau de risque et statut de défaut, historique
+    libelles = load_mappings()
+    if declare and en_defaut:
+        verdict = "le modèle avait vu juste : un défaut détecté"
+    elif declare:
+        verdict = "c'est une fausse alerte : le client a payé"
+    elif en_defaut:
+        verdict = "c'est un défaut que le modèle n'a pas détecté"
+    else:
+        verdict = "le modèle avait vu juste : un client qui a payé"
+    couleur = COULEURS_CLASSES.get(k, BLEU_INFO)
+    st.markdown(f"<div style='border-bottom: 3px solid {couleur}; padding-bottom: 6px; margin: 1rem 0;'>"
+                f"<span style='font-size: 1.6rem; font-weight: 700;'>🗂️ Fiche client n° {int(b['ID'])}</span></div>", unsafe_allow_html=True)
+    col_identite, col_risque = st.columns([3, 2])
+    with col_identite:
+        st.markdown("**Identité et crédit**")
+        c1, c2 = st.columns(2)
+        carte_chiffre(c1, "Âge", f"{fiche['age']} ans", "#262730")
+        carte_chiffre(c2, "Plafond de crédit", f"{nombre_fr(fiche['plafond'])} NT$", "#262730")
+        carte_chiffre(c1, "Genre", libelles.get("genre", {}).get(fiche["code_genre"], fiche["code_genre"]), "#262730")
+        carte_chiffre(c2, "Statut marital", libelles.get("statut_marital", {}).get(fiche["code_marital"], fiche["code_marital"]), "#262730")
+        carte_chiffre(c1, "Niveau d'études", libelles.get("niveau_scolaire", {}).get(fiche["code_scolaire"], fiche["code_scolaire"]), "#262730")
+    with col_risque:
+        st.markdown("**Risque et défaut**")
+        carte_chiffre(st, "Niveau de risque (prévision du modèle)", p["description_classe"] if p else f"Niveau risque {k}/9", couleur)
+        carte_chiffre(st, "Statut de défaut (octobre 2005)", f"{'⚠️' if en_defaut else '✅'} {libelles.get('statut_defaut', {}).get(fiche['code_statut_defaut'], fiche['code_statut_defaut'])}", "#B2182B" if en_defaut else BLEU_INFO)
+        st.markdown(f"Le **niveau de risque** est la prévision du modèle à partir des six mois d'avril à septembre 2005 : les clients de ce niveau "
+                    f"font défaut à {nombre_fr(TAUX_CLASSE[k], 1)} %. Au seuil choisi plus haut ({choix}), ce client est "
+                    f"**{'déclaré' if declare else 'non déclaré'} en défaut**. Le **statut de défaut** est ce qui s'est réellement passé : "
+                    f"**{verdict}**.")
+
+    st.markdown("**Historique des six derniers mois**")
+    tableau_html(["", *[m for _, m in MOIS_CHRONO]], [
+        ["<b>Codification de paiement</b>", *[cellule_codif(b[f"PAY_{n}"]) for n, _ in MOIS_CHRONO]],
+        ["<b>Facture en fin de mois (NT$)</b>", *[nombre_fr(b[f"BILL_AMT{n}"]) for n, _ in MOIS_CHRONO]],
+        ["<b>Paiement du mois (NT$)</b>", *[nombre_fr(b[f"PAY_AMT{n}"]) for n, _ in MOIS_CHRONO]],
+    ], largeurs=[28] + [12] * 6)
+
+    with st.expander("Détails techniques : origine des données, contrôle, comparaison avec la règle métier"):
+        if p:
+            identique = p["classe_risque"] == k and abs(p["score"] - float(score.iloc[0])) < 1e-9
+            st.markdown(f"- **Niveau de risque** lu dans la base (table `prediction`, calcul de {p['periode']['mois_num']:02d}/{p['periode']['annee']}, "
+                        f"route `GET /prediction`) : " + ("✅ identique au calcul en direct par le modèle." if identique
+                                                          else "⚠️ différent du calcul en direct : la base n'est plus à jour."))
+        else:
+            st.markdown("- **Niveau de risque** calculé en direct : la prédiction enregistrée dans la base est indisponible"
+                        + (f" ({prediction['erreur']})." if prediction.get("erreur") else "."))
+        regle, place = regle_metier(brut)
+        st.markdown(f"- **Règle métier du projet**, pour comparer : « {place.iloc[0]} »"
+                    + (", donc déclaré en défaut par la règle." if regle.iloc[0] else "."))
+        st.markdown("- **Données** : brutes, telles qu'elles sont dans la base ; le modèle de cette démonstration ne reçoit aucune correction. "
+                    "Le modèle ne donne pas une probabilité fiable pour un client seul (les défauts ont plus de poids pendant l'apprentissage) : "
+                    "on affiche son niveau de risque, et le taux de défaut constaté dans ce niveau.")
+        st.json({"GET /client": fiche, "GET /historique_mensuel": st.session_state.client_3["reponses"][1], "GET /prediction": prediction})
+
+# ==============================================================================
+# 3. FACE À LA RÈGLE MÉTIER DU PROJET
+# ==============================================================================
+if "dernier_lot_3" in st.session_state:
+    st.subheader("3. Le modèle face à la règle métier du projet", anchor="regle")
+    d = st.session_state.dernier_lot_3
+    y, classe, regle, place = d["y"], d["classe"], d["regle"], d["place"]
+    modele = classe >= d["classe_min"]
+    # À nombre égal de clients déclarés : les clients les mieux notés par le modèle, autant que la règle en déclare
+    tete = np.zeros(len(y), dtype=bool)
+    tete[np.argsort(-d["score"])[:int(regle.sum())]] = True
+    st.markdown("""
+Le projet a pris un autre chemin : des **règles métier** pour deux populations, la **population en incident à M** (retards qui durent) et le **retard imminent** (facture de septembre déjà jugée impayée par la banque), puis un modèle pour les autres (parties 5 et 6). Pour comparer, la place de chaque client est lue dans les données du projet (statut à M, niveau 3 du nettoyage) : les clients de ces deux populations sont déclarés en défaut par la règle.
+""")
+    tableau_html(["", "Défauts détectés", "Taux de rappel", "Précision des défauts prédits", "Clients déclarés en défaut", "Score décisionnel F2"], [
+        mesures("Règle métier seule (population en incident et retard imminent)", regle, y),
+        mesures(f"Modèle seul ({d['choix']})", modele, y),
+        mesures("Modèle seul, autant de déclarés que la règle", tete, y),
+    ], largeurs=[28, 15, 12, 15, 15, 15])
+    st.caption("« Autant de déclarés que la règle » : les clients les mieux notés par le modèle, en même nombre que les clients déclarés par la règle. "
+               "À nombre égal d'alertes, lequel a le plus souvent raison ?")
+    lignes = []
+    for nom in PLACES_PROJET:
+        groupe = modele & (place == nom)
+        lignes.append([f"<b>{nom}</b>", nombre_fr(groupe.sum()), f"{nombre_fr(groupe.sum() / max(modele.sum(), 1) * 100, 1)} %",
+                       f"{nombre_fr(y[groupe].mean() * 100, 1)} %" if groupe.any() else "–"])
+    st.markdown("**Qui le modèle déclare-t-il en défaut ? Là où le projet place ces clients**")
+    tableau_html(["", "Clients déclarés par le modèle", "Part des déclarés", "Taux de défaut constaté"], lignes, largeurs=[40, 20, 20, 20])
+    part_regle = (modele & regle).sum() / max(modele.sum(), 1) * 100
+    prec_regle = (regle & y).sum() / max(regle.sum(), 1) * 100
+    prec_tete = (tete & y).sum() / max(tete.sum(), 1) * 100
+    st.info(f"""
+**Ce que répond cette démonstration à la problématique.** Sur les données brutes, le comportement des six derniers mois permet de prévoir une partie des défauts. Mais **{nombre_fr(part_regle, 0)} % des clients que le modèle déclare en défaut sont dans la population en incident ou en retard imminent**, que les règles métier repèrent déjà, sans machine learning et de façon explicable. À nombre égal d'alertes, la règle a raison dans {nombre_fr(prec_regle, 0)} % des cas, le modèle dans {nombre_fr(prec_tete, 0)} %. Le gros de ce qui est prévisible tient dans les retards de paiement que la banque a déjà codifiés : c'est ce qui a conduit le projet à confier ces clients aux règles métier, et le reste au modèle (parties 5 et 6).
+""")
+
+# ==============================================================================
+# 4. LA CONSTRUCTION DES CLASSES DE RISQUE (TOUT LE DATASET)
+# ==============================================================================
+st.subheader("4. La construction des niveaux de risque", anchor="courbe")
+hasard = CLASSES["taux_defaut_dataset"] * 100
+st.markdown(f"""
+Le modèle donne un score à chaque client. En prenant les clients du score le plus haut au plus bas, on détecte de plus en plus de défauts (le **taux de rappel**), avec une précision qui baisse. Les niveaux de risque ont été fixés **par une lecture humaine** de cette baisse, sur les **{nombre_fr(len(TOUS_LES_IDS))} clients**, chacun noté par le modèle qui ne l'avait pas vu, selon une règle décidée avant de lire la courbe :
+- **les paliers d'abord** : là où plusieurs tranches de suite font défaut à la même fréquence, puis décrochent, une borne se place à la fin du palier ;
+- **puis des tranches égales de 5 %**, là où la précision descend en ligne droite et où aucun palier ne se lit ;
+- **un arrêt** là où les tranches ne font plus défaut plus souvent qu'un client pris au hasard (le taux de défaut du dataset) : déclarer ces clients en défaut n'apporterait rien de plus qu'un tirage au sort.
+
+Aucune borne n'est donc placée au jugé : chacune applique cette règle à ce que montre la courbe.
+
+**Comment lire le graphique** : chaque barre est une tranche de 5 % des défauts ; sa hauteur est la part des clients ajoutés dans cette tranche qui font réellement défaut. Les points gris donnent la même mesure pour chacun des 5 modèles, sur ses seuls clients non vus : **un palier réel apparaît aux mêmes endroits dans les cinq**.
+""")
+
+d = st.session_state.get("dernier_lot_3")
+if d is not None and "ids" in d and len(d["y"]) == len(TOUS_LES_IDS):
+    st.session_state.courbe_3 = (d["y"], d["score"], d["ids"])
+if "courbe_3" not in st.session_state:
+    st.info("La courbe se calcule sur les 30 000 clients : injectez tout le dataset (section 1), ou tracez-la directement.")
+    if st.button("📈 Tracer la courbe (les 30 000 clients lus dans la base par l'API)"):
+        try:
+            with st.spinner("Lecture des 30 000 clients dans la base par l'API (le premier appel peut prendre jusqu'à une minute si le serveur est en veille)…"):
+                st.session_state.courbe_3 = lire_et_noter_tout()
+            st.rerun()
+        except (requests.exceptions.RequestException, ValueError) as e:
+            st.error(f"Lecture par l'API impossible : {e}")
+if "courbe_3" in st.session_state:
+    st.plotly_chart(figure_tranches(*st.session_state.courbe_3), width='stretch')
+    st.caption("Calcul en direct : les clients lus dans la base par l'API, chacun noté par le modèle de son pli, qui ne l'a jamais vu.")
+
+POURQUOI = {9: "<b>Premier palier</b> : les trois premières tranches font défaut à la même fréquence, puis la précision décroche",
+            8: "<b>Deuxième palier</b> : deux tranches au même niveau, puis un nouveau décrochage",
+            7: "<b>Troisième palier</b> : deux tranches au même niveau, puis la précision se met à descendre en ligne droite",
+            6: "<b>Tranches égales de 5 %</b> : la précision descend en ligne droite, sans palier à lire ; c'est dans cette zone que la banque choisit jusqu'où elle déclare"}
+lignes_seuils = []
+for i, k in enumerate(CLASSE_DE_BORNE):
+    lignes_seuils.append([(f"<b>Niveau risque {k}/9</b>", f"background: {COULEURS_CLASSES[k]}; color: {'white' if k >= 5 else '#262730'};"),
+                          f"{BORNES[i - 1] if i > 0 else 0} à {BORNES[i]} %", f"{nombre_fr(SEUILS[i], 3)} ou plus", f"{nombre_fr(TAUX_CLASSE[k], 1)} %",
+                          POURQUOI.get(k, "Tranche égale de 5 %, même raison")])
+lignes_seuils.append([(f"<b>{NON_CLASSE}</b>", f"background: {BLEU_INFO}; color: white;"), "au-delà de 60 %", f"moins de {nombre_fr(SEUILS[-1], 3)}",
+                      f"{nombre_fr(TAUX_CLASSE[1], 1)} %",
+                      "<b>Arrêt</b> : à partir de 60 % de rappel, les tranches tombent au niveau du hasard (le taux de défaut du dataset), puis en dessous ; ces clients ne sont pas déclarés"])
+st.markdown("**Les seuils retenus**")
+tableau_html(["Niveau de risque", "Tranche de rappel", "Score à atteindre", "Défaut constaté", "Pourquoi cette borne"], lignes_seuils,
+             largeurs=[16, 13, 13, 12, 46])
+st.caption(f"Score à atteindre : score du modèle à partir duquel un client entre dans le niveau. Défaut constaté : part des clients du niveau en défaut "
+           f"en octobre 2005, sur les {nombre_fr(len(TOUS_LES_IDS))} clients (au hasard : {nombre_fr(hasard, 1)} %, le taux de défaut du dataset).")
+
+st.markdown(f"""
+**Numérotation** : comme dans l'usage bancaire, le chiffre augmente avec le risque (risque 9/9 le plus élevé, risque 1/9 pour les non déclarés).
+
+**Comment lire les niveaux de risque** :
+- **du risque 9/9 au risque 2/9, le risque est élevé tout le long, et bien échelonné.** Chaque niveau fait défaut plus souvent que le suivant, sans plateau de risque, et tous restent au-dessus du hasard. Les risques 9/9, 8/9 et 7/9 sont les plus élevés : la majorité de leurs clients font défaut ;
+- **c'est sur cette échelle que la banque choisit jusqu'où elle intervient.** Chaque niveau ajouté détecte plus de défauts, mais fait aussi signaler plus de clients qui, en réalité, paieront : c'est le coût des faux positifs, à mettre en regard des défauts en plus ;
+- **risque 1/9 : très peu de risque, les clients sains** aux yeux du modèle. Leur taux de défaut est bien sous la moyenne, et le modèle n'y repère plus les rares défauts qu'au prix d'un grand nombre de clients déclarés à tort, qui paieront.
+
+Précision cumulée, chiffres de chaque tranche et vérification des niveaux pli par pli : [notebook de préparation]({PREPARATION}), étapes 8 et 9.
+""")

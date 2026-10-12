@@ -3,12 +3,22 @@ from streamlit_pages.commun import *
 # ==============================================================================
 # SECTION 1 : ACCUEIL & PRÉSENTATION
 # ==============================================================================
-st.title("🏦 RiskLens ML — Analyse & Prédiction du Risque Crédit 💳")
+# En-tête : le logo seul, et à côté le nom aux couleurs du logo (bleu d'information, rouge pâle) puis le titre
+col_logo, col_titre = st.columns([1, 4], vertical_alignment="center")
+with col_logo:
+    st.image(str(BASE_DIR / "images" / "logo_risklens_compteur.svg"), width="stretch")
+with col_titre:
+    st.markdown(
+        "<div style='font-size: 3.2rem; font-weight: 700; line-height: 1.1; color: #0288D1;'>"
+        "RiskLens <span style='color: #CC6677;'>ML</span></div>",
+        unsafe_allow_html=True,
+    )
+    st.title("Analyse & Prédiction du Risque Crédit")
 
 
 # ------------------------------------------------------------------------------
 # Chiffres de « Ce que l'analyse va montrer », calculés en direct (parties 3 à 5)
-# Données d'origine (30 000 lignes, absentes du dépôt) : taux de défaut repris de 05_02_EDA_contentieux, cellule 41
+# Données d'origine (30 000 lignes, absentes du dépôt) : taux de défaut repris de 05_02_EDA_incidents, cellule 41
 TAUX_DEFAUT_ORIGINE = 22.12
 ent_accueil = load_entonnoir()
 df_accueil, s12_accueil, train_accueil, test_accueil = donnees_partie_5()
@@ -20,11 +30,18 @@ dette_avril = df_accueil['BILL_AMT6'].clip(lower=0).sum()
 dette_sept = df_accueil['BILL_AMT1'].clip(lower=0).sum()
 parts_remb = [np.minimum(df_accueil[f'PAY_AMT{n - 1}'], df_accueil[f'BILL_AMT{n}'].clip(lower=0)).sum()
               / df_accueil[f'BILL_AMT{n}'].clip(lower=0).sum() * 100 for n in range(2, 7)]
-# 5.6 : la règle du contentieux sur le jeu de test (utilisé une seule fois)
-ctx_test = test_accueil['STATUT'] == "Au contentieux"
+# 5.5 : la population en incident sur le jeu de test (utilisé une seule fois)
+ctx_test = test_accueil['STATUT'] == "En incident"
 part_ctx = ctx_test.mean() * 100
 precision_ctx = test_accueil.loc[ctx_test, 'dpnm'].mean() * 100
 captes_ctx = test_accueil.loc[ctx_test, 'dpnm'].sum() / test_accueil['dpnm'].sum() * 100
+# 5.5 : les deux populations réunies (en incident et retard imminent), sur tout le périmètre
+deux_s12 = s12_accueil['STATUT'].isin(["En incident", "Retard imminent"])
+part_deux = deux_s12.mean() * 100
+captes_deux = s12_accueil.loc[deux_s12, 'dpnm'].sum() / s12_accueil['dpnm'].sum() * 100
+# 8.2 : AUC du système du projet (règles puis modèle) sur les clients de la démo 1, jamais vus
+clients_accueil = systemes_sur_clients_demo()
+auc_projet = aire_roc(clients_accueil['dpnm'], score_systeme_projet(clients_accueil))
 
 st.markdown(f"""
 **RiskLens ML** est une mission Data & IA complète visant à transformer des données transactionnelles historiques en un outil d'aide à la décision pour la gestion du risque crédit.
@@ -35,7 +52,7 @@ Le projet suit un cycle de vie data complet : du diagnostic initial et la struct
 ### 🎯 Problématique
 > **"Peut-on prévoir le défaut de paiement d'un client en se basant uniquement sur son comportement transactionnel des 6 derniers mois, malgré un manque d'informations économiques globales ?"**
 
-L'enjeu est de déterminer si les habitudes de paiement et l'utilisation du crédit ainsi que les informations de bases d'un client sont des indicateurs suffisamment robustes pour anticiper un défaut, sans avoir accès à des données macro-économiques ou des scores de crédit externes.
+L'enjeu est de déterminer si les habitudes de paiement et l'utilisation du crédit ainsi que les informations de base d'un client sont des indicateurs suffisamment robustes pour anticiper un défaut, sans deux types d'informations que les banques utilisent d'habitude : les **données de conjoncture** (chômage, inflation, croissance) et les **données économiques du client lui-même** (revenu, autres crédits, loyer, endettement total, reste à vivre), ni score de crédit externe.
 
 ### 💥 Le contexte : la crise des *"Card Monsters"* (Taïwan, 2005)
 - **L'économie allait bien** : chômage bas, inflation maîtrisée, croissance solide. La crise ne vient pas de l'économie.
@@ -51,12 +68,12 @@ digraph {
     rankdir=LR; nodesep=0.25; ranksep=0.35;
     node [shape=box, style="rounded,filled", fillcolor="#e1f5fe", fontname="Helvetica", fontsize=10, margin="0.12,0.06"];
     edge [color="#888888"];
-    a [label="1990 – 2005\nLes banques distribuent\nmassivement des cartes"];
-    b [label="2005\nLe régulateur durcit\nles conditions d'octroi"];
-    c [fillcolor="#b3e5fc", label="Avril → septembre 2005\nLes impayés montent\n= les 6 mois du dataset"];
+    a [label="Début des années 1990\nLibéralisation :\nle nombre de banques double"];
+    b [label="2002 – 2005\nBoom des cartes : la dette\nde cartes passe de 5 à 9 %\ndu PIB"];
+    c [fillcolor="#b3e5fc", label="Avril → septembre 2005\n= les 6 mois du dataset :\nle régulateur durcit les règles\n(1er mai), les impayés montent"];
     d [fillcolor="#fff3e0", label="Octobre 2005\nDéfaut de paiement ?\n= la cible à prévoir"];
-    e [label="2006\nLa crise éclate ;\nnégociation des dettes"];
-    f [label="Au plus tard en 2006\nEndettement plafonné\nà 22 fois le revenu"];
+    e [label="Décembre 2005 – 2006\nLa crise éclate : aide aux\ndébiteurs, négociation des\ndettes, endettement plafonné\nà 22 fois le revenu"];
+    f [label="2006 – 2007\nYeh et Lien étudient\nces données (publiées en 2009)\n= le dataset du projet"];
     a -> b -> c -> d -> e -> f;
 }
 """, width="stretch")
@@ -66,25 +83,26 @@ st.markdown(f"""
 ### 📚 Le dataset et l'étude de référence
 Ce dataset est la base de données publique qui résulte de [l'étude scientifique de I-Cheng Yeh et Che-hui Lien (2009)](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/DefaultCreditCardClients_yeh_2009.pdf) (traduit en français [ici](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/traduction_DefaultCreditCardClients_yeh_2009.md)). En pleine crise, une banque taïwanaise a confié aux chercheurs un échantillon anonymisé de 30 000 clients. Cette étude comparait plusieurs modèles pour repérer les clients à risque. Le meilleur, un réseau de neurones, obtenait un score de 0,54, ce qui correspond à un **AUC de 0,77**. L'AUC mesure la capacité d'un modèle à distinguer les bons payeurs des futurs défaillants.
 
-Ma démarche adopte un prisme résolument **orienté métier**. En combinant une compréhension approfondie du jeu de données (le fonctionnement de la banque, de ses codifications et des paiements de l'époque), un nettoyage rigoureux fondé sur des règles métier et un pilotage par un **score de décision** (moyenne du ROC AUC et du F2 score, qui privilégie le Recall), je cherche à optimiser la détection réelle des risques de défaut, garantissant ainsi une performance robuste et réellement actionnable pour la gestion des risques bancaires.
+Ma démarche adopte un prisme résolument **orienté métier**. En combinant une compréhension approfondie du jeu de données (le fonctionnement de la banque, de ses codifications et des paiements de l'époque), un nettoyage rigoureux fondé sur des règles métier et une exigence posée avant tout modèle, un **taux de rappel minimal** (le modèle du projet doit trouver au moins une part fixée des défauts), je cherche à optimiser la détection réelle des risques de défaut, garantissant ainsi une performance robuste et réellement actionnable pour la gestion des risques bancaires.
 
-**🚀 Objectif ML Engineer :** Mon but est de dépasser le score de référence de 2009 (un AUC de 0,77) avec ce score de décision. En banque, oublier un client à risque (Faux Négatif) coûte bien plus cher que de suspecter un client sûr (Faux Positif).
+**🚀 Objectif ML Engineer :** Mon but est de dépasser le score de référence de l'étude de 2009 (un AUC de 0,77). En banque, oublier un client à risque (Faux Négatif) coûte bien plus cher que de suspecter un client sûr (Faux Positif).
 
 ### 🔎 Ce que l'analyse va montrer
-L'analyse exploratoire et l'étude du contentieux sont terminées ; le machine learning reste à reprendre. Voici leurs conclusions, partie par partie :
+L'analyse est terminée, du nettoyage au déploiement. Voici ses conclusions, partie par partie :
 - **Les données (partie 1)** : {nombre_fr(ent_accueil.loc['origine', 'clients'])} clients d'une banque taïwanaise, suivis d'avril à septembre 2005, en pleine crise des cartes de crédit. {nombre_fr(TAUX_DEFAUT_ORIGINE, 1)} % font défaut en octobre, un taux bien plus élevé que celui d'un portefeuille bancaire ordinaire.
 - **La base de données et l'API (partie 2)** : les données sont rangées dans une base relationnelle et exposées par une API REST, comme dans le système d'information d'une banque.
-- **Comprendre le jeu de données (partie 3)** : un fichier complet, mais des anomalies à expliquer avant toute analyse. Les codifications de paiement ne sont pas un fait brut : c'est une étiquette de la banque, mise à jour avec un mois de décalage sur le paiement. Très peu de lignes sont retirées ({nombre_fr(ent_accueil.loc['sans_paiements_geants', 'retires'])} paiements géants, {nombre_fr(ent_accueil.loc['sans_comptes_inactifs', 'retires'])} comptes inactifs, {nombre_fr(ent_accueil.loc['sans_plafonds_atypiques', 'retires'])} plafonds atypiques) : il reste {nombre_fr(ent_accueil.loc['sans_plafonds_atypiques', 'clients'])} clients.
+- **Comprendre le jeu de données (partie 3)** : un fichier complet, mais des anomalies à expliquer avant toute analyse. Les codifications de paiement ne sont pas un fait brut : c'est une étiquette de la banque, qui juge la facture d'un mois sur le paiement fait le mois suivant. La banque se montre plus souple d'avril à juin qu'à partir de juillet, et la codification 1 de septembre attend un paiement d'octobre absent du dataset : les deux sont corrigées au nettoyage. Très peu de lignes sont retirées ({nombre_fr(ent_accueil.loc['sans_paiements_geants', 'retires'])} paiements géants, {nombre_fr(ent_accueil.loc['sans_comptes_inactifs', 'retires'])} comptes inactifs, {nombre_fr(ent_accueil.loc['sans_plafonds_atypiques', 'retires'])} plafonds atypiques) : il reste {nombre_fr(ent_accueil.loc['sans_plafonds_atypiques', 'clients'])} clients.
 - **L'analyse exploratoire (partie 4)** : le profil des clients ne pèse que modérément sur le risque ; ce sont les comportements qui comptent. Un client qui ne rembourse rien fait défaut à {nombre_fr(defaut_type.get('Ne paie rien', 0))} %, un payeur au comptant à {nombre_fr(defaut_type.get('Paiement comptant', 0))} %. La dette totale des clients augmente de {nombre_fr((dette_sept / dette_avril - 1) * 100)} % en six mois, alors qu'ils n'en remboursent chaque mois que {nombre_fr(min(parts_remb))} à {nombre_fr(max(parts_remb))} %. Et le risque grimpe avec les codifications de retard accumulées : de {nombre_fr(defaut_incident.get(0, 0))} % sans aucune à {nombre_fr(defaut_incident.get(6, 0))} % pour un retard sur les six mois.
-- **La population contentieuse (partie 5)** : des clients figés en retard et un modèle qui plafonnait ont conduit à isoler une sous-population par une **règle métier explicable**, deux codifications de retard d'affilée, soit au moins 90 jours. Sur des clients jamais vus, elle ne retient que {nombre_fr(part_ctx)} % des clients, mais {nombre_fr(precision_ctx)} % d'entre eux font défaut, et elle capte ainsi {nombre_fr(captes_ctx)} % des défauts, sans aucun modèle.
-
-La suite (partie 6) confiera le reste des clients au machine learning, puis comparera le tout à l'étude de référence de 2009.
+- **La population en incident (partie 5)** : des clients figés en retard et un modèle qui plafonnait ont conduit à isoler une sous-population par une **règle métier explicable** : deux codifications de retard d'affilée, ou une seule de 3 ou plus. Sur des clients jamais vus, elle ne retient que {nombre_fr(part_ctx)} % des clients, mais {nombre_fr(precision_ctx)} % d'entre eux font défaut, et elle capte {nombre_fr(captes_ctx)} % des défauts, sans aucun modèle. Le **retard imminent**, défaut d'octobre déjà codifié par la banque, est mis à part : ensemble, les deux populations réunissent {nombre_fr(part_deux)} % des clients et {nombre_fr(captes_deux)} % des défauts.
+- **Le machine learning (partie 6)** : sur les autres clients, tous les modèles et toutes les variables atteignent le même plafond. Le modèle retenu, qui ne garde comme donnée démographique que le niveau d'études, range les clients par niveau de risque, du très haut risque (environ quatre clients sur dix en défaut de paiement) au risque faible (moins d'un sur dix). Environ un quart des défauts de paiement de ces clients ont le profil des bons clients et ne s'annoncent pas dans les données.
+- **Le déploiement (partie 7)** : la règle puis le modèle tournent en direct, de la base de données à la décision, sur des clients jamais vus, et retrouvent les résultats de l'évaluation.
+- **La réponse (partie 8)** : oui, en partie. Une analyse métier, tirée par les codifications de la banque relues avec les paiements, prévoit près de la moitié des défauts de paiement sans aucun modèle ; un modèle fondé principalement sur le comportement de paiement classe ensuite les autres clients par niveau de risque, pour repérer une partie des défaillances que la banque ne voit pas venir ; le reste ne s'annonce pas dans les données. Le tri atteint un AUC d'environ 0,78 sur le même fichier que l'étude, et d'environ {nombre_fr(auc_projet, 2)} pour le système du projet sur ses clients de test, contre 0,77 pour l'étude de 2009 : défi relevé, de peu.
 
 
 #### 🕵️‍♂️ Pour aller plus loin : Les coulisses de la donnée
 
 Pour découvrir comment des détails logistiques de l'époque (comme les règlements en espèces dans les supérettes 7-Eleven, qui créent des décalages dans l'enregistrement des paiements sur les comptes, et des erreurs de saisie) ou les parallèles avec le **Buy Now, Pay Later (BNPL)** actuel éclairent ce projet d'un point de vue purement métier :
-📖 [Lire le contexte du projet](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/contexte.md)
+📖 [Lire le contexte du projet](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/contexte.md) · 📚 [Toutes les sources du projet](https://github.com/johan-mac-59/RiskLens_ML/blob/main/docs/sources.md)
 """)
 
 
@@ -102,20 +120,20 @@ digraph {
     audit [fillcolor="#d9f0e3", label="✅ Audit et\nnettoyage structurel\n(niveau 0)"];
     bdd [fillcolor="#d9f0e3", label="✅ Base SQLite\net API REST"];
     eda1 [fillcolor="#d9f0e3", label="✅ Analyse\nexploratoire"];
-    nett [fillcolor="#d9f0e3", label="✅ Nettoyage\nniveaux 1 à 3"];
+    nett [fillcolor="#d9f0e3", label="✅ Nettoyage\nniveaux 1 et 2"];
     ml1 [fillcolor="#eeeeee", label="⏹ Machine learning\n1re itération"];
     blocage [style="rounded,filled,dashed", fillcolor="#fde2e4", color="#CC6677", label="Blocage : les performances plafonnent,\nune sous-population est détectée"];
-    eda2 [fillcolor="#d9f0e3", label="✅ Analyse\ndu contentieux"];
-    ctx [fillcolor="#d9f0e3", label="✅ Définition métier\ndu contentieux\n(nettoyage niveau 5)"];
-    ml2 [fillcolor="#fff3e0", label="⏳ Machine learning\n2e itération,\nsur les autres clients"];
-    slides [fillcolor="#fff3e0", label="⏳ Slides\nde restitution"];
-    dash [shape=plaintext, style="", label="⏳ Dashboard Streamlit,\nconstruit au fil de l'analyse"];
-    dash_fin [shape=point, width=0.01, color="#888888"];
+    eda2 [fillcolor="#d9f0e3", label="✅ Analyse des retards\net incidents de paiement"];
+    ctx [fillcolor="#d9f0e3", label="✅ Définition métier :\npopulation en incident\net retard imminent\n(nettoyage niveau 3)"];
+    ml2 [fillcolor="#d9f0e3", label="✅ Machine learning\n2e itération,\nsur les autres clients"];
+    deploi [fillcolor="#d9f0e3", label="✅ Déploiement :\nrègle + modèle en direct,\nde la base à la décision"];
+    dash [shape=plaintext, style="", label="✅ Dashboard Streamlit, construit au fil de l'analyse,\npuis slides de restitution qui le résument"];
+    dash_fin [shape=none, label="", width=0, height=0, margin=0];
 
     // Ligne 1 : le premier parcours ; ligne 2 : le blocage ; ligne 3 : le second parcours ; ligne 4 : Streamlit
     {rank=same; donnees -> audit -> bdd -> eda1 -> nett -> ml1;}
     {rank=same; blocage;}
-    {rank=same; eda2 -> ctx -> ml2 -> slides;}
+    {rank=same; eda2 -> ctx -> ml2 -> deploi;}
     {rank=same; dash -> dash_fin [style=dashed, penwidth=1.5];}
 
     ml1 -> blocage;
@@ -123,10 +141,10 @@ digraph {
 
     // Colonnes alignées (liaisons invisibles)
     eda1 -> eda2 [style=invis, weight=20]; nett -> ctx [style=invis, weight=20];
-    blocage -> ml2 [style=invis, weight=20]; eda2 -> dash [style=invis, weight=20]; slides -> dash_fin [style=invis, weight=20];
+    blocage -> ml2 [style=invis, weight=20]; eda2 -> dash [style=invis, weight=20]; deploi -> dash_fin [style=invis, weight=20];
 }
 """, width="stretch")
-st.caption("✅ fait ; ⏳ en cours ; ⏹ arrêté.")
+st.caption("✅ fait ; ⏹ arrêté.")
 
 st.markdown("---")
 st.subheader("⚙️ Les outils du projet")

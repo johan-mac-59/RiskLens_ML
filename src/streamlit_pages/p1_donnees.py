@@ -3,7 +3,8 @@ from streamlit_pages.commun import *
 # ==============================================================================
 # PARTIE 1 : LES DONNÉES, CE QU'ON MESURE
 # Sources : dictionnaire du dataset (docs/dataset_dictionary.md, page UCI), résumé statistique
-# de l'audit (01_01_audit, cellule 2) et contexte du projet (docs/contexte.md)
+# de l'audit (01_01_audit, cellule 2), temporalité des colonnes (01_01_audit, partie « Temporalité
+# des colonnes ») et contexte du projet (docs/contexte.md)
 # ==============================================================================
 GH = "https://github.com/johan-mac-59/RiskLens_ML/blob/main"
 
@@ -23,7 +24,7 @@ st.markdown("""
 | `EDUCATION` | Niveau d'études | 1 = master ou doctorat, 2 = licence, 3 = baccalauréat, 4 = autres |
 | `MARRIAGE` | Statut marital | 1 = marié, 2 = célibataire, 3 = autres |
 | `AGE` | Âge | En années |
-| `PAY_1` à `PAY_6` | Codification de paiement du mois : un nombre posé par la banque pour décrire la situation de paiement du client | -1 = paiement à temps ; 1 à 9 = nombre de mois de retard |
+| `PAY_1` à `PAY_6` | Codification de paiement : un nombre posé par la banque pour dire si la facture du mois n (`BILL_AMTn`) a été bien payée par le paiement du mois suivant (`PAY_AMT(n-1)`) ; voir la section 1.2 | -1 = paiement à temps ; 1 à 9 = nombre de mois de retard |
 | `BILL_AMT1` à `BILL_AMT6` | Montant du relevé du mois : la dette totale du client à la date du relevé | Montant en NT\\$ |
 | `PAY_AMT1` à `PAY_AMT6` | Montant payé au cours du mois | Montant en NT\\$ |
 | `dpnm` | Défaut de paiement le mois suivant (octobre 2005) : la cible à prévoir | 1 = défaut, 0 = pas de défaut |
@@ -65,34 +66,46 @@ Les montants sont en **dollars taïwanais (NT\\$)**.
 """)
 
 # ------------------------------------------------------------------------------
-st.header("1.2 Six mois d'historique : quelle facture paie quel paiement ?", anchor="frise")
-st.markdown("""
-Une facture de carte de crédit se règle le mois suivant. Le paiement d'un mois ne rembourse donc pas la facture de ce mois, mais celle du mois précédent. C'est la clé pour lire l'historique, et pour comprendre la suite de l'analyse :
+st.header("1.2 Six mois d'historique : quelle facture, quel paiement, quelle codification ?", anchor="frise")
+st.markdown(f"""
+**Une ambiguïté à lever** : la documentation ne dit pas sur quelle facture ni sur quel paiement porte chaque colonne. Pour la codification, deux lectures sont possibles : elle juge le paiement du mois (`PAY_AMTn`) sur la facture du mois précédent, ou elle dit si la facture du mois (`BILL_AMTn`) a été bien payée le mois suivant (`PAY_AMT(n-1)`).
+
+Les données tranchent (vérification sur les 30 000 clients : [01_01_audit.ipynb]({GH}/src/01_01_audit.ipynb), partie « Temporalité des colonnes ») :
+- **une facture de carte de crédit se règle le mois suivant** : le paiement d'un mois ne rembourse pas la facture de ce mois, mais celle du mois précédent ;
+- **la banque codifie le paiement qui règle une facture** : la codification d'un mois dit si la facture de fin de ce mois a été bien payée par le paiement du mois suivant.
+
+C'est la clé pour lire l'historique, et pour comprendre la suite de l'analyse :
 """)
 st.graphviz_chart(r"""
 digraph {
     rankdir=LR; nodesep=0.3; ranksep=0.4;
     node [shape=box, style="rounded,filled", fillcolor="#e1f5fe", fontname="Helvetica", fontsize=10, margin="0.1,0.05"];
     edge [fontname="Helvetica", fontsize=9];
-    aout [label="Facture d'août\nBILL_AMT2"];
-    sept [fillcolor="#b3e5fc", label="Septembre\npaiement PAY_AMT1\ncodification PAY_1"];
-    fsept [label="Facture de septembre\nBILL_AMT1"];
-    oct [fillcolor="#fff3e0", label="Octobre\ndéfaut de paiement ?\n(cible dpnm)"];
-    aout -> sept [label="payée en"];
-    sept -> fsept [style=dashed, label="nouveau relevé"];
+    aout [label="Facture de fin août\nBILL_AMT2"];
+    psept [fillcolor="#b3e5fc", label="Septembre\npaiement PAY_AMT1"];
+    cod2 [label="Codification d'août\nPAY_2"];
+    fsept [label="Facture de fin septembre\nBILL_AMT1"];
+    oct [fillcolor="#fff3e0", label="Octobre\npaiement absent du dataset\ndéfaut de paiement ? (cible dpnm)"];
+    cod1 [label="Codification de septembre\nPAY_1"];
+    aout -> psept [label="payée en"];
+    psept -> cod2 [label="décide de"];
+    psept -> fsept [style=dashed, label="nouveau relevé"];
     fsept -> oct [label="à payer en"];
+    oct -> cod1 [label="décide de"];
 }
 """, width="stretch")
 st.markdown("Le même enchaînement se répète chaque mois :")
 st.dataframe(pd.DataFrame({
     "Mois": ["Septembre", "Août", "Juillet", "Juin", "Mai", "Avril"],
-    "Codification du mois": ["PAY_1", "PAY_2", "PAY_3", "PAY_4", "PAY_5", "PAY_6"],
-    "Paiement du mois": ["PAY_AMT1", "PAY_AMT2", "PAY_AMT3", "PAY_AMT4", "PAY_AMT5", "PAY_AMT6"],
-    "Facture qu'il règle (relevé du mois précédent)": ["BILL_AMT2 (août)", "BILL_AMT3 (juillet)", "BILL_AMT4 (juin)",
-                                                       "BILL_AMT5 (mai)", "BILL_AMT6 (avril)", "relevé de mars (absent du dataset)"],
+    "Facture de fin du mois": ["BILL_AMT1", "BILL_AMT2", "BILL_AMT3", "BILL_AMT4", "BILL_AMT5", "BILL_AMT6"],
+    "Paiement qui la règle (mois suivant)": ["paiement d'octobre (absent du dataset)", "PAY_AMT1 (septembre)", "PAY_AMT2 (août)",
+                                             "PAY_AMT3 (juillet)", "PAY_AMT4 (juin)", "PAY_AMT5 (mai)"],
+    "Codification de ce paiement": ["PAY_1", "PAY_2", "PAY_3", "PAY_4", "PAY_5", "PAY_6"],
 }), hide_index=True, width="stretch")
 st.markdown("""
-Autrement dit, la codification, le paiement et la facture d'un même mois vont ensemble : `PAY_n`, `PAY_AMTn` et `BILL_AMT(n+1)`. La dernière facture, celle de septembre (`BILL_AMT1`), est à payer en octobre : c'est sur ce paiement que porte le défaut à prévoir.
+Autrement dit, une facture, le paiement qui la règle et la codification de ce paiement vont ensemble : `BILL_AMTn`, `PAY_AMT(n-1)` et `PAY_n`. Le paiement d'avril (`PAY_AMT6`), lui, règle le relevé de mars, absent du dataset.
+
+La codification d'un mois tient donc déjà compte du paiement du mois suivant. Celle de septembre (`PAY_1`) dépend du paiement d'octobre, que le dataset ne contient pas : c'est la seule colonne qui apporte une information sur octobre, le mois du défaut à prévoir.
 """)
 
 # ------------------------------------------------------------------------------
@@ -102,7 +115,7 @@ Le jeu de données décrit le comportement des clients avec leur carte, mais il 
 - **aucun revenu**, ni aucun endettement auprès d'autres banques ;
 - **aucune dépense du mois** : le relevé donne la dette totale du client à une date, pas ce qu'il a dépensé dans le mois. Une dette qui augmente peut venir de nouveaux achats comme d'intérêts et de frais de retard, sans qu'on puisse les distinguer ;
 - **un seul plafond par client**, sans date : on ne sait pas s'il a changé pendant les six mois ;
-- **ni la date ni la règle des codifications de paiement** : le dataset donne leur valeur, pas la façon dont la banque les pose ;
+- **aucune règle des codifications de paiement** : le dataset donne leur valeur, pas la façon dont la banque les pose ; seul le lien entre facture, paiement et codification a pu être retrouvé (section 1.2) ;
 - **une définition de la cible non documentée** : on sait seulement qu'elle indique un défaut de paiement le mois suivant, sans savoir comment la banque l'a attribuée (voir la section « Limites de la définition de dpnm » du [document de contexte]({GH}/docs/contexte.md)) ;
 - **une seule banque, en pleine crise** : les comportements observés sont ceux d'avril à octobre 2005, au moment de la crise des cartes de crédit à Taïwan.
 

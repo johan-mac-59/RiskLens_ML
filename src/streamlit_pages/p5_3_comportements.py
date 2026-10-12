@@ -1,8 +1,8 @@
 from streamlit_pages.commun import *
 
 # ==============================================================================
-# PARTIE 5.4 : DES COMPORTEMENTS DISTINCTS, SANS REGARDER LE DÉFAUT
-# Reprend la description des statuts de 05_02_EDA_contentieux (section 4), sur tout le périmètre et sans dpnm.
+# PARTIE 5.3 : DES COMPORTEMENTS DISTINCTS, SANS REGARDER LE DÉFAUT
+# Reprend la description des statuts de 05_02_EDA_incidents (section 4), sur tout le périmètre et sans dpnm.
 # Indicateurs construits sur les seuls montants (plafond, dette, paiements, TYPE_USAGE) : la comparaison avec un
 # statut défini sur les codifications est donc une vérification indépendante. Colonnes lues dans le CSV.
 # ==============================================================================
@@ -17,10 +17,12 @@ mois_sans_paiement = (s12[[f'PAY_AMT{i}' for i in range(1, 7)]] == 0).sum(axis=1
 # Ratio de paiement médian : -1 (compte qui commence à servir) et vide (aucune facture) ne sont pas des ratios
 ratio_median = s12['ratio_PAY_BILL_median'].where(s12['ratio_PAY_BILL_median'] >= 0)
 # Retard payé en septembre : part des clients actifs les six mois, et part des payeurs au comptant (TYPE_USAGE)
-masque_paye = statut == "Retard payé en septembre"
+masque_paye = statut == "Retard imminent"
 actifs_6 = pd.concat([(s12[f'BILL_AMT{n}'] != 0) | (s12[f'PAY_AMT{n}'] > 0) for n in range(1, 7)], axis=1).all(axis=1)
 paye_actifs = actifs_6[masque_paye].mean() * 100
 paye_comptant = (s12.loc[masque_paye, 'TYPE_USAGE'] == "Paiement comptant").mean() * 100
+# Retard imminent : part sans aucun retard avant septembre (un seul mois en retard sur les six)
+imminent_premier = (s12.loc[masque_paye, 'CUMUL_INCIDENT'] == 1).mean() * 100
 indicateurs = pd.DataFrame({
     'clients': statut.value_counts(),
     'plafond': s12.groupby(statut, observed=False)['LIMIT_BAL'].median(),
@@ -32,9 +34,9 @@ indicateurs = pd.DataFrame({
 entete_partie_5(df, s12, train, test)
 
 st.markdown("---")
-st.header("5.4 Des comportements distincts, sans même regarder le défaut", anchor="comportements")
+st.header("5.3 Des comportements distincts, sans même regarder le défaut", anchor="comportements")
 st.markdown(f"""
-La définition du contentieux s'appuie sur les codifications de la banque. Avant de la juger sur le défaut, une question se pose : **les statuts décrivent-ils de vrais comportements, ou seulement des étiquettes ?** Si la règle ne faisait que recopier une codification, rien ne distinguerait les clients au contentieux des autres dans leurs montants.
+La définition de la population en incident s'appuie sur les codifications de la banque. Avant de la juger sur le défaut, une question se pose : **les statuts décrivent-ils de vrais comportements, ou seulement des étiquettes ?** Si la règle ne faisait que recopier une codification, rien ne distinguerait les clients en incident des autres dans leurs montants.
 
 On compare donc les statuts sur des indicateurs construits **uniquement sur les montants** (plafond, dette, paiements), sans aucune codification ni le défaut. Tout le périmètre est utilisé ({nombre_fr(len(s12))} clients).
 """)
@@ -54,7 +56,7 @@ def barres_statuts(colonne, titre_y, decimales=0, suffixe=""):
 
 
 # ------------------------------------------------------------------------------
-st.subheader("1. Au contentieux : des plafonds plus bas, et largement utilisés", anchor="credit")
+st.subheader("1. En incident : des plafonds plus bas, et largement utilisés", anchor="credit")
 col_plafond, col_utilisation = st.columns(2)
 with col_plafond:
     st.markdown("#### Plafond médian")
@@ -63,15 +65,16 @@ with col_utilisation:
     st.markdown("#### Utilisation du plafond en septembre (médiane)")
     st.plotly_chart(barres_statuts('utilisation', "Dette de septembre / plafond (%)", 1, " %"), width='stretch')
 ctx, aucun, sorti, isole, paye = (indicateurs.loc[nom] for nom in
-                                  ("Au contentieux", "Aucun incident", "Sorti du contentieux", "Retard isolé régularisé", "Retard payé en septembre"))
+                                  ("En incident", "Jamais en retard", "Sorti de l'incident", "Retard régularisé", "Retard imminent"))
 st.markdown(f"""
-- **Les clients au contentieux ont un plafond médian de {nombre_fr(ctx['plafond'])} NT\\$**, contre {nombre_fr(aucun['plafond'])} NT\\$ pour les clients sans incident : la banque leur accorde moins de crédit. Le dataset ne dit pas si ce plafond a été fixé ainsi dès l'ouverture du compte ou réduit après les premiers incidents.
-- **Ils en utilisent la plus grande partie** : leur dette de septembre en représente {nombre_fr(ctx['utilisation'], 1)} % (médiane), contre {nombre_fr(aucun['utilisation'], 1)} % pour les clients sans incident. Les clients sortis du contentieux ({nombre_fr(sorti['utilisation'], 1)} %) et ceux qui ont eu un retard isolé ({nombre_fr(isole['utilisation'], 1)} %) se placent entre les deux.
+- **La population en incident a un plafond médian de {nombre_fr(ctx['plafond'])} NT\\$**, contre {nombre_fr(aucun['plafond'])} NT\\$ pour les clients sans incident : la banque leur accorde moins de crédit. Le dataset ne dit pas si ce plafond a été fixé ainsi dès l'ouverture du compte ou réduit après les premiers incidents.
+- **Ils en utilisent la plus grande partie** : leur dette de septembre en représente {nombre_fr(ctx['utilisation'], 1)} % (médiane), contre {nombre_fr(aucun['utilisation'], 1)} % pour les clients sans incident. Les clients régularisés ({nombre_fr(sorti['utilisation'], 1)} %) et ceux qui ont eu un retard isolé ({nombre_fr(isole['utilisation'], 1)} %) se placent entre les deux.
+- **Les clients en retard imminent utilisent leur plafond presque autant que les clients en incident** : {nombre_fr(paye['utilisation'], 1)} % en médiane, contre {nombre_fr(ctx['utilisation'], 1)} %, pour un plafond médian de {nombre_fr(paye['plafond'])} NT\\$.
 - Le lien entre un crédit très utilisé et le risque, vu en page « 4.2 L'usage du crédit », se retrouve ici sous la forme d'un statut.
 """)
 
 # ------------------------------------------------------------------------------
-st.subheader("2. Au contentieux : des paiements plus faibles et plus rares", anchor="paiements")
+st.subheader("2. En incident : des paiements plus faibles et plus rares", anchor="paiements")
 col_ratio, col_sans = st.columns(2)
 with col_ratio:
     st.markdown("#### Ratio de paiement médian")
@@ -81,9 +84,9 @@ with col_sans:
     st.plotly_chart(barres_statuts('sans_paiement', "Nombre moyen de mois sans paiement", 1), width='stretch')
 st.caption("Ratio de paiement médian : part de la facture payée, médiane des mois où une facture était due (colonne ratio_PAY_BILL_median, page « 4.3 Le type d'usage de la carte »). Les comptes qui commencent tout juste à servir, sans ratio mesurable, sont exclus de ce graphique.")
 st.markdown(f"""
-- **Les clients au contentieux remboursent chaque mois une petite part de leur facture** : {nombre_fr(ctx['ratio'], 1)} % en médiane, autour de la mensualité minimale, contre {nombre_fr(aucun['ratio'], 1)} % pour les clients sans incident.
+- **Les clients en incident remboursent chaque mois une petite part de leur facture** : {nombre_fr(ctx['ratio'], 1)} % en médiane, autour de la mensualité minimale, contre {nombre_fr(aucun['ratio'], 1)} % pour les clients sans incident.
 - **Ils passent aussi plus de mois sans rien payer** : {nombre_fr(ctx['sans_paiement'], 1)} mois sur 6 en moyenne, contre {nombre_fr(aucun['sans_paiement'], 1)} pour les clients sans incident.
-- **Les clients au retard payé en septembre forment un petit groupe à part** ({nombre_fr(paye['clients'])} clients), avec deux valeurs atypiques. **Leur ratio de paiement médian atteint {nombre_fr(paye['ratio'])} %** : ce n'est pas le reflet d'un seul mois. Le ratio est la médiane de tous les mois où une facture était due, et {nombre_fr(paye_actifs)} % de ces clients ont été actifs les six mois. La plupart sont des **payeurs au comptant**, qui règlent leur facture en entier chaque mois ({nombre_fr(paye_comptant)} % de paiement comptant, graphique ci-dessous). **Leur plafond est presque inutilisé en septembre** ({nombre_fr(paye['utilisation'], 1)} %) pour une raison voisine : payeurs au comptant, ils ne laissent pas leur dette s'accumuler d'un mois sur l'autre. Leur retard de septembre, posé sur une facture réglée, ressemble à un incident ponctuel plutôt qu'à une dette qui s'installe : c'est bien pour cela que la règle ne les place pas au contentieux. Il n'est pas anodin pour autant (page 5.5).
+- **Les clients en retard imminent ont le même profil** : {nombre_fr(paye['ratio'], 1)} % de leur facture remboursés en médiane, mais seulement {nombre_fr(paye['sans_paiement'], 1)} mois sans paiement sur 6, contre {nombre_fr(ctx['sans_paiement'], 1)} en incident. Ils ne cumulaient pas de retard jusque-là : {nombre_fr(imminent_premier)} % n'ont aucun autre mois en retard sur la période.
 """)
 
 # ------------------------------------------------------------------------------
@@ -102,14 +105,19 @@ fig_types.update_layout(barmode='stack', xaxis_title="Part des clients du statut
                         yaxis=dict(autorange="reversed"))
 st.plotly_chart(fig_types, width='stretch')
 st.caption("Comment lire : chaque barre fait 100 % et répartit les clients d'un statut selon leur type d'usage. Mêmes couleurs que la page 4.3. Les clients sans type d'usage (aucune facture mesurable) ne sont pas comptés.")
-t_ctx, t_aucun, t_paye, t_sorti = (types.loc[nom] for nom in ("Au contentieux", "Aucun incident", "Retard payé en septembre", "Sorti du contentieux"))
+t_ctx, t_aucun, t_paye, t_sorti = (types.loc[nom] for nom in ("En incident", "Jamais en retard", "Retard imminent", "Sorti de l'incident"))
 st.markdown(f"""
-- **Au contentieux, le crédit lent domine** ({nombre_fr(t_ctx['Crédit lent'])} % des clients), et **{nombre_fr(t_ctx['Ne paie rien'])} % ne paient rien du tout**. Le paiement comptant y est presque absent ({nombre_fr(t_ctx['Paiement comptant'], 1)} %).
+- **En incident, le crédit lent domine** ({nombre_fr(t_ctx['Crédit lent'])} % des clients), et **{nombre_fr(t_ctx['Ne paie rien'])} % ne paient rien du tout**. Le paiement comptant y est presque absent ({nombre_fr(t_ctx['Paiement comptant'], 1)} %).
+- **En retard imminent, le crédit lent domine également** ({nombre_fr(t_paye['Crédit lent'])} %), mais ils payaient avant : seuls {nombre_fr(t_paye['Ne paie rien'], 1)} % ne paient rien, contre {nombre_fr(t_ctx['Ne paie rien'])} % en incident.
 - **Chez les clients sans incident, le paiement comptant est fréquent** ({nombre_fr(t_aucun['Paiement comptant'])} %), et ceux qui ne paient rien sont rarissimes ({nombre_fr(t_aucun['Ne paie rien'], 1)} %).
-- **Les clients sortis du contentieux gardent un profil de crédit** (crédit lent ou rapide pour {nombre_fr(t_sorti['Crédit lent'] + t_sorti['Crédit rapide'])} %), mais paient davantage que ceux qui y sont encore : {nombre_fr(t_sorti['Paiement comptant'], 1)} % de paiement comptant contre {nombre_fr(t_ctx['Paiement comptant'], 1)} %, et {nombre_fr(t_sorti['Ne paie rien'], 1)} % qui ne paient rien contre {nombre_fr(t_ctx['Ne paie rien'], 1)} %.
-- **Le retard payé en septembre concerne surtout des payeurs au comptant** ({nombre_fr(t_paye['Paiement comptant'])} %), ce qui confirme qu'il ne s'agit pas d'un contentieux.
+- **Les clients sortis d'incident gardent un profil de crédit** (crédit lent ou rapide pour {nombre_fr(t_sorti['Crédit lent'] + t_sorti['Crédit rapide'])} %), mais paient davantage que ceux qui y sont encore : {nombre_fr(t_sorti['Paiement comptant'], 1)} % de paiement comptant contre {nombre_fr(t_ctx['Paiement comptant'], 1)} %, et {nombre_fr(t_sorti['Ne paie rien'], 1)} % qui ne paient rien contre {nombre_fr(t_ctx['Ne paie rien'], 1)} %.
+- **Les clients ayant eu un retard régularisé sur la période touchent une population diversifiée, mais on y retrouve une part conséquente de payeur au comptant.
 """)
 
 st.info(f"""
-**Ce qu'il faut retenir** : sans jamais regarder le défaut, et sur des indicateurs qui ne doivent rien aux codifications, les statuts se distinguent nettement. Les clients au contentieux ont des plafonds plus bas, largement utilisés, et ne remboursent qu'une petite part de leur facture, quand ils paient. Les clients sans incident sont à l'opposé, et les clients sortis du contentieux entre les deux. La règle isole donc **un comportement de paiement réellement dégradé**, et pas seulement une étiquette de la banque. Reste à vérifier que ce comportement se traduit dans le défaut : c'est l'objet de la page suivante.
+**Ce qu'il faut retenir** : sans jamais regarder le défaut, et sur des indicateurs qui ne doivent rien aux codifications, les statuts se distinguent nettement. 
+Les clients en incident ont des plafonds plus bas, largement utilisés, et ne remboursent qu'une petite part de leur facture, quand ils paient. Les clients sans incident sont à l'opposé, et les clients sortis d'incidents ou de retard entre les deux. 
+La règle isole donc **un comportement de paiement réellement dégradé**, et pas seulement une étiquette de la banque. 
+Les clients détectés en retard imminent ont un profil à risque mais ne tombaient pas en impayé avant octobre.
+Reste à vérifier que ce comportement se traduit dans le défaut : c'est l'objet de la page suivante.
 """)

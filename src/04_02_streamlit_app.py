@@ -11,8 +11,8 @@ from streamlit_pages.commun import BASE_DIR, API_URL
 # CONFIGURATION & STYLE
 # ==============================================================================
 st.set_page_config(
-    page_title="RiskLens ML — Analyse & Prédiction du Défaut de Paiement",
-    page_icon="💳",
+    page_title="RiskLens ML — Analyse & Prédiction du Risque Crédit",
+    page_icon=str(BASE_DIR / "images" / "logo_risklens_compteur.svg"),
     layout="wide"
 )
 
@@ -57,13 +57,8 @@ st.markdown("""
 # ==============================================================================
 # NAVIGATION
 # ==============================================================================
-st.sidebar.image(str(BASE_DIR / "images" / "logo_risklens.svg"), width=250)
-st.sidebar.title("🏦 RiskLens ML — Analyse & Prédiction du Défaut de Paiement 💳")
+st.sidebar.image(str(BASE_DIR / "images" / "logo_risklens_compteur_texte.svg"), width=250)
 st.sidebar.markdown("---")
-st.info(
-    "🚧 **Interface centralisée RiskLens en cours de construction** | "
-    "⏳ *Note : L'API étant sur Render, la première requête peut prendre jusqu'à 1 minute si le serveur s'est mis en veille.*"
-)
 
 # Pages (st.navigation) : les pages sont ajoutées au fur et à mesure de la migration
 pages = {
@@ -95,20 +90,40 @@ pages = {
         st.Page("streamlit_pages/p4_5_paiements.py", title="4.5 Les paiements : un comportement stable, alors que la dette grandit", icon=":material/account_balance_wallet:"),
         st.Page("streamlit_pages/p4_6_retards.py", title="4.6 Les retards : plus nombreux, plus graves, et plus risqués quand ils durent", icon=":material/warning:"),
     ],
-    "5. La population contentieuse : des retards figés à une règle métier": [
-        st.Page("streamlit_pages/p5_1_genese.py", title="5.1 La genèse : des anomalies de codification à l'étude du contentieux", icon=":material/lightbulb:"),
-        st.Page("streamlit_pages/p5_2_faux_retards.py", title="5.2 Chercher le contentieux révèle de faux retards, corrigés au nettoyage", icon=":material/find_replace:"),
-        st.Page("streamlit_pages/p5_3_definition.py", title="5.3 La définition du contentieux : deux codifications de retard d'affilée, soit au moins 90 jours", icon=":material/policy:"),
-        st.Page("streamlit_pages/p5_4_comportements.py", title="5.4 Des comportements distincts, sans même regarder le défaut", icon=":material/compare_arrows:"),
-        st.Page("streamlit_pages/p5_5_risque.py", title="5.5 Le défaut confirme la définition : très fréquent au contentieux, et d'autant plus que le retard a duré", icon=":material/trending_up:"),
-        st.Page("streamlit_pages/p5_6_bilan.py", title="5.6 Peu de clients, beaucoup de défauts : une règle métier qui prédit déjà un tiers des défauts", icon=":material/verified:"),
+    "5. La population en incident : des retards figés à une règle métier": [
+        st.Page("streamlit_pages/p5_1_genese.py", title="5.1 La genèse : des anomalies de codification à l'étude de la population en incident", icon=":material/lightbulb:"),
+        st.Page("streamlit_pages/p5_2_definition.py", title="5.2 La définition : la population en incident, et le retard imminent à part", icon=":material/policy:"),
+        st.Page("streamlit_pages/p5_3_comportements.py", title="5.3 Des comportements distincts, sans même regarder le défaut", icon=":material/compare_arrows:"),
+        st.Page("streamlit_pages/p5_4_risque.py", title="5.4 Le défaut confirme la définition : très fréquent en incident et en retard imminent, et d'autant plus que le retard a duré", icon=":material/trending_up:"),
+        st.Page("streamlit_pages/p5_5_bilan.py", title="5.5 Peu de clients, beaucoup de défauts : deux règles métier qui prédisent déjà près de la moitié des défauts", icon=":material/verified:"),
     ],
     "6. Le machine learning": [
-        st.Page("streamlit_pages/p6_1_historique.py", title="6.1 L'historique : une première itération qui a buté sur un plafond, et mené à l'étude du contentieux", icon=":material/history_edu:"),
+        st.Page("streamlit_pages/p6_1_historique.py", title="6.1 L'historique : une première itération qui a buté sur un plafond, et mené à l'étude de la population en incident", icon=":material/history_edu:"),
+        st.Page("streamlit_pages/p6_2_demarche.py", title="6.2 La nouvelle démarche : séparer la population en incident et le retard imminent du reste", icon=":material/route:"),
+        st.Page("streamlit_pages/p6_3_scenarios.py", title="6.3 Les scénarios : les variables de l'exploration n'apportent presque rien de plus", icon=":material/show_chart:"),
+        st.Page("streamlit_pages/p6_4_test.py", title="6.4 Le modèle retenu, jugé sur le test : un outil pour classer les clients par niveau de risque", icon=":material/fact_check:"),
+        st.Page("streamlit_pages/p6_5_plafond.py", title="6.5 Pourquoi le modèle plafonne : une part des défauts ne s'annonce pas dans les données", icon=":material/block:"),
+        st.Page("streamlit_pages/p6_6_risques.py", title="6.6 L'évaluation des risques : ce qui peut tromper, et comment le limiter", icon=":material/warning:"),
+    ],
+    "7. Le déploiement du modèle : du fichier de la banque à la décision": [
+        st.Page("streamlit_pages/p7_1_architecture.py", title="7.1 L'architecture : de la base de données à la décision", icon=":material/account_tree:"),
+        st.Page("streamlit_pages/p7_2_demo_donnees_projet.py", title="7.2 Démo 1 : le système complet en direct, sur les données du projet", icon=":material/play_circle:"),
+        st.Page("streamlit_pages/p7_3_demo_base_de_donnees.py", title="7.3 Démo 2 : test grandeur nature, de la base de données à la décision", icon=":material/cloud_sync:"),
+        st.Page("streamlit_pages/p7_4_demo_dataset_complet.py", title="7.4 Démo 3 : tout le dataset d'origine, une règle métier face à un modèle", icon=":material/balance:"),
+    ],
+    "8. Réponse à la problématique et conclusion": [
+        st.Page("streamlit_pages/p8_1_reponse.py", title="8.1 Peut-on prévoir le défaut ? Une règle métier, puis un modèle", icon=":material/task_alt:"),
+        st.Page("streamlit_pages/p8_2_yeh_lien.py", title="8.2 Comparaison avec Yeh et Lien (2009), dans leurs propres métriques", icon=":material/compare:"),
+        st.Page("streamlit_pages/p8_3_a_retenir.py", title="8.3 Ce qu'il faut retenir", icon=":material/bookmark:"),
+        st.Page("streamlit_pages/p8_4_limites.py", title="8.4 Les limites : ce que la réponse ne permet pas de dire", icon=":material/report:"),
+        st.Page("streamlit_pages/p8_5_recommandations.py", title="8.5 Les recommandations : ce qu'une banque pourrait en faire, et la suite", icon=":material/recommend:"),
+    ],
+    "Annexe": [
+        st.Page("streamlit_pages/annexe_sources.py", title="Les sources du projet", icon=":material/menu_book:"),
     ],
 }
-# Menu automatique masqué : il se placerait au-dessus du logo et du titre.
-# Le menu est reconstruit ci-dessous avec st.page_link, sous le logo et le titre.
+# Menu automatique masqué : il se placerait au-dessus du logo.
+# Le menu est reconstruit ci-dessous avec st.page_link, sous le logo.
 page = st.navigation(pages, position="hidden")
 for section, pages_section in pages.items():
     if section:
@@ -141,4 +156,6 @@ with col_l3:
     st.link_button("💼 Mon profil LinkedIn", "https://www.linkedin.com/in/johan-machu/", width='stretch')
 
 st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center;'>☕ Le projet vous a plu ? "
+            "<a href='https://buymeacoffee.com/johan_mac' target='_blank'>Offrez-moi un café</a></p>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: grey;'>RiskLens ML © 2026 — Projet Portfolio Data Analyst</p>", unsafe_allow_html=True)
