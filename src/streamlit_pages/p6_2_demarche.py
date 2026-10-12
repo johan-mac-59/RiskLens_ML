@@ -78,24 +78,26 @@ Certains modèles ne savent pas s'arrêter pile au taux de rappel minimal : beau
 """)
 
 # ------------------------------------------------------------------------------
-st.subheader("4. Enrichir le socle, scénario par scénario", anchor="scenarios")
+st.subheader("4. Partir du socle, tout ajouter, puis élaguer", anchor="scenarios")
 st.markdown("""
-**La méthode a d'abord été éprouvée sur un socle** : les seules variables d'origine du dataset. Le meilleur modèle, CatBoost, n'y a pas progressé : il garde la performance de l'ajustement à la main, mais **sans surapprentissage**, donc avec un score enfin crédible. Ce qui a changé, ce sont les autres modèles. Jugés au même taux de rappel minimal, puis nourris de variables mises en forme (codifications traitées comme des catégories, paiements, factures et plafond passés au logarithme), ils l'ont tous rejoint : **les six modèles sont à égalité**, et la régression logistique, le plus simple et le plus explicable, fait jeu égal avec le plus complexe.
+**La méthode a d'abord été éprouvée sur un socle** : les seules variables d'origine du dataset. Jugés au même taux de rappel minimal, et nourris de variables mises en forme (codifications traitées comme des catégories, paiements, factures et plafond passés au logarithme), **cinq des six modèles sont à égalité**, la forêt aléatoire (RandomForest) juste en dessous : la régression logistique, le plus simple et le plus explicable, fait jeu égal avec le plus complexe, CatBoost.
 
 **La méthode est fiable, rigoureuse et reproductible, et elle met chaque modèle en pleine possession de ses moyens, sans en désavantager aucun.** Elle a alors été figée : elle n'a plus changé d'un scénario à l'autre. Le socle a donné ce que ses variables permettaient ; pour monter plus haut, il faut de nouvelles informations.
 
-**Les scénarios ont ensuite enrichi ce socle, petit groupe de variables par petit groupe.** Ces variables venaient en grande partie de l'**exploration déjà réalisée**, qui les a construites et en a montré le lien avec le risque :
+**Toutes les variables construites pour le machine learning ont ensuite été ajoutées d'un coup**, dans un scénario complet. Elles venaient en grande partie de l'**exploration déjà réalisée**, qui les a construites et en a montré le lien avec le risque :
 - l'**utilisation du plafond**, mois par mois (page 4.2) ;
 - les **ratios de paiement** et le **type d'usage de la carte**, du paiement comptant au crédit qui ne se rembourse pas (page 4.3), avec la régularité du comportement de paiement ;
 - la **codification habituelle** du client ;
 - la **vie du compte** : ouverture ou réveil pendant la période (page 4.4) ;
 - l'**historique des retards et des incidents** : retards isolés et passages en incident, leur nombre de mois, le mois de la sortie (pages 4.6 et 5.2).
 
-D'autres variables ont été créées au fil des résultats, comme des signaux de rupture de comportement.
+D'autres variables ont été créées en complément, comme des signaux de rupture de comportement.
 
-**Chaque groupe devait faire ses preuves** : il n'était gardé que s'il apportait un **gain réel** par rapport au scénario de référence, régulier d'une mesure à l'autre, et non un effet du hasard. Tous les scénarios ont été mesurés avec la même méthode et le même taux de rappel minimal : ils se comparent directement. Une fois toutes les variables essayées, celles qui n'apportaient rien ont été retirées, pour un modèle plus simple ; le test n'a été lu qu'à ce moment-là, une seule fois. Les scénarios et le modèle retenu sont présentés en 6.3, le test en 6.4.
+**Ce scénario complet a ensuite été élagué, famille de variables par famille.** Le premier retrait est celui des **codifications brutes** de la banque (`PAY_1` à `PAY_6` et la codification habituelle) : il ne reste que le comportement du client, lu au travers des indicateurs de retard et d'incident. Puis chaque famille a été retirée à son tour. **Un retrait n'était confirmé que s'il ne coûtait rien de réel** : une perte plus petite que la variation du score d'une mesure à l'autre ne se distingue pas du hasard du découpage. Sinon, la famille revenait. À score égal, le modèle le plus simple l'emporte : moins de variables, plus faciles à expliquer et à surveiller.
+
+Tous les scénarios ont été mesurés avec la même méthode et le même taux de rappel minimal : ils se comparent directement. Le test n'a été lu qu'à la fin, une seule fois, sur le modèle figé.
 """)
 
 st.info("""
-**Ce qu'il faut retenir** : le machine learning reprend sur les seuls clients en gestion normale, la population en incident et le retard imminent étant confiés aux règles métier. La méthode devient automatique et reproductible : chaque modèle doit atteindre un taux de rappel minimal, exigence métier, et il est réglé pour être le plus précis possible à ce point, sans apprendre le dataset par cœur ni cesser d'apprendre, puis classé par un score décisionnel F2. Chaque choix répond à une question concrète posée par les premiers résultats. Sur le socle, elle a mis les six modèles à égalité, sans en désavantager aucun. Les scénarios ont ensuite enrichi le socle, groupe de variables par groupe de variables, chacun gardé seulement s'il apportait un gain réel.
+**Ce qu'il faut retenir** : le machine learning reprend sur les seuls clients en gestion normale, la population en incident et le retard imminent étant confiés aux règles métier. La méthode devient automatique et reproductible : chaque modèle doit atteindre un taux de rappel minimal, exigence métier, et il est réglé pour être le plus précis possible à ce point, sans apprendre le dataset par cœur ni cesser d'apprendre, puis classé par un score décisionnel F2. Chaque choix répond à une question concrète posée par les premiers résultats. Sur le socle, elle a mis cinq des six modèles à égalité, sans en désavantager aucun. Toutes les variables de l'exploration ont ensuite été ajoutées, puis retirées famille par famille tant que leur retrait ne coûtait rien : à score égal, le modèle le plus simple.
 """)
