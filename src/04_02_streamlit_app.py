@@ -132,28 +132,28 @@ for section, pages_section in pages.items():
         st.sidebar.page_link(p)
 
 st.sidebar.markdown("---")
-st.sidebar.info("**Développé par Johan**\n\n*Futur Data Analyst*")
+st.sidebar.info("👨‍💻 **Développé par Johan**\n\n*Futur Data Analyst*")
 
 page.run()
 
 # Bandeau « Ressources & Contact », affiché en bas de toutes les pages
 st.markdown("---")
-st.markdown("### Ressources & Contact")
+st.markdown("### 🔗 Ressources & Contact")
 
 # On crée 3 colonnes pour un alignement parfait
 col_l1, col_l2, col_l3 = st.columns(3)
 
 with col_l1:
-    st.markdown("<h4 style='text-align: center;'>Technique</h4>", unsafe_allow_html=True)
-    st.link_button("Documentation API", f"{API_URL}/docs", width='stretch')
+    st.markdown("<h4 style='text-align: center;'>🛠️ Technique</h4>", unsafe_allow_html=True)
+    st.link_button("📖 Documentation API", f"{API_URL}/docs", width='stretch')
 
 with col_l2:
-    st.markdown("<h4 style='text-align: center;'>Code</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center;'>💻 Code</h4>", unsafe_allow_html=True)
     st.link_button("GitHub Repository", "https://github.com/johan-mac-59/RiskLens_ML", width='stretch')
     
 with col_l3:
-    st.markdown("<h4 style='text-align: center;'>Réseau</h4>", unsafe_allow_html=True)
-    st.link_button("Mon profil LinkedIn", "https://www.linkedin.com/in/johan-machu/", width='stretch')
+    st.markdown("<h4 style='text-align: center;'>🤝 Réseau</h4>", unsafe_allow_html=True)
+    st.link_button("💼 Mon profil LinkedIn", "https://www.linkedin.com/in/johan-machu/", width='stretch')
 
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: grey;'>RiskLens ML © 2026 — Projet Portfolio Data Analyst</p>", unsafe_allow_html=True)
