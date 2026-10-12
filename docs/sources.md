@@ -25,8 +25,8 @@ Les faits sur la crise de 2005 s'appuient de préférence sur des sources de l'�
 | [Taipei Times, 14 juillet 2004](https://www.taipeitimes.com/News/biz/archives/2004/07/14/2003178964) | Le plafond légal des taux à 20 % | accueil, `contexte.md` |
 | [Taipei Times, « Taiwanese owe NT$253 billion in cash-card debt », Jackie Lin et Kevin Chen, 9 avril 2005](https://www.taipeitimes.com/News/biz/archives/2005/04/09/2003249782) | 3,79 millions de cartes de retrait et 253,3 milliards de NT$ d'encours ; critères d'octroi bien plus bas que ceux des autres crédits ; règles de la FSC au 1er mai 2005 (publicité interdite, justificatifs de revenus pour une sixième carte) | accueil, `contexte.md` |
 | [Taipei Times, « Consumer credit crisis threatens », 26 octobre 2005](https://www.taipeitimes.com/News/editorials/archives/2005/10/26/2003277465) | Taux de 17 à 20 % par an, 800 milliards de NT$ de dettes de cartes, 600 000 NT$ de dette moyenne | accueil, 4.3, `contexte.md` |
-| [Taipei Times, « Credit-card segment under pressure », 30 décembre 2005](https://www.taipeitimes.com/News/biz/archives/2005/12/30/2003286657) | Décembre 2005 : mécanisme d'aide aux débiteurs et hausse des mensualités minimales, après les six mois du dataset | 5.3, `contexte.md` |
-| [Taipei Times, « The dark side of outsourcing debt », 8 mars 2006](https://www.taipeitimes.com/News/editorials/archives/2006/03/08/2003296330) | Février 2006 : accord des banques sous l'égide de la FSC sur la négociation des dettes | 5.3, `contexte.md` |
+| [Taipei Times, « Credit-card segment under pressure », 30 décembre 2005](https://www.taipeitimes.com/News/biz/archives/2005/12/30/2003286657) | Décembre 2005 : mécanisme d'aide aux débiteurs et hausse des mensualités minimales, après les six mois du dataset | `contexte.md` |
+| [Taipei Times, « The dark side of outsourcing debt », 8 mars 2006](https://www.taipeitimes.com/News/editorials/archives/2006/03/08/2003296330) | Février 2006 : accord des banques sous l'égide de la FSC sur la négociation des dettes | `contexte.md` |
 | [Taipei Times, « No card slaves, just credit abusers », 11 mars 2006](https://www.taipeitimes.com/News/editorials/archives/2006/03/11/2003296845) | Les « esclaves de la carte », qui ne payaient plus que le minimum | accueil, `contexte.md` |
 | [Electronic Payments International, « Taiwan's credit crisis: the calm after the storm »](https://www.electronicpaymentsinternational.com/country-surveys/taiwans-credit-crisis-the-calm-after-the-storm/) (20 février 2007) | 133 cartes pour 100 Taïwanais de plus de 15 ans en septembre 2005 | accueil, `contexte.md` |
 | Tae Soo Kang et Guonan Ma, « Recent episodes of credit card distress in Asia », *BIS Quarterly Review*, juin 2007, p. 55-68 ([PDF](CreditCardDistressAsia_kang_ma_2007.pdf), [en ligne](https://www.bis.org/publ/qtrpdf/r_qt0706g.pdf)) | Libéralisation du début des années 1990 (nombre de banques doublé, part des nouvelles banques de 28 % à 56 % de la banque de détail) ; concurrence et critères d'octroi abaissés ; courtiers et banques qui contournent le fichier central des crédits, cavalerie encouragée ; « une économie saine ne protège pas d'une crise de la dette à la consommation » | accueil, `contexte.md` |
@@ -58,8 +58,8 @@ Les faits sur la crise de 2005 s'appuient de préférence sur des sources de l'�
 
 | Source | Ce qu'elle appuie | Utilisée dans |
 |---|---|---|
-| Claude Nadeau et Yoshua Bengio (2003), « Inference for the Generalization Error », *Machine Learning*, vol. 52, n° 3, p. 239-281, [doi:10.1023/A:1024068626366](https://doi.org/10.1023/A:1024068626366) | Le test t corrigé, pour comparer deux modèles en validation croisée répétée (duel fin des scénarios) | 6.3, `hypotheses_et_conclusions.md` |
+| Claude Nadeau et Yoshua Bengio (2003), « Inference for the Generalization Error », *Machine Learning*, vol. 52, n° 3, p. 239-281, [doi:10.1023/A:1024068626366](https://doi.org/10.1023/A:1024068626366) | Le test t corrigé, pour comparer deux modèles en validation croisée répétée (duel fin entre deux versions des scénarios) | `hypotheses_et_conclusions.md` |
 
 ---
 
-*Liens vérifiés le 09/10/2026.*
+*Liens vérifiés le 12/10/2026.*

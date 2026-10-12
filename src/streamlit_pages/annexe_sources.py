@@ -13,4 +13,12 @@ texte = re.sub(r"\]\((?!https?://)([^)]+)\)", lambda m: f"]({GH_DOCS}{m.group(1)
 texte = texte.replace("$", "\\$")                                        # NT$ : pas de formule mathématique
 
 st.title("📚 Annexe : les sources du projet")
-st.markdown(texte)
+# Tous les tableaux du document à la même largeur, avec les mêmes colonnes (source, ce qu'elle appuie, utilisée dans) :
+# sans cela, chaque tableau Markdown se dimensionne selon son contenu
+st.markdown("""<style>
+.st-key-sources table { width: 100%; table-layout: fixed; }
+.st-key-sources th:nth-child(1), .st-key-sources td:nth-child(1) { width: 42%; }
+.st-key-sources th:nth-child(2), .st-key-sources td:nth-child(2) { width: 38%; }
+.st-key-sources th:nth-child(3), .st-key-sources td:nth-child(3) { width: 20%; }
+</style>""", unsafe_allow_html=True)
+st.container(key="sources").markdown(texte)
