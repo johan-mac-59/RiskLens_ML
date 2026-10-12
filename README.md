@@ -1,4 +1,4 @@
-# 🏦 RiskLens ML — Analyse & Prédiction du Défaut de Paiement 💳
+<p align="center"><img src="images/logo_risklens_compteur_texte.svg" alt="RiskLens ML" width="400"></p>
 
 ![Python](https://img.shields.io/badge/Python-3.14-blue.svg)
 ![SQL](https://img.shields.io/badge/SQL-SQLite3-blue.svg)

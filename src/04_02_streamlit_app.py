@@ -11,8 +11,8 @@ from streamlit_pages.commun import BASE_DIR, API_URL
 # CONFIGURATION & STYLE
 # ==============================================================================
 st.set_page_config(
-    page_title="RiskLens ML — Analyse & Prédiction du Défaut de Paiement",
-    page_icon="💳",
+    page_title="RiskLens ML — Analyse & Prédiction du Risque Crédit",
+    page_icon=str(BASE_DIR / "images" / "logo_risklens_compteur.svg"),
     layout="wide"
 )
 
@@ -57,8 +57,7 @@ st.markdown("""
 # ==============================================================================
 # NAVIGATION
 # ==============================================================================
-st.sidebar.image(str(BASE_DIR / "images" / "logo_risklens.svg"), width=250)
-st.sidebar.title("🏦 RiskLens ML — Analyse & Prédiction du Défaut de Paiement 💳")
+st.sidebar.image(str(BASE_DIR / "images" / "logo_risklens_compteur_texte.svg"), width=250)
 st.sidebar.markdown("---")
 
 # Pages (st.navigation) : les pages sont ajoutées au fur et à mesure de la migration
@@ -123,8 +122,8 @@ pages = {
         st.Page("streamlit_pages/annexe_sources.py", title="Les sources du projet", icon=":material/menu_book:"),
     ],
 }
-# Menu automatique masqué : il se placerait au-dessus du logo et du titre.
-# Le menu est reconstruit ci-dessous avec st.page_link, sous le logo et le titre.
+# Menu automatique masqué : il se placerait au-dessus du logo.
+# Le menu est reconstruit ci-dessous avec st.page_link, sous le logo.
 page = st.navigation(pages, position="hidden")
 for section, pages_section in pages.items():
     if section:
@@ -133,28 +132,28 @@ for section, pages_section in pages.items():
         st.sidebar.page_link(p)
 
 st.sidebar.markdown("---")
-st.sidebar.info("👨‍💻 **Développé par Johan**\n\n*Futur Data Analyst*")
+st.sidebar.info("**Développé par Johan**\n\n*Futur Data Analyst*")
 
 page.run()
 
 # Bandeau « Ressources & Contact », affiché en bas de toutes les pages
 st.markdown("---")
-st.markdown("### 🔗 Ressources & Contact")
+st.markdown("### Ressources & Contact")
 
 # On crée 3 colonnes pour un alignement parfait
 col_l1, col_l2, col_l3 = st.columns(3)
 
 with col_l1:
-    st.markdown("<h4 style='text-align: center;'>🛠️ Technique</h4>", unsafe_allow_html=True)
-    st.link_button("📖 Documentation API", f"{API_URL}/docs", width='stretch')
+    st.markdown("<h4 style='text-align: center;'>Technique</h4>", unsafe_allow_html=True)
+    st.link_button("Documentation API", f"{API_URL}/docs", width='stretch')
 
 with col_l2:
-    st.markdown("<h4 style='text-align: center;'>💻 Code</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center;'>Code</h4>", unsafe_allow_html=True)
     st.link_button("GitHub Repository", "https://github.com/johan-mac-59/RiskLens_ML", width='stretch')
     
 with col_l3:
-    st.markdown("<h4 style='text-align: center;'>🤝 Réseau</h4>", unsafe_allow_html=True)
-    st.link_button("💼 Mon profil LinkedIn", "https://www.linkedin.com/in/johan-machu/", width='stretch')
+    st.markdown("<h4 style='text-align: center;'>Réseau</h4>", unsafe_allow_html=True)
+    st.link_button("Mon profil LinkedIn", "https://www.linkedin.com/in/johan-machu/", width='stretch')
 
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: grey;'>RiskLens ML © 2026 — Projet Portfolio Data Analyst</p>", unsafe_allow_html=True)

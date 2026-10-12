@@ -3,7 +3,17 @@ from streamlit_pages.commun import *
 # ==============================================================================
 # SECTION 1 : ACCUEIL & PRÉSENTATION
 # ==============================================================================
-st.title("🏦 RiskLens ML — Analyse & Prédiction du Risque Crédit 💳")
+# En-tête : le logo seul, et à côté le nom aux couleurs du logo (bleu d'information, rouge pâle) puis le titre
+col_logo, col_titre = st.columns([1, 4], vertical_alignment="center")
+with col_logo:
+    st.image(str(BASE_DIR / "images" / "logo_risklens_compteur.svg"), width="stretch")
+with col_titre:
+    st.markdown(
+        "<div style='font-size: 3.2rem; font-weight: 700; line-height: 1.1; color: #0288D1;'>"
+        "RiskLens <span style='color: #CC6677;'>ML</span></div>",
+        unsafe_allow_html=True,
+    )
+    st.title("Analyse & Prédiction du Risque Crédit")
 
 
 # ------------------------------------------------------------------------------
