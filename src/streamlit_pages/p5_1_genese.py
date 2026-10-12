@@ -4,7 +4,7 @@ from streamlit_pages.commun import *
 # PARTIE 5.1 : LA GENÈSE
 # Introduction de la partie 5 : anomalies de l'EDA_lab qui ont lancé l'étude (cellules 130 à 135, données d'origine,
 # chiffres repris tels quels : ces données ne sont pas dans le dépôt, décision D19), hypothèse des deux systèmes
-# d'information, plafond du ML (première itération, sans chiffres), étude du contentieux et niveau 5, périmètre (clients sans dette en septembre : calcul en direct, descriptif)
+# d'information, plafond du ML (première itération, sans chiffres), étude de la population en incident et niveau 3 du nettoyage, périmètre (clients sans dette en septembre : calcul en direct, descriptif)
 # et méthode (périmètre et découpage identiques aux notebooks d'étude et du ML).
 # ==============================================================================
 GH_RACINE = "https://github.com/johan-mac-59/RiskLens_ML/blob/main"

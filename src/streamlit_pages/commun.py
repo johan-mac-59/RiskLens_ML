@@ -423,14 +423,14 @@ LIBELLES_STATUTS = {
 }
 
 
-def statut_contentieux(d):
+def statut_incident(d):
     """Statut de chaque client à M, lu dans STATUT_INCIDENT."""
     return pd.Series(pd.Categorical(d["STATUT_INCIDENT"], categories=NOMS_STATUTS), index=d.index)
 
 
 @st.cache_data
 def _decoupage_partie_5(chemin, date_modification):
-    """Périmètre du contentieux et découpage train / test, identiques à ceux de l'étude du contentieux et de la première itération du ML :
+    """Périmètre S12 et découpage train / test, identiques à ceux de l'étude de la population en incident (05_02) et de la première itération du ML :
     encours positif en septembre et plafond <= 500 000 NT$ (S12), 80/20, stratifié sur dpnm, random_state=42."""
     from sklearn.model_selection import train_test_split
     df = pd.read_csv(chemin)
@@ -446,11 +446,11 @@ def etiquette_grise(fig, x, y, texte, yshift=12, xshift=0):
 
 
 def donnees_partie_5():
-    """Population retenue, périmètre du contentieux (S12), jeux d'entraînement et de test, avec le statut de chaque client."""
+    """Population retenue, périmètre S12, jeux d'entraînement et de test, avec le statut de chaque client."""
     # Statuts calculés hors du cache : un changement de libellé ou de règle est pris en compte sans vider le cache
     donnees = [d.copy() for d in _decoupage_partie_5(DATA_PATH, DATA_PATH.stat().st_mtime)]
     for d in donnees[1:]:
-        d["STATUT"] = statut_contentieux(d)
+        d["STATUT"] = statut_incident(d)
     return donnees
 
 
@@ -1013,15 +1013,15 @@ def lire_lot_api(ids):
 
 # ==============================================================================
 # PARTIE 8 : LE SYSTÈME DU PROJET FACE AU MODÈLE BRUT, SUR LES MÊMES CLIENTS (pages 8.1 et 8.2)
-# Clients de la démo 1 (test du ML + 20 % du contentieux du périmètre, 5 441 clients), jamais vus par aucun des deux :
-# - système du projet : règle du contentieux, puis CatBoost de ml_14 (données nettoyées de dataset_streamlit.csv) ;
+# Clients de la démo 1 (test du ML + 20 % des deux populations des règles métier, 5 441 clients), jamais vus par aucun des deux :
+# - système du projet : règles métier (en incident à M, retard imminent), puis CatBoost de ml_17 (données nettoyées de dataset_streamlit.csv) ;
 # - modèle brut de la démo 3 : CatBoost sur les 23 variables d'origine, chaque client noté par le modèle de pli qui ne
 #   l'a pas vu (données d'origine de clients_bruts_demo.csv, qui contient tous ces clients).
 # Fichiers préparés par lab_ML/demo_ML/creation_demo_ML.ipynb et creation_demo_3.ipynb.
 # ==============================================================================
 @st.cache_data
 def systemes_sur_clients_demo():
-    """Une ligne par client : défaut constaté, contentieux, probabilité de ml_14 (hors contentieux), score du modèle brut,
+    """Une ligne par client : défaut constaté, règles métier, probabilité de ml_17 (hors règles métier), score du modèle brut,
     codifications d'origine. Le défaut constaté des deux fichiers est contrôlé client par client."""
     import joblib
     dossier = BASE_DIR / "lab_ML" / "demo_ML"
@@ -1045,9 +1045,7 @@ def systemes_sur_clients_demo():
         if dans_pli.any():
             score_brut[dans_pli] = modele.predict_proba(bruts.loc[dans_pli, brut["variables"]])[:, 1]
 
-    # « contentieux » et « proba_ml14 » : anciens noms lus par les pages 8.1 et 8.2, gardés jusqu'à leur réécriture
-    sortie = pd.DataFrame({"ID": projet["ID"], "dpnm": projet["dpnm"], "regles": ctx, "proba_modele": proba, "contentieux": ctx,
-                           "proba_ml14": proba, "score_brut": score_brut})
+    sortie = pd.DataFrame({"ID": projet["ID"], "dpnm": projet["dpnm"], "regles": ctx, "proba_modele": proba, "score_brut": score_brut})
     for n in range(1, 7):
         sortie[f"PAY_{n}_origine"] = bruts[f"PAY_{n}"].values
     return sortie

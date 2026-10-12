@@ -2,10 +2,10 @@ from streamlit_pages.commun import *
 
 # ==============================================================================
 # PARTIE 4.6 : LES RETARDS
-# Codifications corrigées au nettoyage (niveau 5 : faux retards neutralisés, mois de
-# transition recodé). Graphiques repris du notebook storytelling (cellules 39, 41, 43) ;
+# Codifications corrigées au nettoyage (niveau 2 : codifications 1 de septembre remplacées ;
+# niveau 3 : retards d'avril à juin uniformisés). Graphiques repris du notebook storytelling (cellules 39, 41, 43) ;
 # CUMUL_INCIDENT est lue dans le CSV (simple comptage créé dans le storytelling).
-# Les indicateurs du contentieux ne sont pas utilisés ici : ils sont présentés en partie 5.
+# Les indicateurs de la population en incident ne sont pas utilisés ici : ils sont présentés en partie 5.
 # ==============================================================================
 df = load_data()
 taux_moyen = df["dpnm"].mean() * 100
