@@ -59,7 +59,7 @@ Conséquence sur les banques : les impayés pèsent directement sur leurs compte
 
 ## Recherche de Yeh & Lien
 
-D'après l'étude elle-même ([Yeh et Lien (2009), traduction](traduction_DefaultCreditCardClients_yeh_2009.md)) :
+D'après l'étude elle-même ([Yeh et Lien (2009)](https://doi.org/10.1016/j.eswa.2007.12.020), [résumé en français](resume_yeh_lien_2009.md)) :
 
 1. Le contexte
 Les émetteurs de cartes de crédit taïwanais font face à une crise de la dette des cartes de crédit et de retrait d'espèces, dont les impayés devaient atteindre leur pic au troisième trimestre 2006 (l'étude cite Chou, 2006). Les créances douteuses augmentent fortement dès le second semestre 2005 (voir la chronologie).
@@ -100,7 +100,7 @@ C'est d'ailleurs pour éviter ce scénario que certaines autorités réglementai
 
 
 **Sources consultées**
-- I-Cheng Yeh et Che-hui Lien (2009), « The comparisons of data mining techniques for the predictive accuracy of probability of default of credit card clients », Expert Systems with Applications ([PDF](DefaultCreditCardClients_yeh_2009.pdf), [traduction](traduction_DefaultCreditCardClients_yeh_2009.md))
+- I-Cheng Yeh et Che-hui Lien (2009), « The comparisons of data mining techniques for the predictive accuracy of probability of default of credit card clients », Expert Systems with Applications ([article](https://doi.org/10.1016/j.eswa.2007.12.020), [PDF](https://bradzzz.gitbooks.io/ga-dsi-seattle/content/dsi/dsi_05_classification_databases/2.1-lesson/assets/datasets/DefaultCreditCardClients_yeh_2009.pdf), [résumé en français](resume_yeh_lien_2009.md))
 - [UCI Machine Learning Repository, « Default of Credit Card Clients »](https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients)
 - [Banque centrale de Taïwan, rapport annuel 2005](https://www.cbc.gov.tw/public/data/publications/year2005/05ar_i-1.pdf) et [chapitre sur la politique monétaire](https://www.cbc.gov.tw/public/data/publications/year2005/05ar_iii-2.pdf)
 - [FSC (Banking Bureau), notice du 7 janvier 2008 sur la règle DBR22](https://law.banking.gov.tw/chi/NewsContent.aspx?msgid=1018)

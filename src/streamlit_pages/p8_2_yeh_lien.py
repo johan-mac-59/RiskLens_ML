@@ -10,7 +10,8 @@ from streamlit_pages.commun import *
 # le périmètre du projet (les 5 441 clients de la démo 1, jamais vus, calcul en direct, commun.py).
 # ==============================================================================
 GH_RACINE = "https://github.com/johan-mac-59/RiskLens_ML/blob/main"
-TRADUCTION = f"{GH_RACINE}/docs/traduction_DefaultCreditCardClients_yeh_2009.md"
+ARTICLE = "https://doi.org/10.1016/j.eswa.2007.12.020"
+RESUME = f"{GH_RACINE}/docs/resume_yeh_lien_2009.md"
 TABLEAU_ML_1 = f"{GH_RACINE}/lab_ML/1ere_iteration/tableau_ML.md"
 ESSAI_BASE = f"{GH_RACINE}/lab_ML/comparatif_global/essai_jeu_de_base.ipynb"
 ESSAI_BASE_DEUX = f"{GH_RACINE}/lab_ML/comparatif_global/essai_jeu_de_base_deux_populations.ipynb"
@@ -70,7 +71,7 @@ entete_partie_8()
 st.markdown("---")
 st.header("8.2 Comparaison avec Yeh et Lien (2009), dans leurs propres métriques", anchor="yeh-lien")
 st.markdown(f"""
-Ce dataset vient de l'étude de **I-Cheng Yeh et Che-hui Lien (2009)**, qui comparait six méthodes pour repérer les clients à risque ([traduction en français]({TRADUCTION})). C'est le repère naturel du projet. L'étude ne publie ni rappel ni précision : seulement **deux mesures**, que cette page reprend telles quelles :
+Ce dataset vient de l'étude de **I-Cheng Yeh et Che-hui Lien (2009)**, qui comparait six méthodes pour repérer les clients à risque ([article]({ARTICLE}), [résumé en français]({RESUME})). C'est le repère naturel du projet. L'étude ne publie ni rappel ni précision : seulement **deux mesures**, que cette page reprend telles quelles :
 - le **taux d'erreur** : la part des clients mal classés, qu'ils soient déclarés en défaut à tort ou que leur défaut soit manqué ;
 - le **ratio de surface** du graphique de lift : la qualité du tri, de 0 (au hasard) à 1 (tri parfait). Il se convertit directement en ROC AUC : ratio de surface = 2 × AUC − 1, soit un AUC de 0,77 pour le meilleur modèle de l'étude.
 """)
@@ -113,7 +114,7 @@ lignes += [
      nombre_fr(ratio_brut, 2)],
 ]
 tableau_html(["Niveau", "Approche", "Taux d'erreur", "Ratio de surface (qualité du tri)"], lignes, largeurs=[22, 44, 16, 18])
-st.caption(f"Étude d'origine : Tableau 1, échantillon de validation ([traduction]({TRADUCTION})). Périmètre global : chiffres repris tels quels des essais sur le fichier brut ([un modèle sur tous les clients]({ESSAI_BASE}) ; [codification de la banque, puis un modèle]({ESSAI_BASE_DEUX})), au seuil qui ne signale un client que s'il a au moins une chance sur deux d'être en défaut, ce qui revient à chercher le taux d'erreur le plus bas ; les probabilités ne sont pas dans le dépôt. Périmètre du projet : calcul en direct ; le taux d'erreur y est donné aux paliers du projet (seuils fixés sur l'entraînement, page 6.4). Pour une règle (oui / non), le ratio de surface vaut la part des défauts trouvés moins la part des bons clients signalés.")
+st.caption(f"Étude d'origine : Tableau 1, échantillon de validation ([article]({ARTICLE}), [résumé en français]({RESUME})). Périmètre global : chiffres repris tels quels des essais sur le fichier brut ([un modèle sur tous les clients]({ESSAI_BASE}) ; [codification de la banque, puis un modèle]({ESSAI_BASE_DEUX})), au seuil qui ne signale un client que s'il a au moins une chance sur deux d'être en défaut, ce qui revient à chercher le taux d'erreur le plus bas ; les probabilités ne sont pas dans le dépôt. Périmètre du projet : calcul en direct ; le taux d'erreur y est donné aux paliers du projet (seuils fixés sur l'entraînement, page 6.4). Pour une règle (oui / non), le ratio de surface vaut la part des défauts trouvés moins la part des bons clients signalés.")
 st.markdown(f"""
 - **Sur le même fichier que l'étude, le tri est un peu meilleur** : un ratio de surface de 0,56 à 0,57, contre 0,54 pour son meilleur modèle, que les clients à risque soient séparés par la codification de la banque ou non. L'écart est faible, et attendu avec des modèles plus récents.
 - **Sur le périmètre du projet, le tri est du même ordre** : {nombre_fr(ratio_projet, 2)} pour le système du projet, {nombre_fr(ratio_brut, 2)} pour le modèle brut, sur les mêmes clients. Le nettoyage et le travail du projet ne déplacent pas ce niveau (page 8.1, sous-partie 3) : **la limite vient des données**, pas des modèles (page 6.5).
