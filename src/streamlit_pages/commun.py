@@ -878,7 +878,7 @@ def _statut_incident(d):
     mois_sortie = pd.Series(mois_sortie, index=d.index)
     mois_sortie[incident_m] = -1
     mois_regularisation = pd.Series(mois_regularisation, index=d.index)
-    mois_regularisation[incident_m] = np.nan
+    mois_regularisation[incident_m] = -1
     return pd.DataFrame({"STATUT_INCIDENT": statut, "MOIS_SORTIE_INCIDENT": mois_sortie,
                          "FLAG_INCIDENT": (passage_incident | incident_m).astype(int), "MOIS_SORTIE_RETARD": mois_regularisation,
                          "FLAG_RETARD": (retard_regularise & ~incident_m).astype(int), "FLAG_RETARD_IMMINENT": retard_imminent.astype(int)})
