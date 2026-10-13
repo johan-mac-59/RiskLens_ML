@@ -20,8 +20,8 @@
   ],
   "statut_paiement": [
     {"code_statut_paiement": -2, "description": "crédit non utilisé, paiement au comptant"},
-    {"code_statut_paiement": -1, "description": "A jour de paiement"},
-    {"code_statut_paiement": 0, "description": "A jour de paiement"},
+    {"code_statut_paiement": -1, "description": "A jour de paiement, usage mixte"},
+    {"code_statut_paiement": 0, "description": "A jour de paiement, usage à crédit"},
     {"code_statut_paiement": 1, "description": "Alerte / incident en cours"},
     {"code_statut_paiement": 2, "description": "Compte en incident / Retard 2 mois"},
     {"code_statut_paiement": 3, "description": "Retard 3 mois"},
