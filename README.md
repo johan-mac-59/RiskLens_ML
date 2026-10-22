@@ -104,7 +104,7 @@ Le schéma résume le parcours ; voici le détail de chaque étape, dans le mêm
 #### 8. Dashboard Streamlit et slides de restitution
 *   Dashboard interactif sous **Streamlit**, construit au fil de l'analyse : chaque graphique et chaque chiffre est recalculé en direct sur les données : [accéder au site](https://risklens-ml.streamlit.app/)
 *   Application : [routeur](src/04_02_streamlit_app.py), une page par sous-partie dans [`src/streamlit_pages/`](src/streamlit_pages/), code partagé dans [`commun.py`](src/streamlit_pages/commun.py).
-*   Slides de restitution, qui résument le site pour une présentation orale à un public non technique.
+*   Présentation de restitution, qui résume le site pour une présentation orale à tout public (aucune connaissance en analyse de données ni en apprentissage automatique n'est nécessaire) : [diapos en PDF](presentation/RiskLensML_Restitution.pdf) et [texte de présentation](presentation/texte_presentation.md).
 
 ---
 
